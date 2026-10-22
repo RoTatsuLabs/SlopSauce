@@ -50,6 +50,7 @@ abstract class BasePagerReaderFragment : BaseReaderFragment<FragmentReaderPagerB
 	lateinit var pageLoader: PageLoader
 
 	private var pagerLifecycleDispatcher: PagerLifecycleDispatcher? = null
+	private var mihonScroller: MihonPageScroller? = null
 
 	override fun onCreateViewBinding(
 		inflater: LayoutInflater,
@@ -63,6 +64,7 @@ abstract class BasePagerReaderFragment : BaseReaderFragment<FragmentReaderPagerB
 		super.onViewBindingCreated(binding, savedInstanceState)
 		with(binding.pager) {
 			onInitPager(this)
+			mihonScroller = MihonPageScroller(this)
 			doOnPageChanged(::notifyPageChanged)
 			setOnGenericMotionListener(this@BasePagerReaderFragment)
 			if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -80,6 +82,7 @@ abstract class BasePagerReaderFragment : BaseReaderFragment<FragmentReaderPagerB
 				ReaderAnimation.NONE -> NoAnimPageTransformer(binding.pager.orientation)
 				ReaderAnimation.DEFAULT -> null
 				ReaderAnimation.ADVANCED -> onCreateAdvancedTransformer()
+				ReaderAnimation.MIHON -> null
 			}
 			binding.pager.setPageTransformer(transformer)
 			if (transformer == null) {
@@ -91,6 +94,8 @@ abstract class BasePagerReaderFragment : BaseReaderFragment<FragmentReaderPagerB
 	}
 
 	override fun onDestroyView() {
+		mihonScroller?.cancel()
+		mihonScroller = null
 		pagerLifecycleDispatcher = null
 		requireViewBinding().pager.adapter = null
 		super.onDestroyView()
@@ -130,6 +135,7 @@ abstract class BasePagerReaderFragment : BaseReaderFragment<FragmentReaderPagerB
 			}
 			items.join()
 			if (position != -1) {
+				mihonScroller?.finish()
 				requireViewBinding().pager.setCurrentItem(position, false)
 				notifyPageChanged(position)
 			} else {
@@ -151,24 +157,33 @@ abstract class BasePagerReaderFragment : BaseReaderFragment<FragmentReaderPagerB
 
 	override fun switchPageBy(delta: Int) {
 		with(requireViewBinding().pager) {
-			val target = currentItem + delta
+			val target = (mihonScroller?.currentItem ?: currentItem) + delta
 			val lastIndex = (adapter?.itemCount ?: 0) - 1
 			if (lastIndex >= 0 && target !in 0..lastIndex) {
 				// Trying to page past the very first / last loaded page — give a "blocked" cue
 				// instead of silently doing nothing.
 				hapticFeedback(HapticEffect.REJECT)
 			}
+			if (scrollMihon(target)) return
+			mihonScroller?.finish()
 			setCurrentItem(target, isAnimationEnabled())
 		}
 	}
 
 	override fun switchPageTo(position: Int, smooth: Boolean) {
 		with(requireViewBinding().pager) {
-			setCurrentItem(
-				position,
-				smooth && isAnimationEnabled() && (currentItem - position).absoluteValue < SMOOTH_SCROLL_LIMIT,
-			)
+			val current = mihonScroller?.currentItem ?: currentItem
+			val animate = smooth && isAnimationEnabled() && (current - position).absoluteValue < SMOOTH_SCROLL_LIMIT
+			if (animate && scrollMihon(position)) return
+			mihonScroller?.finish()
+			setCurrentItem(position, animate)
 		}
+	}
+
+	private fun scrollMihon(target: Int): Boolean {
+		return viewModel.pageAnimation.value == ReaderAnimation.MIHON &&
+			isAnimationEnabled() &&
+			mihonScroller?.scrollTo(target) == true
 	}
 
 	override fun getCurrentState(): ReaderState? = viewBinding?.run {
