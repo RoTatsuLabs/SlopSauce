@@ -800,6 +800,8 @@
     <string name="two_page_scroll_sensitivity">Two-Page Scroll Sensitivity</string>
     <string name="webtoon_zoom">Webtoon zoom</string>
     <string name="webtoon_zoom_summary">Allow zoom in gesture or using double tap in webtoon mode</string>
+    <string name="webtoon_zoom_out_disabled">Disable zoom out</string>
+    <string name="webtoon_zoom_out_disabled_summary">Keep webtoon pages from shrinking below full width. Zooming in still works</string>
     <string name="default_webtoon_zoom_out">Default webtoon zoom out</string>
     <string name="fullscreen_mode">Fullscreen mode</string>
     <string name="reader_fullscreen_summary">Hide system status and navigation bars</string>

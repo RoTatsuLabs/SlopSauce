@@ -67,6 +67,9 @@ class WebtoonReaderFragment : BaseReaderFragment<FragmentReaderWebtoonBinding>()
 		viewModel.isWebtoonZoomEnabled.observe(viewLifecycleOwner) {
 			binding.frame.isZoomEnable = it
 		}
+		viewModel.isWebtoonZoomOutDisabled.observe(viewLifecycleOwner) {
+			binding.frame.isZoomOutEnabled = !it
+		}
 		viewModel.defaultWebtoonZoomOut.take(1).observe(viewLifecycleOwner) {
 			binding.frame.zoom = 1f - it
 		}

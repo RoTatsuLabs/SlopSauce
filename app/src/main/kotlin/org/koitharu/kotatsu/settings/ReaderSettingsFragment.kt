@@ -114,6 +114,7 @@ private fun ReaderScreen(
 	var zoomMode by rememberStringPref(AppSettings.KEY_ZOOM_MODE, ZoomMode.FIT_CENTER.name)
 	var readerZoomButtons by rememberBooleanPref(AppSettings.KEY_READER_ZOOM_BUTTONS, false)
 	var webtoonZoom by rememberBooleanPref(AppSettings.KEY_WEBTOON_ZOOM, true)
+	var webtoonZoomOutDisabled by rememberBooleanPref(AppSettings.KEY_WEBTOON_ZOOM_OUT_DISABLED, false)
 	var webtoonZoomOut by rememberIntPref(AppSettings.KEY_WEBTOON_ZOOM_OUT, 0)
 	var webtoonGaps by rememberBooleanPref(AppSettings.KEY_WEBTOON_GAPS, false)
 	var readerTapsLtr by rememberBooleanPref(AppSettings.KEY_READER_CONTROL_LTR, false)
@@ -235,6 +236,18 @@ private fun ReaderScreen(
 					)
 				}
 				item { pos ->
+					SwitchSettingsItem(
+						title = stringResource(R.string.webtoon_zoom_out_disabled),
+						subtitle = stringResource(R.string.webtoon_zoom_out_disabled_summary),
+						checked = webtoonZoomOutDisabled,
+						onCheckedChange = { webtoonZoomOutDisabled = it },
+						icon = R.drawable.ic_zoom_out,
+
+						shape = pos.shape,
+						enabled = webtoonZoom,
+					)
+				}
+				item { pos ->
 					SliderSettingsItem(
 						title = stringResource(R.string.default_webtoon_zoom_out),
 						value = webtoonZoomOut,
@@ -246,7 +259,7 @@ private fun ReaderScreen(
 						icon = R.drawable.ic_zoom_out,
 						
 						shape = pos.shape,
-						enabled = webtoonZoom,
+						enabled = webtoonZoom && !webtoonZoomOutDisabled,
 					)
 				}
 				item { pos ->
