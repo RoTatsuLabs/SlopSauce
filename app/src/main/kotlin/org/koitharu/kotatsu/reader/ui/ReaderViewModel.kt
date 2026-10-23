@@ -203,7 +203,13 @@ class ReaderViewModel @Inject constructor(
     val isWebtoonZoomEnabled = observeIsWebtoonZoomEnabled()
         .stateIn(viewModelScope + Dispatchers.Default, SharingStarted.Lazily, false)
 
-    val defaultWebtoonZoomOut = observeIsWebtoonZoomEnabled().flatMapLatest {
+    val isWebtoonZoomOutDisabled = observeIsWebtoonZoomOutDisabled()
+        .stateIn(viewModelScope + Dispatchers.Default, SharingStarted.Lazily, false)
+
+    val defaultWebtoonZoomOut = combine(
+        observeIsWebtoonZoomEnabled(),
+        observeIsWebtoonZoomOutDisabled(),
+    ) { zoomEnabled, zoomOutDisabled -> zoomEnabled && !zoomOutDisabled }.flatMapLatest {
         if (it) {
             observeWebtoonZoomOut()
         } else {
@@ -808,6 +814,11 @@ class ReaderViewModel @Inject constructor(
     private fun observeIsWebtoonZoomEnabled() = settings.observeAsFlow(
         key = AppSettings.KEY_WEBTOON_ZOOM,
         valueProducer = { isWebtoonZoomEnabled },
+    )
+
+    private fun observeIsWebtoonZoomOutDisabled() = settings.observeAsFlow(
+        key = AppSettings.KEY_WEBTOON_ZOOM_OUT_DISABLED,
+        valueProducer = { isWebtoonZoomOutDisabled },
     )
 
     private fun observeWebtoonZoomOut() = settings.observeAsFlow(

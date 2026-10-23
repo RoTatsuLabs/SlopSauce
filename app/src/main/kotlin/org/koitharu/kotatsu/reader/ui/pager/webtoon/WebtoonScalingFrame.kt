@@ -64,6 +64,18 @@ class WebtoonScalingFrame @JvmOverloads constructor(
 			}
 		}
 
+	var isZoomOutEnabled = true
+		set(value) {
+			field = value
+			if (!value && scale < 1f) {
+				scaleChild(1f, halfWidth, halfHeight)
+				onPostScale(invalidateLayout = true)
+			}
+		}
+
+	private val minScale
+		get() = if (isZoomOutEnabled) MIN_SCALE else 1f
+
 	var zoom: Float
 		get() = scale
 		set(value) {
@@ -106,7 +118,7 @@ class WebtoonScalingFrame @JvmOverloads constructor(
 						event.getAxisValue(MotionEvent.AXIS_VSCROLL) * ViewConfigurationCompat.getScaledVerticalScrollFactor(
 							ViewConfiguration.get(context), context,
 						)
-					val newScale = (scale + axisValue).coerceIn(MIN_SCALE, MAX_SCALE)
+					val newScale = (scale + axisValue).coerceIn(minScale, MAX_SCALE)
 					scaleChild(newScale, event.x, event.y)
 					return true
 				}
@@ -253,7 +265,7 @@ class WebtoonScalingFrame @JvmOverloads constructor(
 	}
 
 	override fun onScale(detector: ScaleGestureDetector): Boolean {
-		val newScale = (scale * detector.scaleFactor).coerceIn(MIN_SCALE, MAX_SCALE)
+		val newScale = (scale * detector.scaleFactor).coerceIn(minScale, MAX_SCALE)
 		return scaleChild(newScale, detector.focusX, detector.focusY)
 	}
 
@@ -278,7 +290,7 @@ class WebtoonScalingFrame @JvmOverloads constructor(
 	}
 
 	private fun smoothScaleTo(target: Float) {
-		val newScale = target.coerceIn(MIN_SCALE, MAX_SCALE)
+		val newScale = target.coerceIn(minScale, MAX_SCALE)
 		animator?.cancel()
 		animator = ValueAnimator.ofFloat(scale, newScale).apply {
 			setDuration(context.getAnimationDuration(android.R.integer.config_shortAnimTime))
