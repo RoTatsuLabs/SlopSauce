@@ -13,7 +13,7 @@ import kotlin.math.absoluteValue
  */
 object MihonPageScroll {
 
-	private const val MAX_DURATION_MS = 600L
+	const val MAX_DURATION_MS = 600L
 
 	val interpolator = Interpolator { t ->
 		val x = t - 1f

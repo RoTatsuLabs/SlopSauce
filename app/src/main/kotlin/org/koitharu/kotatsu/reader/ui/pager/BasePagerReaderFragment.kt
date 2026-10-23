@@ -65,6 +65,9 @@ abstract class BasePagerReaderFragment : BaseReaderFragment<FragmentReaderPagerB
 		with(binding.pager) {
 			onInitPager(this)
 			mihonScroller = MihonPageScroller(this)
+			MihonSwipeSettler(this) {
+				viewModel.pageAnimation.value == ReaderAnimation.MIHON && isAnimationEnabled()
+			}.attach()
 			doOnPageChanged(::notifyPageChanged)
 			setOnGenericMotionListener(this@BasePagerReaderFragment)
 			if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
