@@ -98,6 +98,16 @@ SlopSauce is a free and open-source comic and novel reader for Android, built to
 
 </details>
 
+## Star History
+
+<a href="https://www.star-history.com/?repos=rotatsulabs%2Fslopsauce&type=date&releases=&legend=bottom-right">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=rotatsulabs/slopsauce&type=date&theme=dark&legend=bottom-right" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=rotatsulabs/slopsauce&type=date&legend=bottom-right" />
+   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=rotatsulabs/slopsauce&type=date&legend=bottom-right" />
+ </picture>
+</a>
+
 ## Install
 
 1. Open the [latest GitHub release](https://github.com/RoTatsuLabs/SlopSauce/releases/latest).
