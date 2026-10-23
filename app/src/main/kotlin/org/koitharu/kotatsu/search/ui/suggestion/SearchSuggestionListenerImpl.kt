@@ -35,7 +35,12 @@ class SearchSuggestionListenerImpl(
 			// Deliberately left open: coming back from the results lands on the search bar again.
 		} else {
 			searchView.setText(query)
+			searchView.editText.setSelection(searchView.editText.length())
 		}
+	}
+
+	override fun onRemoveQuery(query: String) {
+		viewModel.deleteQuery(query)
 	}
 
 	override fun onTagClick(tag: MangaTag) {
