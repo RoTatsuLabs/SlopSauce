@@ -14,6 +14,7 @@ import kotlinx.coroutines.yield
 import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.core.os.NetworkState
 import org.koitharu.kotatsu.core.prefs.AppSettings
+import org.koitharu.kotatsu.core.prefs.ReaderAnimation
 import org.koitharu.kotatsu.core.ui.list.lifecycle.RecyclerViewLifecycleDispatcher
 import org.koitharu.kotatsu.core.util.ext.firstVisibleItemPosition
 import org.koitharu.kotatsu.databinding.FragmentReaderDoubleBinding
@@ -21,6 +22,7 @@ import org.koitharu.kotatsu.reader.domain.PageLoader
 import org.koitharu.kotatsu.reader.ui.ReaderState
 import org.koitharu.kotatsu.reader.ui.pager.BaseReaderAdapter
 import org.koitharu.kotatsu.reader.ui.pager.BaseReaderFragment
+import org.koitharu.kotatsu.reader.ui.pager.MihonPageScroll
 import org.koitharu.kotatsu.reader.ui.pager.ReaderPage
 import javax.inject.Inject
 import kotlin.math.absoluteValue
@@ -116,7 +118,11 @@ open class DoubleReaderFragment : BaseReaderFragment<FragmentReaderDoubleBinding
 		}
 		val rv = viewBinding?.recyclerView ?: return
 		val distance = rv.width * delta
-		rv.smoothScrollBy(distance, 0, AccelerateDecelerateInterpolator())
+		if (viewModel.pageAnimation.value == ReaderAnimation.MIHON) {
+			rv.smoothScrollBy(distance, 0, MihonPageScroll.interpolator, MihonPageScroll.durationFor(delta).toInt())
+		} else {
+			rv.smoothScrollBy(distance, 0, AccelerateDecelerateInterpolator())
+		}
 	}
 
 	override fun switchPageTo(position: Int, smooth: Boolean) {
