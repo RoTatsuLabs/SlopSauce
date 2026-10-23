@@ -630,16 +630,11 @@
     <string name="main_screen_fab_summary">ワンクリックで読み続けられます。このボタンはシークレットモード時や履歴が空の時には表示されません</string>
     <string name="error_corrupted_zip">破損したZIPアーカイブ(%s)</string>
     <string name="discord_rpc">Discord リッチプレゼンス</string>
-    <string name="discord_token">Discordトークン</string>
-    <string name="discord_token_summary">リッチプレゼンスを有効にするには、Discordトークンを入力してください</string>
-    <string name="discord_token_description">Discord トークンを入力するか、%s をクリックしてブラウザーで取得します</string>
-    <string name="discord_token_hint">ここにDiscordトークンを貼り付けてください</string>
     <string name="discord_rpc_summary">Discordで読み取りステータスを表示</string>
     <string name="discord_rpc_description">Kotatsuで漫画を読む - 漫画リーダーアプリ</string>
     <string name="reading_s">読書 %s</string>
     <string name="read_on_s">%s で読む</string>
     <string name="rpc_skip_nsfw_summary">成人向けコンテンツに RPC を使用しないでください</string>
-    <string name="invalid_token">無効なトークン: %s</string>
     <string name="show_floating_control_button">「続行」ボタンをフローティングで表示</string>
     <string name="unavailable">利用案内</string>
     <string name="manga_restricted_description">このマンガは、このソースで読み込むことはできません。 他のソースで検索するか、ブラウザで開くと、より多くの情報が得られます</string>

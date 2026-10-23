@@ -674,16 +674,11 @@
     <string name="main_screen_fab_summary">Membolehkan terus membaca dalam satu klik. Butang ini tidak akan muncul dalam mod penyamaran atau ketika sejarah kosong</string>
     <string name="error_corrupted_zip">Arkib zip yang rosak (%s)</string>
     <string name="discord_rpc">Discord Kehadiran yang kaya</string>
-    <string name="discord_token">Token Discord</string>
-    <string name="discord_token_summary">Masukkan token Discord anda untuk membolehkan kehadiran yang kaya</string>
-    <string name="discord_token_description">Masukkan token atau klik Discord anda atau klik %s untuk menggunakannya menggunakan penyemak imbas</string>
-    <string name="discord_token_hint">Tampalkan token Discord anda di sini</string>
     <string name="discord_rpc_summary">Tunjukkan status bacaan anda pada Discord</string>
     <string name="discord_rpc_description">Membaca Manga di DropSauce - Aplikasi Pembaca Manga</string>
     <string name="reading_s">Membaca %s</string>
     <string name="read_on_s">Baca terus %s</string>
     <string name="rpc_skip_nsfw_summary">Jangan gunakan RPC untuk kandungan dewasa</string>
-    <string name="invalid_token">Token tidak sah: %s</string>
     <string name="show_floating_control_button">Tunjukkan butang kawalan terapung</string>
     <string name="unavailable">Tidak tersedia</string>
     <string name="manga_restricted_description">Manga ini tidak tersedia untuk dibaca dalam sumber ini. Cuba cari di sumber lain atau membukanya dalam penyemak imbas untuk maklumat lanjut</string>

@@ -698,16 +698,11 @@
     <string name="main_screen_fab">Паказаць плаваючую кнопку «Працягнуць»</string>
     <string name="main_screen_fab_summary">Дазваляе працягнуць чытанне адным пстрычкай мышы. Гэтая кнопка не адлюстроўваецца ў рэжыме інкогніта або калі гісторыя пустая</string>
     <string name="error_corrupted_zip">Пашкоджаны ZIP-архіў (%s)</string>
-    <string name="discord_token">Токен Discord</string>
-    <string name="discord_token_summary">Увядзіце свой токен Discord, каб уключыць Rich Presence</string>
-    <string name="discord_token_description">Увядзіце свой токен Discord або націсніце %s, каб атрымаць яго з дапамогай браўзера</string>
-    <string name="discord_token_hint">Устаўце сюды свой токен Discord</string>
     <string name="discord_rpc_summary">Пакажыце свой статус чытання ў Discord</string>
     <string name="discord_rpc_description">Чытанне мангі на DropSauce - праграма для чытання мангі</string>
     <string name="reading_s">Чытанне %s</string>
     <string name="read_on_s">Чытаць далей %s</string>
     <string name="rpc_skip_nsfw_summary">Не выкарыстоўваць RPC для дарослага кантэнту</string>
-    <string name="invalid_token">Няправільны токен: %s</string>
     <string name="show_floating_control_button">Паказаць плаваючую кнопку кіравання</string>
     <string name="unavailable">Недаступна</string>
     <string name="manga_restricted_description">Гэтая манга недаступная для чытання на гэтай крыніцы. Паспрабуйце знайсці яе на іншых крыніцах або адкрыйце ў браўзеры для атрымання дадатковай інфармацыі</string>

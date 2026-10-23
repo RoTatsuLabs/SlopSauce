@@ -665,16 +665,11 @@
     <string name="main_screen_fab">Mostra il pulsante fluttuante Continua</string>
     <string name="main_screen_fab_summary">Permette di continuare la lettura con un solo tocco. Questo pulsante non apparirà in modalità in incognito o quando la cronologia è vuota</string>
     <string name="error_corrupted_zip">Archivio ZIP danneggato (%s)</string>
-    <string name="discord_token">Token Discord</string>
     <string name="discord_rpc_summary">Mostra il tuo stato di lettura su Discord</string>
     <string name="discord_rpc_description">Leggendo manga su DropSauce - un’app per leggere manga</string>
     <string name="reading_s">Leggendo %s</string>
     <string name="read_on_s">Leggendo su %s</string>
-    <string name="invalid_token">Token non valido: %s</string>
     <string name="show_floating_control_button">Mostra pulsante di controllo fluttuante</string>
-    <string name="discord_token_summary">Inserisci il tuo token Discord per abilitare la Rich Presence</string>
-    <string name="discord_token_description">Inserisci il tuo token Discord o clicca %s per ottenerlo utilizzando il browser</string>
-    <string name="discord_token_hint">Incolla il tuo token Discord qui</string>
     <string name="rpc_skip_nsfw_summary">Non utilizzare RPC per contenuti per adulti</string>
     <string name="unavailable">Non disponibile</string>
     <string name="manga_restricted_description">Questo manga non è disponibile per la lettura da questa fonte. Prova a cercarlo in altre fonti o aprilo in un browser per maggiori informazioni</string>

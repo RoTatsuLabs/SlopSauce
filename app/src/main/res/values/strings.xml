@@ -1220,16 +1220,17 @@
     <string name="error_corrupted_zip">Corrupted ZIP archive (%s)</string>
     <string name="discord" translatable="false">Discord</string>
     <string name="discord_rpc">Discord Rich Presence</string>
-    <string name="discord_token">Discord Token</string>
-    <string name="discord_token_summary">Enter your Discord Token to enable Rich Presence</string>
-    <string name="discord_token_description">Enter your Discord Token or click %s to get it using browser</string>
-    <string name="discord_token_hint">Paste your Discord Token here</string>
+    <string name="discord_account">Discord account</string>
+    <string name="discord_account_summary">Sign in with Discord to enable Rich Presence</string>
+    <string name="discord_signed_in_as">Signed in as %s</string>
+    <string name="discord_sign_out">Sign out</string>
+    <string name="discord_sign_out_message">Sign out of %s and stop sharing your reading status?</string>
+    <string name="discord_sign_in_failed">Discord sign-in failed</string>
     <string name="discord_rpc_summary">Show your reading status on Discord</string>
     <string name="discord_rpc_description">Reading manga on DropSauce - a manga reader app</string>
     <string name="reading_s">Reading %s</string>
     <string name="read_on_s">Read on %s</string>
     <string name="rpc_skip_nsfw_summary">Do not use RPC for adult content</string>
-    <string name="invalid_token">Invalid token: %s</string>
     <string name="show_floating_control_button">Show floating control button</string>
     <string name="unavailable">Unavailable</string>
     <string name="manga_restricted_description">This manga is not available to read in this source. Try searching for it in other sources or opening it in a browser for more information</string>

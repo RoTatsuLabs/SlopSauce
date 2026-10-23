@@ -705,16 +705,11 @@
     <string name="main_screen_fab_summary">Омогућава наставак читања једним додиром. Ово дугме се неће појавити у режиму „Без чувања“ или када је историја празна</string>
     <string name="error_corrupted_zip">Оштећена ZIP архива (%s)</string>
     <string name="discord_rpc">Присуство богато Discord-ом</string>
-    <string name="discord_token">Discord Токен</string>
-    <string name="discord_token_summary">Унеси свој Discord Токен да би омогућио Rich Presence</string>
-    <string name="discord_token_description">Унеси свој Discord Токен или додирни на %s да би га добио помоћу прегледача</string>
-    <string name="discord_token_hint">Налепи свој Discord Токен овде</string>
     <string name="discord_rpc_summary">Прикажи свој статус читања на Дискорду</string>
     <string name="discord_rpc_description">Читање манге на Котатсу - апликацији за читање манги</string>
     <string name="reading_s">Читам %s</string>
     <string name="read_on_s">Читај на %s</string>
     <string name="rpc_skip_nsfw_summary">Не користи RPC за садржај за одрасле</string>
-    <string name="invalid_token">Неважећи токен: %s</string>
     <string name="show_floating_control_button">Прикажи плутајуће дугме за контролу</string>
     <string name="unavailable">Недоступно</string>
     <string name="manga_restricted_description">Ова манга није доступна за читање у овом извору. Покушај да је потражиш у другим изворима или је отвори у прегледачу за више информација</string>

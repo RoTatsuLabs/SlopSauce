@@ -699,16 +699,11 @@
     <string name="main_screen_fab_summary">Дозволяє продовжити читання одним кліком. Ця кнопка не з\'являється в режимі інкогніто або коли історія порожня</string>
     <string name="error_corrupted_zip">Пошкоджений архів ZIP (%s)</string>
     <string name="discord_rpc">Багатий на присутність у Discord</string>
-    <string name="discord_token">Токен Discord</string>
-    <string name="discord_token_summary">Введіть свій токен Discord, щоб увімкнути Rich Presence</string>
-    <string name="discord_token_description">Введіть свій Discord токен або натисніть %s, щоб отримати його за допомогою браузера</string>
-    <string name="discord_token_hint">Вставте тут свій токен Discord</string>
     <string name="discord_rpc_summary">Покажіть свій статус читання в Discord</string>
     <string name="discord_rpc_description">Читання манги на DropSauce - програма для читання манґи</string>
     <string name="reading_s">Читання %s</string>
     <string name="read_on_s">Читати на %s</string>
     <string name="rpc_skip_nsfw_summary">Не використовуйте RPC для контенту для дорослих</string>
-    <string name="invalid_token">Недійсний токен: %s</string>
     <string name="show_floating_control_button">Показати плаваючу кнопку керування</string>
     <string name="unavailable">Недоступно</string>
     <string name="manga_restricted_description">Ця манга недоступна для читання в цьому джерелі. Спробуйте знайти її в інших джерелах або відкрити в браузері, щоб отримати додаткову інформацію</string>
