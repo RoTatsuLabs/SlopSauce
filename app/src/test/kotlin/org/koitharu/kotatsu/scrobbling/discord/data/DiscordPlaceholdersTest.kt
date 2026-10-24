@@ -58,4 +58,21 @@ class DiscordPlaceholdersTest {
 		assertTrue(DiscordPlaceholders.uses("a {chapter_url}", DiscordPlaceholders.CHAPTER_URL))
 		assertFalse(DiscordPlaceholders.uses("a {comic_url}", DiscordPlaceholders.CHAPTER_URL))
 	}
+
+	@Test
+	fun `stray braces are kept as typed`() {
+		assertEquals("{ a } {", DiscordPlaceholders.resolve("{ a } {", values, false).text)
+		assertEquals("{unclosed", DiscordPlaceholders.resolve("{unclosed", values, false).text)
+		assertEquals("}x{", DiscordPlaceholders.resolve("}x{", values, false).text)
+	}
+
+	@Test
+	fun `nested braces resolve the inner placeholder`() {
+		assertEquals("{Dr. Stone & Co}", DiscordPlaceholders.resolve("{{comic_title}}", values, false).text)
+	}
+
+	@Test
+	fun `adjacent placeholders`() {
+		assertEquals("10.26", DiscordPlaceholders.resolve("{current_chapter}{total_chapters}", values, false).text)
+	}
 }

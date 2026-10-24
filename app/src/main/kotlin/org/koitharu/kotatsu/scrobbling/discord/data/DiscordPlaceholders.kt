@@ -33,8 +33,6 @@ object DiscordPlaceholders {
 	/** Values that already are web addresses, so they go into a link as they are. */
 	private val URL_KEYS = setOf(COMIC_URL, CHAPTER_URL)
 
-	private val PLACEHOLDER = Regex("\\{([a-z_]+)}")
-
 	class Resolved(val text: String, val isComplete: Boolean)
 
 	/**
@@ -43,23 +41,26 @@ object DiscordPlaceholders {
 	 */
 	fun resolve(template: String, values: Map<String, String?>, forUrl: Boolean): Resolved {
 		var complete = true
-		val text = PLACEHOLDER.replace(template) { match ->
-			val key = match.groupValues[1]
-			if (key !in ALL) {
-				return@replace match.value
+		val out = StringBuilder(template.length)
+		var i = 0
+		while (i < template.length) {
+			val c = template[i]
+			val end = if (c == '{') template.indexOf('}', i + 1) else -1
+			val key = if (end > 0) template.substring(i + 1, end) else null
+			if (key == null || key !in ALL) {
+				out.append(c)
+				i++
+				continue
 			}
 			val value = values[key]
 			when {
-				value == null -> {
-					complete = false
-					""
-				}
-
-				forUrl && key !in URL_KEYS -> encode(value)
-				else -> value
+				value == null -> complete = false
+				forUrl && key !in URL_KEYS -> out.append(encode(value))
+				else -> out.append(value)
 			}
+			i = end + 1
 		}
-		return Resolved(text, complete)
+		return Resolved(out.toString(), complete)
 	}
 
 	/** True when [template] uses [key], to skip work (like finding a chapter link) nobody asked for. */

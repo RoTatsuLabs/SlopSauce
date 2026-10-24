@@ -1,5 +1,6 @@
 package org.koitharu.kotatsu.scrobbling.discord.data
 
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelAndJoin
@@ -112,7 +113,14 @@ class DiscordPresenceController(
 					val wait = last + updateDebounceMs - elapsedRealtime()
 					if (wait > 0) delay(wait)
 				}
-				publish(build, showTimestamp)
+				try {
+					publish(build, showTimestamp)
+				} catch (e: CancellationException) {
+					throw e
+				} catch (e: Throwable) {
+					// Presence is optional: a failure here must not take the app down.
+					e.printStackTrace()
+				}
 				lastUpdate = elapsedRealtime()
 			}
 		}

@@ -15,16 +15,20 @@ import org.koitharu.kotatsu.core.model.mainChapterCount
 import org.koitharu.kotatsu.core.parser.MangaRepository
 import org.koitharu.kotatsu.core.prefs.AppSettings
 import org.koitharu.kotatsu.core.util.ext.isHttpUrl
+import org.koitharu.kotatsu.core.util.ext.printStackTraceDebug
 import org.koitharu.kotatsu.details.data.MangaDetails
+import org.koitharu.kotatsu.parsers.model.Manga
 import org.koitharu.kotatsu.parsers.model.MangaChapter
 import org.koitharu.kotatsu.parsers.util.runCatchingCancellable
 import org.koitharu.kotatsu.reader.ui.pager.ReaderUiState
 import org.koitharu.kotatsu.scrobbling.discord.data.DiscordActivityFactory
 import org.koitharu.kotatsu.scrobbling.discord.data.DiscordButtonConfig
+import org.koitharu.kotatsu.scrobbling.discord.data.DiscordNativeActivity
 import org.koitharu.kotatsu.scrobbling.discord.data.DiscordPlaceholders
 import org.koitharu.kotatsu.scrobbling.discord.data.DiscordPresenceOptions
 import org.koitharu.kotatsu.scrobbling.discord.data.DiscordRpcSession
 import org.koitharu.kotatsu.scrobbling.discord.data.ReadingSnapshot
+import java.util.concurrent.CancellationException
 import javax.inject.Inject
 import kotlin.math.roundToInt
 
@@ -65,8 +69,17 @@ class DiscordRpc @Inject constructor(
 		session.setIdle(this)
 	}
 
+	/** Rich Presence is optional: whatever goes wrong here must never reach the reader. */
 	@AnyThread
 	fun updateRpc(details: MangaDetails, state: ReaderUiState, coverUrl: String?) {
+		try {
+			updateRpcImpl(details, state, coverUrl)
+		} catch (e: Throwable) {
+			e.printStackTraceDebug()
+		}
+	}
+
+	private fun updateRpcImpl(details: MangaDetails, state: ReaderUiState, coverUrl: String?) {
 		val manga = details.toManga()
 		if (settings.isDiscordRpcSkipNsfw && manga.isNsfw()) {
 			clearRpc()
@@ -78,22 +91,42 @@ class DiscordRpc @Inject constructor(
 			DiscordPlaceholders.uses(options.button2.url.ifBlank { options.button2DefaultUrl }, DiscordPlaceholders.CHAPTER_URL)
 		val isEpubScroll = state.isEpub && !state.isEpubPaged
 		session.update(this, settings.isDiscordRpcShowTimestamp) {
-			val snapshot = ReadingSnapshot(
-				comicTitle = manga.title,
-				comicUrl = manga.publicUrl.takeIf { it.isHttpUrl() },
-				chapterUrl = if (usesChapterUrl) findChapterUrl(details, state.chapter) else null,
-				chapterTitle = state.chapter.title,
-				currentChapter = state.chapter.displayNumber(chapters),
-				totalChapters = chapters.mainChapterCount(),
-				sourceName = manga.source.getTitle(context),
-				author = manga.authors.firstOrNull(),
-				currentPage = if (isEpubScroll) state.currentPage / 10 else state.currentPage + 1,
-				totalPages = if (isEpubScroll) 100 else state.totalPages,
-				progressPercent = if (state.percent in 0f..1f) (state.percent * 100).roundToInt() else -1,
-				coverUrl = coverUrl,
-			)
-			DiscordActivityFactory.create(snapshot, options)
+			try {
+				buildActivity(manga, details, state, coverUrl, options, chapters, usesChapterUrl, isEpubScroll)
+			} catch (e: CancellationException) {
+				throw e
+			} catch (e: Throwable) {
+				e.printStackTraceDebug()
+				null
+			}
 		}
+	}
+
+	private suspend fun buildActivity(
+		manga: Manga,
+		details: MangaDetails,
+		state: ReaderUiState,
+		coverUrl: String?,
+		options: DiscordPresenceOptions,
+		chapters: List<MangaChapter>,
+		usesChapterUrl: Boolean,
+		isEpubScroll: Boolean,
+	): DiscordNativeActivity {
+		val snapshot = ReadingSnapshot(
+			comicTitle = manga.title,
+			comicUrl = manga.publicUrl.takeIf { it.isHttpUrl() },
+			chapterUrl = if (usesChapterUrl) findChapterUrl(details, state.chapter) else null,
+			chapterTitle = state.chapter.title,
+			currentChapter = state.chapter.displayNumber(chapters),
+			totalChapters = chapters.mainChapterCount(),
+			sourceName = manga.source.getTitle(context),
+			author = manga.authors.firstOrNull(),
+			currentPage = if (isEpubScroll) state.currentPage / 10 else state.currentPage + 1,
+			totalPages = if (isEpubScroll) 100 else state.totalPages,
+			progressPercent = if (state.percent in 0f..1f) (state.percent * 100).roundToInt() else -1,
+			coverUrl = coverUrl,
+		)
+		return DiscordActivityFactory.create(snapshot, options)
 	}
 
 	/**
