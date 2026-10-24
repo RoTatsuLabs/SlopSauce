@@ -157,10 +157,10 @@ jobs:
 
         for apk in "${APK_FILES[@]}"; do
           if [ ${#APK_FILES[@]} -eq 1 ]; then
-            target="release/DropSauce-v${{ inputs.version_name }}.apk"
+            target="release/SlopSauce-v${{ inputs.version_name }}.apk"
           else
             original_apk_name=$(basename "$apk" .apk)
-            target="release/DropSauce-v${{ inputs.version_name }}-${original_apk_name}.apk"
+            target="release/SlopSauce-v${{ inputs.version_name }}-${original_apk_name}.apk"
           fi
           cp "$apk" "$target"
         done
