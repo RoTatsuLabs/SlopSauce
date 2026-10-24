@@ -5,112 +5,79 @@ import android.os.SystemClock
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancelAndJoin
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import org.koitharu.kotatsu.core.prefs.AppSettings
 import javax.inject.Inject
 import javax.inject.Singleton
 
-private const val DEBOUNCE_TIMEOUT = 16_000L // 16 sec
-
 /**
  * The single Rich Presence session of the app. Readers come and go (each reader screen has its
- * own `DiscordRpc`), so connection state and the presence timestamp live here instead.
- *
- * Every call carries the `owner` that made it. A reader that is closing can run its teardown
- * after the next reader already started, and must not cut that one's session short.
+ * own `DiscordRpc`), so the connection, the elapsed-time counter and the delayed teardown live in
+ * one place. See [DiscordPresenceController] for the rules.
  */
 @Singleton
 class DiscordRpcSession @Inject constructor(
-	@ApplicationContext private val context: Context,
-	private val settings: AppSettings,
-	private val auth: DiscordAuth,
+	@ApplicationContext context: Context,
+	settings: AppSettings,
+	auth: DiscordAuth,
 ) {
 
-	private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
-	private var owner: Any? = null
-	private var updateJob: Job? = null
-	private var lastUpdate = 0L
+	private val controller = DiscordPresenceController(
+		transport = SdkDiscordTransport(context, auth),
+		scope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
+		elapsedRealtime = SystemClock::elapsedRealtime,
+		epochSeconds = { System.currentTimeMillis() / 1000 },
+		config = {
+			DiscordPresenceConfig(
+				isEnabled = settings.isDiscordRpcEnabled,
+				isSignedIn = auth.isSignedIn,
+				isReadingPresence = settings.isDiscordReadingPresence,
+			)
+		},
+	)
 
-	@Volatile
-	private var lastActivity: DiscordNativeActivity? = null
-	private var startSecs = 0L
+	fun enter(owner: Any) = controller.enter(owner)
 
-	/**
-	 * Publishes [activity] (debounced) on behalf of [owner]. The elapsed-time counter starts with
-	 * the first activity of a session and then keeps running across updates.
-	 */
-	fun update(owner: Any, activity: DiscordNativeActivity, idle: Boolean = false) {
-		if (!settings.isDiscordRpcEnabled) {
-			stop(owner)
-			return
-		}
-		if (!auth.isSignedIn) {
-			return
-		}
-		synchronized(this) {
-			this.owner = owner
-			val previous = updateJob
-			updateJob = scope.launch {
-				previous?.cancelAndJoin()
-				val debounceTime = lastUpdate + DEBOUNCE_TIMEOUT - SystemClock.elapsedRealtime()
-				if (debounceTime > 0) {
-					delay(debounceTime)
-				}
-				publish(activity, idle)
-				lastUpdate = SystemClock.elapsedRealtime()
-			}
-		}
+	fun update(
+		owner: Any,
+		showTimestamp: Boolean,
+		build: suspend () -> DiscordNativeActivity?,
+	) = controller.update(owner, showTimestamp, idle = false, build)
+
+	fun setIdle(owner: Any) = controller.setIdle(owner)
+
+	fun leave(owner: Any) = controller.leave(owner)
+
+	fun release(owner: Any) = controller.release(owner)
+
+	fun stop(owner: Any) = controller.stop(owner)
+}
+
+/** Talks to Discord through the Social SDK. */
+private class SdkDiscordTransport(
+	private val context: Context,
+	private val auth: DiscordAuth,
+) : DiscordPresenceTransport {
+
+	override val isActive: Boolean
+		get() = DiscordRpcManager.isActive
+
+	override suspend fun connect(): Boolean {
+		val token = auth.validAccessToken() ?: return false
+		if (!DiscordRpcManager.init(context)) return false
+		DiscordRpcManager.connect(token)
+		return true
 	}
 
-	/** Shows the last published activity again, with the user marked as idle. */
-	fun setIdle(owner: Any) {
-		val activity = synchronized(this) {
-			if (this.owner !== owner) return
-			lastActivity
-		} ?: return
-		update(owner, activity, idle = true)
-	}
+	override fun setOnlineStatus(status: PresenceStatus) = DiscordRpcManager.setOnlineStatus(
+		when (status) {
+			PresenceStatus.Online -> DiscordRpcManager.OnlineStatus.Online
+			PresenceStatus.Idle -> DiscordRpcManager.OnlineStatus.Idle
+			PresenceStatus.DoNotDisturb -> DiscordRpcManager.OnlineStatus.DoNotDisturb
+		},
+	)
 
-	/** Takes the presence down for [owner]. The timestamp is kept for when it comes back. */
-	fun stop(owner: Any) {
-		synchronized(this) {
-			if (this.owner !== owner) return
-			updateJob?.cancel()
-			updateJob = null
-			lastUpdate = 0L
-			DiscordRpcManager.disconnect(restoreStatus = true)
-		}
-	}
+	override fun setActivity(activity: DiscordNativeActivity) = DiscordRpcManager.setActivity(activity)
 
-	/** Ends the session of [owner] for good, so that the next one starts a fresh timestamp. */
-	fun release(owner: Any) {
-		stop(owner)
-		synchronized(this) {
-			if (this.owner !== owner) return
-			this.owner = null
-			lastActivity = null
-			startSecs = 0L
-		}
-	}
-
-	private suspend fun publish(activity: DiscordNativeActivity, idle: Boolean) {
-		if (!DiscordRpcManager.isActive) {
-			val token = auth.validAccessToken() ?: return
-			if (!DiscordRpcManager.init(context)) return
-			DiscordRpcManager.connect(token)
-		}
-		val timestamped = synchronized(this) {
-			if (startSecs == 0L) startSecs = System.currentTimeMillis() / 1000
-			activity.copy(startTimestamp = startSecs)
-		}
-		lastActivity = timestamped
-		DiscordRpcManager.setOnlineStatus(
-			if (idle) DiscordRpcManager.OnlineStatus.Idle else DiscordRpcManager.OnlineStatus.Online,
-		)
-		DiscordRpcManager.setActivity(timestamped)
-	}
+	override fun disconnect(restoreStatus: Boolean) = DiscordRpcManager.disconnect(restoreStatus)
 }

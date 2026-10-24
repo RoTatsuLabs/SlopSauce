@@ -124,6 +124,10 @@ object DiscordRpcManager {
 	@Volatile
 	private var previousStatus: Int? = null
 
+	/** True between restoring the user's status and the delayed disconnect that follows it. */
+	@Volatile
+	private var disconnecting = false
+
 	private var callbackJob: Job? = null
 	private var lifecycleRegistered = false
 
@@ -133,8 +137,9 @@ object DiscordRpcManager {
 	private val _status = MutableStateFlow(Status.Disconnected)
 	val status: StateFlow<Status> = _status
 
+	/** True while connecting or connected, but not while a disconnect is on its way. */
 	val isActive: Boolean
-		get() = _status.value != Status.Disconnected
+		get() = _status.value != Status.Disconnected && !disconnecting
 
 	val isReady: Boolean
 		get() = ready
@@ -376,6 +381,7 @@ object DiscordRpcManager {
 	fun connect(accessToken: String) {
 		if (!initialized) return
 		connectionEpoch.incrementAndGet()
+		disconnecting = false
 		_status.value = Status.Connecting
 		if (!hasEngineActivity) {
 			pendingToken = accessToken
@@ -437,6 +443,7 @@ object DiscordRpcManager {
 			statusOverridden = false
 			previousStatus = null
 			nativeSetOnlineStatus(target)
+			disconnecting = true
 			val epoch = connectionEpoch.get()
 			scope.launch {
 				delay(STATUS_RESTORE_GRACE_MS)
@@ -450,6 +457,7 @@ object DiscordRpcManager {
 	}
 
 	private fun finishDisconnect() {
+		disconnecting = false
 		_status.value = Status.Disconnected
 		ready = false
 		nativeDisconnect()

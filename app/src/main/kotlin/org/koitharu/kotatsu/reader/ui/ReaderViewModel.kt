@@ -279,8 +279,12 @@ class ReaderViewModel @Inject constructor(
         }
     }
 
+    fun onStart() {
+        discordRpc.onEnterReader()
+    }
+
     fun onStop() {
-        discordRpc.clearRpc()
+        discordRpc.onLeaveReader()
     }
 
     fun onIdle() {
@@ -778,7 +782,7 @@ class ReaderViewModel @Inject constructor(
             // Only http(s) covers work on Discord (URL override or source default); a local custom
             // image can't be reached by Discord's servers, so fall back to the source cover.
             val discordCover = m.toManga().coverUrl?.takeIf { it.isHttpUrl() } ?: m.sourceManga.coverUrl
-            discordRpc.updateRpc(m.toManga(), newState, discordCover)
+            discordRpc.updateRpc(m, newState, discordCover)
         }
     }
 

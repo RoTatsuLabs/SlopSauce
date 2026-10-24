@@ -1226,6 +1226,20 @@
     <string name="discord_sign_out">Sign out</string>
     <string name="discord_sign_out_message">Sign out of %s and stop sharing your reading status?</string>
     <string name="discord_sign_in_failed">Discord sign-in failed</string>
+    <string name="discord_rpc_state" translatable="false">Chapter %1$s of %2$s</string>
+    <string name="discord_activity_name">Activity name</string>
+    <string name="discord_activity_name_hint">Leave blank to use the app name</string>
+    <string name="discord_show_timestamp">Show elapsed time</string>
+    <string name="discord_show_timestamp_summary">Show how long you have been reading</string>
+    <string name="discord_reading_presence">Reading presence</string>
+    <string name="discord_reading_presence_summary">Do Not Disturb while you read, Idle when the reader sits untouched, and Online again after you leave it</string>
+    <string name="discord_button_n">Button %d</string>
+    <string name="discord_button_summary">Show a button on your presence</string>
+    <string name="discord_button_label">Button label</string>
+    <string name="discord_button_url">Button link</string>
+    <string name="discord_button_read_chapter">Read chapter</string>
+    <string name="discord_placeholders">Placeholders</string>
+    <string name="discord_placeholders_summary">Usable in button labels and links: {comic_url}, {chapter_url}, {comic_title}, {current_chapter}, {total_chapters} (main chapters, without ones like 10.1), {chapter_title}, {source_name}, {author}, {current_page}, {total_pages}, {progress}. A button is hidden while one of its placeholders has no value.</string>
     <string name="discord_rpc_summary">Show your reading status on Discord</string>
     <string name="discord_rpc_description">Reading manga on DropSauce - a manga reader app</string>
     <string name="reading_s">Reading %s</string>

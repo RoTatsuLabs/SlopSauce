@@ -346,6 +346,11 @@ class ReaderActivity :
         idlingDetector.onUserInteraction()
     }
 
+    override fun onStart() {
+        super.onStart()
+        viewModel.onStart()
+    }
+
     override fun onPause() {
         super.onPause()
         viewModel.onPause()
