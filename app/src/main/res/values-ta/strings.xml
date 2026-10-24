@@ -693,16 +693,11 @@
     <string name="main_screen_fab_summary">ஒரே கிளிக்கில் தொடர்ந்து படிக்க அனுமதிக்கிறது. இந்த பொத்தான் மறைநிலை பயன்முறையில் அல்லது வரலாறு காலியாக இருக்கும்போது தோன்றாது</string>
     <string name="error_corrupted_zip">சிதைந்த சிப் காப்பகம் (%s)</string>
     <string name="discord_rpc">முரண்பாடு பணக்கார இருப்பு</string>
-    <string name="discord_token">முரண்பாடு கிள்ளாக்கு</string>
-    <string name="discord_token_summary">பணக்கார இருப்பை செயல்படுத்த உங்கள் டிச்கார்ட் கிள்ளாக்கை உள்ளிடவும்</string>
-    <string name="discord_token_description">உங்கள் டிச்கார்ட் கிள்ளாக்கை உள்ளிடவும் அல்லது உலாவியைப் பயன்படுத்தி அதைப் பெற %s ஐக் சொடுக்கு செய்க</string>
-    <string name="discord_token_hint">உங்கள் டிச்கார்ட் கிள்ளாக்கை இங்கே ஒட்டவும்</string>
     <string name="discord_rpc_summary">முரண்பாட்டில் உங்கள் வாசிப்பு நிலையைக் காட்டுங்கள்</string>
     <string name="discord_rpc_description">கோட்டாட்சுவில் மங்காவைப் படித்தல் - ஒரு மங்கா ரீடர் பயன்பாடு</string>
     <string name="reading_s">படித்தல் %s</string>
     <string name="read_on_s">%s படிக்கவும்</string>
     <string name="rpc_skip_nsfw_summary">வயதுவந்த உள்ளடக்கத்திற்கு RPC ஐப் பயன்படுத்த வேண்டாம்</string>
-    <string name="invalid_token">தவறான டோக்கன்: %s</string>
     <string name="show_floating_control_button">மிதக்கும் கட்டுப்பாட்டு பொத்தானைக் காட்டு</string>
     <string name="unavailable">கிடைக்கவில்லை</string>
     <string name="manga_restricted_description">இந்த மூலத்தில் படிக்க இந்த மங்கா கிடைக்கவில்லை. மற்ற மூலங்களில் இதைத் தேட முயற்சிக்கவும் அல்லது மேலும் தகவலுக்கு உலாவியில் திறக்கவும்</string>
