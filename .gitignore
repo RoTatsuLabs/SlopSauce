@@ -24,6 +24,7 @@ CLAUDE.md
 # Logs
 *.log
 *.txt
+!CMakeLists.txt
 
 # Signing keystores
 *.jks

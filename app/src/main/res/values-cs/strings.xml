@@ -676,15 +676,11 @@
     <string name="main_screen_fab">Zobrazit plovoucí tlačítko Pokračovat</string>
     <string name="main_screen_fab_summary">Umožňuje pokračovat ve čtení jedním kliknutím. Toto tlačítko se nezobrazí v režimu inkognito nebo když je historie prázdná</string>
     <string name="error_corrupted_zip">Poškozený ZIP archiv (%s)</string>
-    <string name="discord_token_summary">Zadejte svůj Discord Token, abyste zapnuli Rich Presence</string>
-    <string name="discord_token_description">Zadejte svůj Discord Token nebo klikněte na %s, abyste ho získali pomocí prohlížeče</string>
-    <string name="discord_token_hint">Vložte svůj Discord Token zde</string>
     <string name="discord_rpc_summary">Zobrazit stav čtení na Discordu</string>
     <string name="discord_rpc_description">Čte mangu na SlopSauce - aplikace pro čtení mangy</string>
     <string name="reading_s">Čtení %s</string>
     <string name="read_on_s">Číst na %s</string>
     <string name="rpc_skip_nsfw_summary">Nepoužívat RPC pro mangu pro dospělé</string>
-    <string name="invalid_token">Neplatný token: %s</string>
     <string name="show_floating_control_button">Zobrazit plovoucí ovládací tlačítko</string>
     <string name="unavailable">Nedostupné</string>
     <string name="manga_restricted_description">Tato manga není k dispozici od tohoto zdroje. Zkuste ji vyhledat v jiných zdrojích nebo otevřít v prohlížeči pro více informací</string>

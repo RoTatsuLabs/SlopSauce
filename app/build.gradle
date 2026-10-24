@@ -11,6 +11,9 @@ plugins {
 	id 'org.jetbrains.kotlin.plugin.compose'
 }
 
+// Discord application used for Rich Presence (Discord Developer Portal > General Information).
+def discordAppId = '1563199688310521938'
+
 android {
 	compileSdk {
 		version = release(37) {
@@ -32,6 +35,14 @@ android {
 		androidResources {
 			// https://issuetracker.google.com/issues/408030127
 			generateLocaleConfig = false
+		}
+		buildConfigField 'long', 'DISCORD_APP_ID', "${discordAppId}L"
+		manifestPlaceholders = [discordAppId: discordAppId]
+	}
+	externalNativeBuild {
+		cmake {
+			path = file('src/main/cpp/CMakeLists.txt')
+			version = '3.22.1'
 		}
 	}
 	signingConfigs {
@@ -68,6 +79,8 @@ android {
 		buildConfig = true
 		compose = true
 		aidl = true
+		// Exposes the Discord Social SDK's CMake package (bundled in its AAR) to the native bridge.
+		prefab = true
 	}
 	packaging {
 		resources {
@@ -245,7 +258,9 @@ dependencies {
 	implementation libs.ssiv
 	implementation libs.disk.lru.cache
 	implementation libs.markwon
-	implementation libs.kizzyrpc
+	// Discord Social SDK (Rich Presence). Download it from the Discord Developer Portal and put the
+	// AAR in app/libs/ as discord_partner_sdk.aar.
+	implementation files('libs/discord_partner_sdk.aar')
 
 	implementation libs.acra.dialog
 

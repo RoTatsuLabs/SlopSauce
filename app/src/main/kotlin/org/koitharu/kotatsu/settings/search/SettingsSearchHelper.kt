@@ -319,7 +319,7 @@ class SettingsSearchHelper @Inject constructor(
 			}
 			group(sectionCrumbs, "External") { crumbs ->
 				addItem("discord_rpc", R.string.discord_rpc, R.string.discord_rpc_summary, crumbs, DiscordSettingsFragment::class.java)
-				addItem("discord_token", R.string.discord_token, breadcrumbs = crumbs + ctx.getString(R.string.discord), fragmentClass = DiscordSettingsFragment::class.java, keywordText = listOf("token", "sign in", "browser"))
+				addItem("discord_account", R.string.discord_account, breadcrumbs = crumbs + ctx.getString(R.string.discord), fragmentClass = DiscordSettingsFragment::class.java, keywordText = listOf("account", "sign in", "login", "oauth"))
 				addItem("discord_skip_nsfw", R.string.disable_nsfw, R.string.rpc_skip_nsfw_summary, crumbs + ctx.getString(R.string.discord), DiscordSettingsFragment::class.java)
 			}
 		}
