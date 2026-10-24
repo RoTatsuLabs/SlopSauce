@@ -138,7 +138,7 @@ class AboutSettingsFragment : BaseComposeSettingsFragment(R.string.about) {
 		viewModel.onUpdateAvailable.observeEvent(viewLifecycleOwner, ::onUpdateAvailable)
 		viewModel.onExportLog.observeEvent(viewLifecycleOwner) { content ->
 			pendingLogContent = content
-			saveLogLauncher.launch("dropsauce_log_${System.currentTimeMillis()}.txt")
+			saveLogLauncher.launch("slopsauce_log_${System.currentTimeMillis()}.txt")
 		}
 	}
 
@@ -241,7 +241,7 @@ private fun AboutScreen(
 				}
 				item { pos ->
 					ActionSettingsItem(
-						title = stringResource(R.string.discord),
+						title = stringResource(R.string.upstream_discord),
 						subtitle = stringResource(R.string.url_discord_web),
 						icon = R.drawable.ic_discord,
 						shape = pos.shape,
@@ -387,9 +387,14 @@ private fun AboutHero(appVersion: String) {
 				)
 				AboutMetaPill(
 					icon = R.drawable.ic_github,
-					text = "HuzaifaKhalid1311",
+					text = "RoTatsuLabs",
 				)
 			}
+			Text(
+				text = stringResource(R.string.about_fork_of),
+				style = MaterialTheme.typography.bodySmall,
+				color = cs.onPrimaryContainer.copy(alpha = 0.72f),
+			)
 		}
 		}
 	}

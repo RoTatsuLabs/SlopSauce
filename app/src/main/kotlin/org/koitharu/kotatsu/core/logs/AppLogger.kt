@@ -192,7 +192,7 @@ class AppLogger @Inject constructor(
 					writeLocked(
 						"\n$separator\n=== SESSION STARTED: ${timestamp()} (PID: $pid) ===\n" +
 							"=== Lines timestamped before this are replayed from Android's log buffer: they were\n" +
-							"=== logged before recording started, so they lack DropSauce's extra detail.\n$separator",
+							"=== logged before recording started, so they lack SlopSauce's extra detail.\n$separator",
 					)
 					writer?.flush()
 				}
@@ -335,8 +335,8 @@ class AppLogger @Inject constructor(
 
 	/** What a reader (human or LLM) needs before the timeline: where, what was installed, what went wrong. */
 	private fun summary(log: String) = buildString {
-		appendLine("== DROPSAUCE BUG REPORT LOG ==")
-		appendLine("App: DropSauce ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE}, ${BuildConfig.BUILD_TYPE})")
+		appendLine("== SLOPSAUCE BUG REPORT LOG ==")
+		appendLine("App: SlopSauce ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE}, ${BuildConfig.BUILD_TYPE})")
 		appendLine("Device: Android ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT}), ${Build.MANUFACTURER} ${Build.MODEL}, ${Build.SUPPORTED_ABIS.firstOrNull()}")
 		appendLine("WebView: ${webViewInfo()}")
 		appendLine("Network (at export, changes are in the timeline): ${networkInfo()}")
