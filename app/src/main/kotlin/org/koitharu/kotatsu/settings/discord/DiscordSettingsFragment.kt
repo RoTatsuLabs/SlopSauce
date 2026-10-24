@@ -12,6 +12,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -31,8 +32,8 @@ import org.koitharu.kotatsu.settings.compose.ActionSettingsItem
 import org.koitharu.kotatsu.settings.compose.BaseComposeSettingsFragment
 import org.koitharu.kotatsu.settings.compose.DropSauceTheme
 import org.koitharu.kotatsu.settings.compose.EditTextSettingsItem
-import org.koitharu.kotatsu.settings.compose.InfoSettingsItem
 import org.koitharu.kotatsu.settings.compose.SettingsGroup
+import org.koitharu.kotatsu.settings.compose.SettingsGroupScope
 import org.koitharu.kotatsu.settings.compose.SettingsScaffold
 import org.koitharu.kotatsu.settings.compose.SwitchSettingsItem
 import org.koitharu.kotatsu.settings.compose.rememberBooleanPref
@@ -81,6 +82,21 @@ private fun DiscordScreen(
 	var showSignOutDialog by remember { mutableStateOf(false) }
 
 	val isSignedIn = accessToken.isNotEmpty()
+	val button1 = rememberButtonPrefs(
+		AppSettings.KEY_DISCORD_RPC_BUTTON1_ENABLED,
+		true,
+		AppSettings.KEY_DISCORD_RPC_BUTTON1_LABEL,
+		AppSettings.KEY_DISCORD_RPC_BUTTON1_URL,
+	)
+	val button2 = rememberButtonPrefs(
+		AppSettings.KEY_DISCORD_RPC_BUTTON2_ENABLED,
+		false,
+		AppSettings.KEY_DISCORD_RPC_BUTTON2_LABEL,
+		AppSettings.KEY_DISCORD_RPC_BUTTON2_URL,
+	)
+
+	val button1LabelHint = stringResource(R.string.read_on_s, "{${DiscordPlaceholders.SOURCE_NAME}}")
+	val button2LabelHint = stringResource(R.string.discord_button_read_chapter)
 
 	SettingsScaffold {
 		item {
@@ -120,12 +136,17 @@ private fun DiscordScreen(
 						enabled = rpcEnabled,
 					)
 				}
+			}
+		}
+		item {
+			SettingsGroup(title = stringResource(R.string.discord_section_presence)) {
 				item { pos ->
 					SwitchSettingsItem(
 						title = stringResource(R.string.discord_reading_presence),
 						subtitle = stringResource(R.string.discord_reading_presence_summary),
 						checked = readingPresence,
 						onCheckedChange = { readingPresence = it },
+						icon = R.drawable.ic_eye,
 						shape = pos.shape,
 						enabled = rpcEnabled,
 					)
@@ -136,6 +157,7 @@ private fun DiscordScreen(
 						subtitle = stringResource(R.string.discord_show_timestamp_summary),
 						checked = showTimestamp,
 						onCheckedChange = { showTimestamp = it },
+						icon = R.drawable.ic_timer,
 						shape = pos.shape,
 						enabled = rpcEnabled,
 					)
@@ -146,6 +168,7 @@ private fun DiscordScreen(
 						value = activityName,
 						hint = stringResource(R.string.discord_activity_name_hint),
 						onValueChange = { activityName = it.trim() },
+						icon = R.drawable.ic_title,
 						shape = pos.shape,
 						enabled = rpcEnabled,
 					)
@@ -153,38 +176,21 @@ private fun DiscordScreen(
 			}
 		}
 		item {
-			DiscordButtonGroup(
-				number = 1,
-				enabledKey = AppSettings.KEY_DISCORD_RPC_BUTTON1_ENABLED,
-				enabledDefault = true,
-				labelKey = AppSettings.KEY_DISCORD_RPC_BUTTON1_LABEL,
-				urlKey = AppSettings.KEY_DISCORD_RPC_BUTTON1_URL,
-				labelHint = stringResource(R.string.read_on_s, "{${DiscordPlaceholders.SOURCE_NAME}}"),
-				urlHint = "{${DiscordPlaceholders.COMIC_URL}}",
-				rpcEnabled = rpcEnabled,
-			)
-		}
-		item {
-			DiscordButtonGroup(
-				number = 2,
-				enabledKey = AppSettings.KEY_DISCORD_RPC_BUTTON2_ENABLED,
-				enabledDefault = false,
-				labelKey = AppSettings.KEY_DISCORD_RPC_BUTTON2_LABEL,
-				urlKey = AppSettings.KEY_DISCORD_RPC_BUTTON2_URL,
-				labelHint = stringResource(R.string.discord_button_read_chapter),
-				urlHint = "{${DiscordPlaceholders.CHAPTER_URL}}",
-				rpcEnabled = rpcEnabled,
-			)
-		}
-		item {
-			SettingsGroup {
-				item { pos ->
-					InfoSettingsItem(
-						title = stringResource(R.string.discord_placeholders),
-						subtitle = stringResource(R.string.discord_placeholders_summary),
-						shape = pos.shape,
-					)
-				}
+			SettingsGroup(title = stringResource(R.string.discord_section_buttons)) {
+				discordButtonItems(
+					number = 1,
+					prefs = button1,
+					labelHint = button1LabelHint,
+					urlHint = "{${DiscordPlaceholders.COMIC_URL}}",
+					rpcEnabled = rpcEnabled,
+				)
+				discordButtonItems(
+					number = 2,
+					prefs = button2,
+					labelHint = button2LabelHint,
+					urlHint = "{${DiscordPlaceholders.CHAPTER_URL}}",
+					rpcEnabled = rpcEnabled,
+				)
 			}
 		}
 		item { Spacer(Modifier.height(24.dp).fillMaxWidth()) }
@@ -208,51 +214,69 @@ private fun DiscordScreen(
 	}
 }
 
+private class ButtonPrefs(
+	enabledState: MutableState<Boolean>,
+	labelState: MutableState<String>,
+	urlState: MutableState<String>,
+) {
+	var enabled by enabledState
+	var label by labelState
+	var url by urlState
+}
+
 @Composable
-private fun DiscordButtonGroup(
-	number: Int,
+private fun rememberButtonPrefs(
 	enabledKey: String,
 	enabledDefault: Boolean,
 	labelKey: String,
 	urlKey: String,
+): ButtonPrefs {
+	val enabled = rememberBooleanPref(enabledKey, enabledDefault)
+	val label = rememberStringPref(labelKey, "")
+	val url = rememberStringPref(urlKey, "")
+	return ButtonPrefs(enabled, label, url)
+}
+
+/** One button's switch, label and link, as rows of the surrounding "Buttons" group. */
+private fun SettingsGroupScope.discordButtonItems(
+	number: Int,
+	prefs: ButtonPrefs,
 	labelHint: String,
 	urlHint: String,
 	rpcEnabled: Boolean,
 ) {
-	var enabled by rememberBooleanPref(enabledKey, enabledDefault)
-	var label by rememberStringPref(labelKey, "")
-	var url by rememberStringPref(urlKey, "")
-	val fieldsEnabled = rpcEnabled && enabled
-	SettingsGroup {
-		item { pos ->
-			SwitchSettingsItem(
-				title = stringResource(R.string.discord_button_n, number),
-				subtitle = stringResource(R.string.discord_button_summary),
-				checked = enabled,
-				onCheckedChange = { enabled = it },
-				shape = pos.shape,
-				enabled = rpcEnabled,
-			)
-		}
-		item { pos ->
-			EditTextSettingsItem(
-				title = stringResource(R.string.discord_button_label),
-				value = label,
-				hint = labelHint,
-				onValueChange = { label = it.trim() },
-				shape = pos.shape,
-				enabled = fieldsEnabled,
-			)
-		}
-		item { pos ->
-			EditTextSettingsItem(
-				title = stringResource(R.string.discord_button_url),
-				value = url,
-				hint = urlHint,
-				onValueChange = { url = it.trim() },
-				shape = pos.shape,
-				enabled = fieldsEnabled,
-			)
-		}
+	val fieldsEnabled = rpcEnabled && prefs.enabled
+	item { pos ->
+		SwitchSettingsItem(
+			title = stringResource(R.string.discord_button_n, number),
+			subtitle = stringResource(R.string.discord_button_summary),
+			checked = prefs.enabled,
+			onCheckedChange = { prefs.enabled = it },
+			icon = R.drawable.ic_open_external,
+			shape = pos.shape,
+			enabled = rpcEnabled,
+		)
+	}
+	item { pos ->
+		EditTextSettingsItem(
+			title = stringResource(R.string.discord_button_label, number),
+			value = prefs.label,
+			hint = labelHint,
+			onValueChange = { prefs.label = it.trim() },
+			icon = R.drawable.ic_label,
+			shape = pos.shape,
+			enabled = fieldsEnabled,
+		)
+	}
+	item { pos ->
+		EditTextSettingsItem(
+			title = stringResource(R.string.discord_button_url, number),
+			value = prefs.url,
+			hint = urlHint,
+			onValueChange = { prefs.url = it.trim() },
+			icon = R.drawable.ic_web,
+			shape = pos.shape,
+			enabled = fieldsEnabled,
+		)
 	}
 }
