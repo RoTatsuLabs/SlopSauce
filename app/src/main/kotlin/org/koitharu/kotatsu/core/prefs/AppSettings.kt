@@ -1127,9 +1127,68 @@ class AppSettings @Inject constructor(@ApplicationContext context: Context) {
 	val isDiscordRpcSkipNsfw: Boolean
 		get() = prefs.getBoolean(KEY_DISCORD_RPC_SKIP_NSFW, false)
 
-	var discordToken: String?
-		get() = prefs.getString(KEY_DISCORD_TOKEN, null)?.trim()?.nullIfEmpty()
-		set(value) = prefs.edit { putString(KEY_DISCORD_TOKEN, value?.nullIfEmpty()) }
+	/** Name shown after "Watching" in the Rich Presence. Blank means the app name. */
+	val discordActivityName: String
+		get() = prefs.getString(KEY_DISCORD_RPC_ACTIVITY_NAME, null)?.trim().orEmpty()
+
+	val isDiscordRpcShowTimestamp: Boolean
+		get() = prefs.getBoolean(KEY_DISCORD_RPC_SHOW_TIMESTAMP, true)
+
+	/** Do Not Disturb while reading, Idle with the app in the background, Online again after leaving the reader. */
+	val isDiscordReadingPresence: Boolean
+		get() = prefs.getBoolean(KEY_DISCORD_RPC_READING_PRESENCE, false)
+
+	val isDiscordButton1Enabled: Boolean
+		get() = prefs.getBoolean(KEY_DISCORD_RPC_BUTTON1_ENABLED, true)
+
+	/** Blank means the default label. */
+	val discordButton1Label: String
+		get() = prefs.getString(KEY_DISCORD_RPC_BUTTON1_LABEL, null).orEmpty()
+
+	/** Blank means the default link. */
+	val discordButton1Url: String
+		get() = prefs.getString(KEY_DISCORD_RPC_BUTTON1_URL, null).orEmpty()
+
+	val isDiscordButton2Enabled: Boolean
+		get() = prefs.getBoolean(KEY_DISCORD_RPC_BUTTON2_ENABLED, false)
+
+	val discordButton2Label: String
+		get() = prefs.getString(KEY_DISCORD_RPC_BUTTON2_LABEL, null).orEmpty()
+
+	val discordButton2Url: String
+		get() = prefs.getString(KEY_DISCORD_RPC_BUTTON2_URL, null).orEmpty()
+
+	/** OAuth2 access token of the Discord account signed in through the Social SDK. */
+	var discordAccessToken: String?
+		get() = prefs.getString(KEY_DISCORD_ACCESS_TOKEN, null)?.trim()?.nullIfEmpty()
+		set(value) = prefs.edit { putString(KEY_DISCORD_ACCESS_TOKEN, value?.nullIfEmpty()) }
+
+	var discordRefreshToken: String?
+		get() = prefs.getString(KEY_DISCORD_REFRESH_TOKEN, null)?.trim()?.nullIfEmpty()
+		set(value) = prefs.edit { putString(KEY_DISCORD_REFRESH_TOKEN, value?.nullIfEmpty()) }
+
+	/** When the access token stops working, in epoch milliseconds, or 0 when it is unknown. */
+	var discordTokenExpiresAt: Long
+		get() = prefs.getLong(KEY_DISCORD_TOKEN_EXPIRES_AT, 0L)
+		set(value) = prefs.edit { putLong(KEY_DISCORD_TOKEN_EXPIRES_AT, value) }
+
+	var discordUserName: String?
+		get() = prefs.getString(KEY_DISCORD_USER_NAME, null)?.nullIfEmpty()
+		set(value) = prefs.edit { putString(KEY_DISCORD_USER_NAME, value?.nullIfEmpty()) }
+
+	fun clearDiscordAccount() = prefs.edit {
+		remove(KEY_DISCORD_ACCESS_TOKEN)
+		remove(KEY_DISCORD_REFRESH_TOKEN)
+		remove(KEY_DISCORD_TOKEN_EXPIRES_AT)
+		remove(KEY_DISCORD_USER_NAME)
+	}
+
+	/** Drops the user token that the removed token-based login used to keep. */
+	fun clearLegacyDiscordToken() {
+		if (prefs.contains(KEY_DISCORD_TOKEN_LEGACY)) {
+			prefs.edit { remove(KEY_DISCORD_TOKEN_LEGACY) }
+		}
+	}
 
 	var isVerboseLoggingEnabled: Boolean
 		get() = prefs.getBoolean(KEY_VERBOSE_LOGGING, false)
@@ -1523,7 +1582,22 @@ class AppSettings @Inject constructor(@ApplicationContext context: Context) {
 		const val KEY_LAST_EXTENSION_UPDATE_NOTIFICATION_TIME = "last_extension_update_notification_time"
 		const val KEY_DISCORD_RPC = "discord_rpc"
 		const val KEY_DISCORD_RPC_SKIP_NSFW = "discord_rpc_skip_nsfw"
-		const val KEY_DISCORD_TOKEN = "discord_token"
+		const val KEY_DISCORD_RPC_ACTIVITY_NAME = "discord_rpc_activity_name"
+		const val KEY_DISCORD_RPC_SHOW_TIMESTAMP = "discord_rpc_show_timestamp"
+		const val KEY_DISCORD_RPC_READING_PRESENCE = "discord_rpc_reading_presence"
+		const val KEY_DISCORD_RPC_BUTTON1_ENABLED = "discord_rpc_button1_enabled"
+		const val KEY_DISCORD_RPC_BUTTON1_LABEL = "discord_rpc_button1_label"
+		const val KEY_DISCORD_RPC_BUTTON1_URL = "discord_rpc_button1_url"
+		const val KEY_DISCORD_RPC_BUTTON2_ENABLED = "discord_rpc_button2_enabled"
+		const val KEY_DISCORD_RPC_BUTTON2_LABEL = "discord_rpc_button2_label"
+		const val KEY_DISCORD_RPC_BUTTON2_URL = "discord_rpc_button2_url"
+		const val KEY_DISCORD_ACCESS_TOKEN = "discord_access_token"
+		const val KEY_DISCORD_REFRESH_TOKEN = "discord_refresh_token"
+		const val KEY_DISCORD_TOKEN_EXPIRES_AT = "discord_token_expires_at"
+		const val KEY_DISCORD_USER_NAME = "discord_user_name"
+
+		/** The user token kept by the removed token login. Only used to wipe and never restore it. */
+		private const val KEY_DISCORD_TOKEN_LEGACY = "discord_token"
 		const val KEY_ONBOARDING_COMPLETED = "onboarding_completed"
 		const val KEY_ONBOARDING_INSTALL_ID = "onboarding_install_id"
 
@@ -1543,6 +1617,11 @@ class AppSettings @Inject constructor(@ApplicationContext context: Context) {
 			KEY_INCOGNITO_MODE,
 			KEY_ONBOARDING_COMPLETED,
 			KEY_ONBOARDING_INSTALL_ID,
+			KEY_DISCORD_ACCESS_TOKEN,
+			KEY_DISCORD_REFRESH_TOKEN,
+			KEY_DISCORD_TOKEN_EXPIRES_AT,
+			KEY_DISCORD_USER_NAME,
+			KEY_DISCORD_TOKEN_LEGACY,
 		)
 
 		/**
@@ -1566,7 +1645,11 @@ class AppSettings @Inject constructor(@ApplicationContext context: Context) {
 			KEY_BACKUP_PERIODICAL_COUNT,
 			KEY_SHIZUKU_INSTALLER,
 			KEY_PRIVATE_INSTALLER,
-			KEY_DISCORD_TOKEN,
+			KEY_DISCORD_ACCESS_TOKEN,
+			KEY_DISCORD_REFRESH_TOKEN,
+			KEY_DISCORD_TOKEN_EXPIRES_AT,
+			KEY_DISCORD_USER_NAME,
+			KEY_DISCORD_TOKEN_LEGACY,
 			KEY_EXTENSION_UPDATES_AVAILABLE,
 			KEY_LAST_EXTENSION_UPDATE_NOTIFICATION_TIME,
 			KEY_MIHON_REPO_INFOS,

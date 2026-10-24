@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import org.koitharu.kotatsu.core.db.MangaDatabase
+import org.koitharu.kotatsu.core.model.trackerProgress
 import org.koitharu.kotatsu.core.parser.MangaRepository
 import org.koitharu.kotatsu.core.util.ext.findKeyByValue
 import org.koitharu.kotatsu.core.util.ext.printStackTraceDebug
@@ -98,12 +99,9 @@ abstract class Scrobbler(
 		val chapter = checkNotNull(chapters.findById(chapterId)) {
 			"Chapter $chapterId not found in this manga"
 		}
-		val number = if (chapter.number > 0f) {
-			chapter.number.toInt()
-		} else {
-			chapters = chapters.filter { x -> x.branch == chapter.branch }
-			chapters.indexOf(chapter) + 1
-		}
+		// Every tracker takes whole chapters, so all of them get the same figure: 10.2 is progress 10,
+		// and a chapter without a number is counted among the main chapters only.
+		val number = chapter.trackerProgress(chapters.filter { x -> x.branch == chapter.branch })
 		val entity = db.getScrobblingDao().find(scrobblerService.id, manga.id) ?: return
 		repository.updateRate(entity.id, entity.mangaId, number)
 		// Reading a chapter means it is no longer merely "planned", and no tracker flips that for us.

@@ -1220,10 +1220,26 @@
     <string name="error_corrupted_zip">Corrupted ZIP archive (%s)</string>
     <string name="discord" translatable="false">Discord</string>
     <string name="discord_rpc">Discord Rich Presence</string>
-    <string name="discord_token">Discord Token</string>
-    <string name="discord_token_summary">Enter your Discord Token to enable Rich Presence</string>
-    <string name="discord_token_description">Enter your Discord Token or click %s to get it using browser</string>
-    <string name="discord_token_hint">Paste your Discord Token here</string>
+    <string name="discord_account">Discord account</string>
+    <string name="discord_account_summary">Sign in with Discord to enable Rich Presence</string>
+    <string name="discord_signed_in_as">Signed in as %s</string>
+    <string name="discord_sign_out">Sign out</string>
+    <string name="discord_sign_out_message">Sign out of %s and stop sharing your reading status?</string>
+    <string name="discord_sign_in_failed">Discord sign-in failed</string>
+    <string name="discord_rpc_state" translatable="false">Chapter %1$s of %2$s</string>
+    <string name="discord_activity_name">Activity name</string>
+    <string name="discord_activity_name_hint">Leave blank to use the app name</string>
+    <string name="discord_show_timestamp">Show elapsed time</string>
+    <string name="discord_show_timestamp_summary">Show how long you have been reading</string>
+    <string name="discord_reading_presence">Smart Account Status</string>
+    <string name="discord_reading_presence_summary">Do Not Disturb while you read, Idle when you leave the app with the reader still open, and Online again when you leave the reader</string>
+    <string name="discord_section_presence">Presence</string>
+    <string name="discord_section_buttons">Buttons</string>
+    <string name="discord_button_n">Button %d</string>
+    <string name="discord_button_summary">Show a button on your presence</string>
+    <string name="discord_button_label">Button %d label</string>
+    <string name="discord_button_url">Button %d link</string>
+    <string name="discord_button_read_chapter">Read chapter</string>
     <string name="discord_rpc_summary">Show your reading status on Discord</string>
     <string name="upstream_discord" translatable="false">DropSauce Discord (upstream)</string>
     <string name="about_fork_of" translatable="false">Fork of DropSauce by HuzaifaKhalid1311</string>
@@ -1231,7 +1247,6 @@
     <string name="reading_s">Reading %s</string>
     <string name="read_on_s">Read on %s</string>
     <string name="rpc_skip_nsfw_summary">Do not use RPC for adult content</string>
-    <string name="invalid_token">Invalid token: %s</string>
     <string name="show_floating_control_button">Show floating control button</string>
     <string name="unavailable">Unavailable</string>
     <string name="manga_restricted_description">This manga is not available to read in this source. Try searching for it in other sources or opening it in a browser for more information</string>

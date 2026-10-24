@@ -677,10 +677,6 @@
     <string name="local_storage_cleanup">Pembersihan penyimpanan lokal</string>
     <string name="collapse">Sembunyikan</string>
     <string name="discord_rpc">Status Aktivitas Discord</string>
-    <string name="discord_token">Token Discord</string>
-    <string name="discord_token_summary">Masukkan Token Discord Anda untuk mengaktifkan status aktivitas</string>
-    <string name="discord_token_description">Masukkan Token Discord Anda atau klik %s untuk mendapatkannya melalui browser</string>
-    <string name="discord_token_hint">Tempelkan Token Discord Anda di sini</string>
     <string name="discord_rpc_summary">Tampilkan status membaca Anda di Discord</string>
     <string name="discord_rpc_description">Membaca manga di SlopSauce - aplikasi pembaca manga</string>
     <string name="manga_restricted_description">Manga ini tidak tersedia untuk dibaca di sumber ini. Coba cari di sumber lain atau buka di browser untuk informasi lebih lanjut</string>
@@ -688,7 +684,6 @@
     <string name="rpc_skip_nsfw_summary">Jangan gunakan RPC untuk konten dewasa</string>
     <string name="show_floating_control_button">Tampilkan tombol kontrol mengambang</string>
     <string name="unavailable">Tidak tersedia</string>
-    <string name="invalid_token">Token tidak valid: %s</string>
     <string name="no_chapters_in_manga">Manga ini tidak mengandung bab apa pun</string>
     <string name="reading_s">Membaca %s</string>
     <string name="read_on_s">Baca terus %s</string>

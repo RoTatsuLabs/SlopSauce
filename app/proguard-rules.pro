@@ -190,3 +190,14 @@
 -keepclassmembers class androidx.appcompat.view.menu.** {
     void setOptionalIconsVisible(boolean);
 }
+
+# Discord Social SDK. discord_bridge.cpp finds DiscordRpcManager and its onNativeStatusChanged
+# callback by name through JNI, which R8 cannot see.
+-keep class org.koitharu.kotatsu.scrobbling.discord.data.DiscordRpcManager {
+    *;
+}
+-keepclassmembers class org.koitharu.kotatsu.scrobbling.discord.data.DiscordRpcManager {
+    static <methods>;
+}
+-keep class com.discord.** { *; }
+-keep class org.webrtc.** { *; }

@@ -5,6 +5,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.supervisorScope
 import org.koitharu.kotatsu.core.model.isNsfw
+import org.koitharu.kotatsu.core.model.trackerProgressList
 import org.koitharu.kotatsu.core.prefs.AppSettings
 import org.koitharu.kotatsu.core.util.ext.printStackTraceDebug
 import org.koitharu.kotatsu.history.data.HistoryRepository
@@ -48,7 +49,7 @@ class SyncProgressFromScrobblersUseCase @Inject constructor(
 		if (!historyRepository.advanceFromTracking(manga, chapters, targetIndex)) {
 			return null
 		}
-		return chapters[targetIndex].number.takeIf { it > 0f }?.toInt() ?: targetIndex + 1
+		return chapters.trackerProgressList()[targetIndex]
 	}
 }
 
@@ -58,8 +59,10 @@ internal fun findRemoteProgressIndex(chapters: List<MangaChapter>, remoteChapter
 	}
 	var previousNumber = 0f
 	var result = -1
+	// A chapter without a number takes its place among the main chapters, as when progress is sent.
+	val fallbackNumbers = chapters.trackerProgressList()
 	for ((index, chapter) in chapters.withIndex()) {
-		val number = chapter.number.takeIf { it > 0f } ?: (index + 1).toFloat()
+		val number = chapter.number.takeIf { it > 0f } ?: fallbackNumbers[index].toFloat()
 		if (number < previousNumber || number > remoteChapter) {
 			break
 		}

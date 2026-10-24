@@ -16,6 +16,12 @@
 		android:required="false" />
 
 	<uses-permission android:name="android.permission.INTERNET" />
+	<!-- The Discord Social SDK declares voice-call permissions that Rich Presence does not use. -->
+	<uses-permission android:name="android.permission.RECORD_AUDIO" tools:node="remove" />
+	<uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" tools:node="remove" />
+	<uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" tools:node="remove" />
+	<uses-permission android:name="android.permission.BLUETOOTH" tools:node="remove" />
+	<uses-permission android:name="android.permission.BLUETOOTH_CONNECT" tools:node="remove" />
 	<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 	<uses-permission
 		android:name="android.permission.FOREGROUND_SERVICE"
@@ -52,6 +58,17 @@
 		</intent>
 		<intent>
 			<action android:name="android.intent.action.TTS_SERVICE" />
+		</intent>
+	</queries>
+
+	<!-- Discord Social SDK: finds the Discord app, or a Custom Tab, for the OAuth2 sign-in. -->
+	<queries>
+		<package android:name="com.discord" />
+		<intent>
+			<action android:name="android.support.customtabs.action.CustomTabsService" />
+		</intent>
+		<intent>
+			<action android:name="com.discord.socialsdk.rpc.IDiscordRpcService" />
 		</intent>
 	</queries>
 
@@ -295,9 +312,35 @@
 				<data android:mimeType="image/*" />
 			</intent-filter>
 		</activity>
+		<!-- Runs the Discord Social SDK OAuth2 sign-in from Settings. -->
 		<activity
-			android:name="org.koitharu.kotatsu.scrobbling.discord.ui.DiscordAuthActivity"
-			android:label="@string/discord" />
+			android:name="org.koitharu.kotatsu.scrobbling.discord.ui.DiscordLoginActivity"
+			android:configChanges="keyboardHidden|orientation|screenSize|screenLayout|smallestScreenSize|uiMode"
+			android:exported="false"
+			android:label="@string/discord"
+			android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+
+		<!-- Social SDK: receives the OAuth2 redirect (discord-APP_ID:/authorize/callback) once the
+			user approves the request in the Discord app or browser. -->
+		<activity
+			android:name="com.discord.socialsdk.AuthenticationActivity"
+			android:exported="true"
+			android:launchMode="singleTask"
+			android:theme="@android:style/Theme.Translucent.NoTitleBar">
+			<intent-filter>
+				<action android:name="android.intent.action.VIEW" />
+
+				<category android:name="android.intent.category.DEFAULT" />
+				<category android:name="android.intent.category.BROWSABLE" />
+
+				<data android:scheme="discord-${discordAppId}" />
+			</intent-filter>
+		</activity>
+
+		<!-- The SDK's voice-call service. Rich Presence never starts it. -->
+		<service
+			android:name="com.discord.socialsdk.ForegroundService"
+			tools:node="remove" />
 
 		<service
 			android:name="androidx.work.impl.foreground.SystemForegroundService"

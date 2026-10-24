@@ -650,15 +650,11 @@
     <string name="book_effect">Mala-dilaw na background (asul na filter)</string>
     <string name="unavailable">Di-available</string>
     <string name="show_floating_control_button">Ipakita ang lumulutang na control button</string>
-    <string name="invalid_token">Imbalidong token: %s</string>
     <string name="rpc_skip_nsfw_summary">Huwag gamitin ang RPC para sa pangmatandang content</string>
     <string name="read_on_s">Basahin sa %s</string>
     <string name="reading_s">Binabasa ng %s</string>
     <string name="discord_rpc_description">Bumamasa ng manga sa SlopSauce - isang manga reader app</string>
     <string name="discord_rpc_summary">Ipakita ng status ng pagbabasa sa Discord</string>
-    <string name="discord_token_hint">I-paste ang Discord Token dito</string>
-    <string name="discord_token_description">Ilagay ang iyong Discord Token o i-click ang %s para makuha ito gamit ang browser</string>
-    <string name="discord_token_summary">Ilagay ang iyong Discord Token para mapagana ang Rich Presence</string>
     <string name="error_corrupted_zip">Na-corrupt na ZIP archive (%s)</string>
     <string name="main_screen_fab_summary">Pinapayagan na magpatuloy sa pagbabasa sa isang click. Ang button na ito ay hindi lilitaw sa incognito na mode o kung walang laman ang kasaysayan</string>
     <string name="main_screen_fab">Ipakita ang lumulutang na Magpatuloy na button</string>
