@@ -25,7 +25,7 @@ class DiscordLoginActivity : ComponentActivity() {
 
 	override fun onCreate(savedInstanceState: Bundle?) {
 		super.onCreate(savedInstanceState)
-		if (!DiscordRpcManager.init(this)) {
+		if (!DiscordRpcManager.init(this, this)) {
 			fail()
 			return
 		}
