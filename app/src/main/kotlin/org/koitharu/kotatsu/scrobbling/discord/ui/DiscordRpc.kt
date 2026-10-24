@@ -26,6 +26,7 @@ import org.koitharu.kotatsu.scrobbling.discord.data.DiscordButtonConfig
 import org.koitharu.kotatsu.scrobbling.discord.data.DiscordNativeActivity
 import org.koitharu.kotatsu.scrobbling.discord.data.DiscordPlaceholders
 import org.koitharu.kotatsu.scrobbling.discord.data.DiscordPresenceOptions
+import org.koitharu.kotatsu.scrobbling.discord.data.DiscordRpcManager
 import org.koitharu.kotatsu.scrobbling.discord.data.DiscordRpcSession
 import org.koitharu.kotatsu.scrobbling.discord.data.ReadingSnapshot
 import java.util.concurrent.CancellationException
@@ -55,18 +56,23 @@ class DiscordRpc @Inject constructor(
 		session.enter(this)
 	}
 
-	/** The reader left the screen. */
-	fun onLeaveReader() {
-		session.leave(this)
-	}
-
 	/** Takes the presence down right away. */
 	fun clearRpc() {
 		session.stop(this)
 	}
 
-	fun setIdle() {
-		session.setIdle(this)
+	/**
+	 * The reader stopped. Closing it, a rotation or another screen of the app means the reader is
+	 * left. If no screen of the app is left on screen, the user went to another app with the
+	 * reader still open, which shows as Idle (when smart account status is on).
+	 */
+	fun onReaderStopped(isFinishing: Boolean, isChangingConfigurations: Boolean) {
+		val leftApp = !isFinishing && !isChangingConfigurations && !DiscordRpcManager.hasStartedActivity()
+		if (leftApp && settings.isDiscordReadingPresence) {
+			session.setIdle(this)
+		} else {
+			session.leave(this)
+		}
 	}
 
 	/** Rich Presence is optional: whatever goes wrong here must never reach the reader. */

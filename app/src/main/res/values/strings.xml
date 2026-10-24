@@ -1231,8 +1231,8 @@
     <string name="discord_activity_name_hint">Leave blank to use the app name</string>
     <string name="discord_show_timestamp">Show elapsed time</string>
     <string name="discord_show_timestamp_summary">Show how long you have been reading</string>
-    <string name="discord_reading_presence">Reading presence</string>
-    <string name="discord_reading_presence_summary">Do Not Disturb while you read, Idle when the reader sits untouched, and Online again after you leave it</string>
+    <string name="discord_reading_presence">Smart Account Status</string>
+    <string name="discord_reading_presence_summary">Do Not Disturb while you read, Idle when you leave the app with the reader still open, and Online again when you leave the reader</string>
     <string name="discord_section_presence">Presence</string>
     <string name="discord_section_buttons">Buttons</string>
     <string name="discord_button_n">Button %d</string>

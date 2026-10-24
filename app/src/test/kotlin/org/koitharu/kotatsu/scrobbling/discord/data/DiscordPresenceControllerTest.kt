@@ -83,6 +83,48 @@ class DiscordPresenceControllerTest {
 	}
 
 	@Test
+	fun `coming back after idle is do not disturb again`() = runTest {
+		val c = controller()
+		c.update(readerA, true, build = activity())
+		runCurrent()
+		c.setIdle(readerA)
+		assertEquals(PresenceStatus.Idle, transport.statuses.last())
+		c.enter(readerA)
+		assertEquals(PresenceStatus.DoNotDisturb, transport.statuses.last())
+	}
+
+	@Test
+	fun `idle keeps the session while the app stays in the background`() = runTest {
+		val c = controller()
+		c.update(readerA, true, build = activity())
+		runCurrent()
+		c.setIdle(readerA)
+		advanceTimeBy(120_000)
+		assertTrue(transport.active)
+		assertEquals(0, transport.disconnects)
+		assertEquals(PresenceStatus.Idle, transport.statuses.last())
+	}
+
+	@Test
+	fun `leaving the reader from idle ends the session and restores online`() = runTest {
+		val c = controller()
+		c.update(readerA, true, build = activity())
+		runCurrent()
+		c.setIdle(readerA)
+		c.leave(readerA)
+		advanceTimeBy(6_000)
+		assertFalse(transport.active)
+		assertEquals(PresenceStatus.Online, transport.statuses.last())
+	}
+
+	@Test
+	fun `entering without a session does not touch the status`() = runTest {
+		val c = controller()
+		c.enter(readerA)
+		assertTrue(transport.statuses.isEmpty())
+	}
+
+	@Test
 	fun `leaving restores online and ends the session after 5 seconds`() = runTest {
 		val c = controller()
 		c.update(readerA, true, build = activity())

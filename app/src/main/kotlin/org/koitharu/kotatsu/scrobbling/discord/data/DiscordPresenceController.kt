@@ -32,7 +32,7 @@ interface DiscordPresenceTransport {
 data class DiscordPresenceConfig(
 	val isEnabled: Boolean,
 	val isSignedIn: Boolean,
-	/** The "Reading presence" setting: DND/Idle/Online handling and the delayed teardown. */
+	/** The "Smart Account Status" setting: DND/Idle/Online handling and the delayed teardown. */
 	val isReadingPresence: Boolean,
 )
 
@@ -42,8 +42,8 @@ data class DiscordPresenceConfig(
  * Every call names the reader it comes from, its `owner`. A reader that is closing can run its
  * teardown after the next one has started, and must not touch that one's session.
  *
- * With "reading presence" on: the user is Do Not Disturb while reading and Idle once the reader is
- * open but untouched. Leaving the reader restores Online and ends the session after
+ * With "reading presence" on: the user is Do Not Disturb while reading and Idle while the app is in
+ * the background with the reader still open. Leaving the reader restores Online and ends the session after
  * [leaveDebounceMs]; coming back before that keeps the session and its timestamp. With it off,
  * the user's online status is never touched and leaving ends the session at once.
  *
@@ -75,6 +75,10 @@ class DiscordPresenceController(
 	fun enter(owner: Any) = synchronized(lock) {
 		this.owner = owner
 		cancelTeardownLocked()
+		// Coming back to the reader after the app was in the background: reading again.
+		if (status == PresenceStatus.Idle && config().isReadingPresence) {
+			requestStatusLocked(PresenceStatus.DoNotDisturb)
+		}
 	}
 
 	/**
@@ -126,7 +130,7 @@ class DiscordPresenceController(
 		}
 	}
 
-	/** The reader is open but nobody is reading. */
+	/** The app went to the background with the reader still open. */
 	fun setIdle(owner: Any) {
 		synchronized(lock) {
 			if (this.owner !== owner || !config().isReadingPresence) return

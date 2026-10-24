@@ -1134,7 +1134,7 @@ class AppSettings @Inject constructor(@ApplicationContext context: Context) {
 	val isDiscordRpcShowTimestamp: Boolean
 		get() = prefs.getBoolean(KEY_DISCORD_RPC_SHOW_TIMESTAMP, true)
 
-	/** Do Not Disturb while reading, Idle when the reader sits untouched, Online again after leaving. */
+	/** Do Not Disturb while reading, Idle with the app in the background, Online again after leaving the reader. */
 	val isDiscordReadingPresence: Boolean
 		get() = prefs.getBoolean(KEY_DISCORD_RPC_READING_PRESENCE, false)
 

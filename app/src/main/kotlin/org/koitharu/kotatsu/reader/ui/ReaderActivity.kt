@@ -358,7 +358,7 @@ class ReaderActivity :
 
     override fun onStop() {
         super.onStop()
-        viewModel.onStop()
+        viewModel.onStop(isFinishing, isChangingConfigurations)
     }
 
     override fun onDestroy() {
@@ -379,7 +379,6 @@ class ReaderActivity :
 
     override fun onIdle() {
         viewModel.saveCurrentState(readerManager.currentReader?.getCurrentState())
-        viewModel.onIdle()
     }
 
     override fun onVisibilityChanged(v: View, visibility: Int) {
