@@ -24,6 +24,7 @@ import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import org.koitharu.kotatsu.BuildConfig
 import java.io.OutputStreamWriter
+import java.lang.ref.WeakReference
 import java.net.HttpURLConnection
 import java.net.URL
 import java.net.URLEncoder
@@ -130,6 +131,8 @@ object DiscordRpcManager {
 
 	private var callbackJob: Job? = null
 	private var lifecycleRegistered = false
+	@Volatile
+	private var lastActivity: WeakReference<Activity>? = null
 
 	// Bumped on every connect so a pending delayed disconnect can tell it has been superseded.
 	private val connectionEpoch = AtomicInteger()
@@ -187,7 +190,7 @@ object DiscordRpcManager {
 	private external fun nativeDestroy()
 
 	/** Loads the native library and starts the callback pump. Safe to call more than once. */
-	fun init(context: Context): Boolean = synchronized(lock) {
+	fun init(context: Context, activity: Activity? = null): Boolean = synchronized(lock) {
 		if (initialized) return true
 		try {
 			System.loadLibrary("slopsauce_discord")
@@ -195,7 +198,15 @@ object DiscordRpcManager {
 			Log.e(TAG, "Failed to load slopsauce_discord", e)
 			return false
 		}
-		registerEngineActivityTracking(context.applicationContext as Application)
+		trackActivities(context.applicationContext as Application)
+		// The SDK looks for the Discord app as soon as its client exists, and that needs an
+		// activity already, so one is handed over before the client is created.
+		val engineActivity = activity ?: lastActivity?.get()
+		if (engineActivity == null) {
+			Log.w(TAG, "No activity to hand to the SDK")
+			return false
+		}
+		attachActivity(engineActivity)
 		if (!nativeInit(appId)) {
 			Log.w(TAG, "nativeInit returned false")
 			return false
@@ -218,19 +229,27 @@ object DiscordRpcManager {
 
 	/**
 	 * The SDK needs a live Activity to resolve a Context (e.g. while checking for the Discord
-	 * app or connecting) and fails without one, so the foreground activity is handed over.
+	 * app or connecting) and fails without one. The foreground activity is remembered from app
+	 * start, so it is known even when the presence starts inside an already open screen.
 	 */
-	private fun registerEngineActivityTracking(app: Application) {
+	fun trackActivities(app: Application) {
 		if (lifecycleRegistered) return
 		lifecycleRegistered = true
 		app.registerActivityLifecycleCallbacks(object : Application.ActivityLifecycleCallbacks {
-			override fun onActivityResumed(activity: Activity) = attachActivity(activity)
+			override fun onActivityResumed(activity: Activity) {
+				lastActivity = WeakReference(activity)
+				if (initialized) attachActivity(activity)
+			}
+
+			override fun onActivityDestroyed(activity: Activity) {
+				if (lastActivity?.get() === activity) lastActivity = null
+			}
+
 			override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) = Unit
 			override fun onActivityStarted(activity: Activity) = Unit
 			override fun onActivityPaused(activity: Activity) = Unit
 			override fun onActivityStopped(activity: Activity) = Unit
 			override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) = Unit
-			override fun onActivityDestroyed(activity: Activity) = Unit
 		})
 	}
 
