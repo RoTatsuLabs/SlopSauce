@@ -283,12 +283,8 @@ class ReaderViewModel @Inject constructor(
         discordRpc.onEnterReader()
     }
 
-    fun onStop() {
-        discordRpc.onLeaveReader()
-    }
-
-    fun onIdle() {
-        discordRpc.setIdle()
+    fun onStop(isFinishing: Boolean, isChangingConfigurations: Boolean) {
+        discordRpc.onReaderStopped(isFinishing, isChangingConfigurations)
     }
 
     fun switchMode(newMode: ReaderMode) {

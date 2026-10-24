@@ -133,6 +133,7 @@ object DiscordRpcManager {
 	private var lifecycleRegistered = false
 	@Volatile
 	private var lastActivity: WeakReference<Activity>? = null
+	private val startedActivities = AtomicInteger(0)
 
 	// Bumped on every connect so a pending delayed disconnect can tell it has been superseded.
 	private val connectionEpoch = AtomicInteger()
@@ -246,12 +247,25 @@ object DiscordRpcManager {
 			}
 
 			override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) = Unit
-			override fun onActivityStarted(activity: Activity) = Unit
+			override fun onActivityStarted(activity: Activity) {
+				startedActivities.incrementAndGet()
+			}
+
 			override fun onActivityPaused(activity: Activity) = Unit
-			override fun onActivityStopped(activity: Activity) = Unit
+
+			override fun onActivityStopped(activity: Activity) {
+				startedActivities.updateAndGet { (it - 1).coerceAtLeast(0) }
+			}
+
 			override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) = Unit
 		})
 	}
+
+	/**
+	 * True while any activity of the app is on screen. Asked from a stopping activity (after its
+	 * own stop was counted) it tells leaving for another screen of the app from leaving the app.
+	 */
+	fun hasStartedActivity(): Boolean = startedActivities.get() > 0
 
 	/** Hands [activity] to the SDK, and starts a connection that was waiting for one. */
 	fun attachActivity(activity: Activity) {
