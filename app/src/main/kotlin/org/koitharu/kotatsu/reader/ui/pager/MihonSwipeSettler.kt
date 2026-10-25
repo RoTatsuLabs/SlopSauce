@@ -6,11 +6,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.ViewPager2
 import org.koitharu.kotatsu.core.util.ext.recyclerView
-import kotlin.math.PI
 import kotlin.math.abs
-import kotlin.math.min
-import kotlin.math.roundToInt
-import kotlin.math.sin
 
 /**
  * Settles a swipe release like Mihon's ViewPager: its page choice rules, a velocity based
@@ -103,25 +99,19 @@ class MihonSwipeSettler(
 	}
 
 	private fun determineTargetPage(first: Int, offset: Float, velocity: Float, delta: Float, count: Int): Int {
-		val target = if (delta > flingDistance && abs(velocity) > minVelocity) {
-			if (velocity > 0) first + 1 else first
-		} else {
-			val truncator = if (first >= pager.currentItem) 0.4f else 0.6f
-			first + (offset + truncator).toInt()
-		}
-		return target.coerceIn(0, count - 1)
+		return MihonSwipeMath.targetPage(
+			first = first,
+			offset = offset,
+			velocity = velocity,
+			delta = delta,
+			count = count,
+			current = pager.currentItem,
+			flingDistance = flingDistance,
+			minVelocity = minVelocity,
+		)
 	}
 
 	private fun settleDuration(distance: Int, size: Int, velocity: Float): Int {
-		val ratio = min(1f, abs(distance).toFloat() / size)
-		val half = size / 2
-		val influence = sin((ratio - 0.5f) * 0.3f * (PI / 2).toFloat())
-		val travel = half + half * influence
-		val duration = if (velocity > 0f) {
-			4 * (1000 * abs(travel / velocity)).roundToInt()
-		} else {
-			((abs(distance).toFloat() / size + 1) * 100).toInt()
-		}
-		return min(duration, MihonPageScroll.MAX_DURATION_MS.toInt())
+		return MihonSwipeMath.settleDuration(distance, size, velocity, MihonPageScroll.MAX_DURATION_MS.toInt())
 	}
 }

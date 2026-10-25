@@ -58,6 +58,9 @@ open class DoubleReaderFragment : BaseReaderFragment<FragmentReaderDoubleBinding
 			}
 			addOnScrollListener(PageScrollListener())
 			DoublePageSnapHelper(settings).attachToRecyclerView(this)
+			MihonSpreadSettler(this) {
+				viewModel.pageAnimation.value == ReaderAnimation.MIHON && isAnimationEnabled()
+			}.attach()
 		}
 	}
 
