@@ -920,6 +920,12 @@ class AppSettings @Inject constructor(@ApplicationContext context: Context) {
 		get() = prefs.getEnumValue(KEY_DOWNLOADS_METERED_NETWORK, TriStateOption.ASK)
 		set(value) = prefs.edit { putEnumValue(KEY_DOWNLOADS_METERED_NETWORK, value) }
 
+	val isNextChapterAutoDownloadEnabled: Boolean
+		get() = prefs.getBoolean(KEY_DOWNLOADS_NEXT_CHAPTER, false)
+
+	val isNextChapterAutoDownloadWifiOnly: Boolean
+		get() = prefs.getBoolean(KEY_DOWNLOADS_NEXT_CHAPTER_WIFI_ONLY, true)
+
 	val preferredDownloadFormat: DownloadFormat
 		get() = prefs.getEnumValue(KEY_DOWNLOADS_FORMAT, DownloadFormat.AUTOMATIC)
 
@@ -1483,6 +1489,8 @@ class AppSettings @Inject constructor(@ApplicationContext context: Context) {
 		const val KEY_SUGGESTIONS_NOTIFICATIONS = "suggestions_notifications"
 		const val KEY_DOWNLOADS_METERED_NETWORK = "downloads_metered_network"
 		const val KEY_DOWNLOADS_FORMAT = "downloads_format"
+		const val KEY_DOWNLOADS_NEXT_CHAPTER = "downloads_next_chapter"
+		const val KEY_DOWNLOADS_NEXT_CHAPTER_WIFI_ONLY = "downloads_next_chapter_wifi_only"
 		const val KEY_ALL_FAVOURITES_VISIBLE = "all_favourites_visible"
 		const val KEY_DOH = "doh"
 		const val KEY_MIHON_USER_AGENT = "mihon_user_agent"
