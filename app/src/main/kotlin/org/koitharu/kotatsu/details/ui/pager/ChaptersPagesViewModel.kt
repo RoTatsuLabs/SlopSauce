@@ -303,19 +303,23 @@ abstract class ChaptersPagesViewModel(
 
 	fun download(chaptersIds: Set<Long>?, allowMeteredNetwork: Boolean) {
 		launchJob(Dispatchers.Default) {
-			val manga = requireManga()
-			val task = DownloadTask(
-				mangaId = manga.id,
-				isPaused = false,
-				isSilent = false,
-				chaptersIds = chaptersIds?.toLongArray(),
-				destination = null,
-				format = null,
-				allowMeteredNetwork = allowMeteredNetwork,
-			)
-			downloadScheduler.schedule(setOf(manga to task))
+			scheduleDownload(chaptersIds, allowMeteredNetwork)
 			onDownloadStarted.call(Unit)
 		}
+	}
+
+	protected suspend fun scheduleDownload(chaptersIds: Set<Long>?, allowMeteredNetwork: Boolean) {
+		val manga = requireManga()
+		val task = DownloadTask(
+			mangaId = manga.id,
+			isPaused = false,
+			isSilent = false,
+			chaptersIds = chaptersIds?.toLongArray(),
+			destination = null,
+			format = null,
+			allowMeteredNetwork = allowMeteredNetwork,
+		)
+		downloadScheduler.schedule(setOf(manga to task))
 	}
 
 	fun deleteLocal() {

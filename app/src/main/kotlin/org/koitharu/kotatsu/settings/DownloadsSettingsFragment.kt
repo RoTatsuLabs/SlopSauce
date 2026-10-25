@@ -536,6 +536,8 @@ private fun DownloadsScreen(
 		TriStateOption.ASK.name,
 	)
 	var pagesDirAsk by rememberBooleanPref(AppSettings.KEY_PAGES_SAVE_ASK, true)
+	var autoDownloadNext by rememberBooleanPref(AppSettings.KEY_DOWNLOADS_NEXT_CHAPTER, false)
+	var autoDownloadWifiOnly by rememberBooleanPref(AppSettings.KEY_DOWNLOADS_NEXT_CHAPTER_WIFI_ONLY, true)
 
 	LaunchedEffect(metered) { onMeteredChanged() }
 
@@ -606,6 +608,32 @@ private fun DownloadsScreen(
 							onClick = onIgnoreDoze,
 						)
 					}
+				}
+			}
+		}
+		item { Spacer(Modifier.height(8.dp).fillMaxWidth()) }
+		item {
+			SettingsGroup(title = stringResource(R.string.auto_download)) {
+				item { pos ->
+					SwitchSettingsItem(
+						title = stringResource(R.string.auto_download_next_chapter),
+						subtitle = stringResource(R.string.auto_download_next_chapter_summary),
+						checked = autoDownloadNext,
+						onCheckedChange = { autoDownloadNext = it },
+						icon = R.drawable.ic_download,
+						shape = pos.shape,
+					)
+				}
+				item { pos ->
+					SwitchSettingsItem(
+						title = stringResource(R.string.auto_download_wifi_only),
+						subtitle = stringResource(R.string.auto_download_wifi_only_summary),
+						checked = autoDownloadWifiOnly,
+						onCheckedChange = { autoDownloadWifiOnly = it },
+						icon = R.drawable.ic_wifi,
+						enabled = autoDownloadNext,
+						shape = pos.shape,
+					)
 				}
 			}
 		}

@@ -85,12 +85,16 @@ import org.koitharu.kotatsu.scrobbling.discord.ui.DiscordRpc
 import org.koitharu.kotatsu.stats.domain.StatsCollector
 import java.io.File
 import java.time.Instant
+import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 
 private const val BOUNDS_PAGE_OFFSET = 2
 private const val PREFETCH_LIMIT = 10
 private const val EPUB_SLIDER_MAX = 1000
 private const val AUTOSAVE_INTERVAL_MS = 5000L
+
+/** Chapters already queued for auto download in this process, so reopening the reader doesn't queue them twice. */
+private val autoDownloadRequested: MutableSet<Long> = ConcurrentHashMap.newKeySet()
 
 @HiltViewModel
 class ReaderViewModel @Inject constructor(
@@ -430,6 +434,9 @@ class ReaderViewModel @Inject constructor(
             if (readingState.value != prevState) {
                 scheduleAutoSave()
             }
+            pages.getOrNull(centerPos)?.let { page ->
+                autoDownloadNextChapter(pages.count { it.chapterId == page.chapterId }, page.chapterId, page.index)
+            }
             notifyStateChanged()
             if (pages.isEmpty() || loadingJob?.isActive == true) {
                 return@launchJob
@@ -446,6 +453,35 @@ class ReaderViewModel @Inject constructor(
             }
             if (pageLoader.isPrefetchApplicable()) {
                 pageLoader.prefetch(pages.trySublist(upperPos + 1, upperPos + PREFETCH_LIMIT))
+            }
+        }
+    }
+
+    /**
+     * Past the middle of a chapter, queues the next one as a regular download (see the Downloads
+     * settings). Skipped for local comics, chapters already on the device and chapters already queued.
+     */
+    private fun autoDownloadNextChapter(chapterPages: Int, chapterId: Long, pageIndex: Int) {
+        if (!settings.isNextChapterAutoDownloadEnabled) return
+        if (chapterPages == 0 || (pageIndex + 1) * 2 < chapterPages) return
+        val details = mangaDetails.value ?: return
+        if (details.isLocal) return
+        val chapters = details.allChapters
+        val currentIndex = chapters.indexOfFirst { it.id == chapterId }
+        if (currentIndex < 0) return
+        val next = chapters.getOrNull(currentIndex + 1) ?: return
+        if (details.local?.manga?.chapters?.any { it.id == next.id } == true) return
+        if (!autoDownloadRequested.add(next.id)) return
+        val allowMetered = !settings.isNextChapterAutoDownloadWifiOnly
+        viewModelScope.launch(Dispatchers.Default) {
+            try {
+                scheduleDownload(setOf(next.id), allowMetered)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                // background nicety: never interrupt reading with an error dialog
+                autoDownloadRequested.remove(next.id)
+                e.printStackTraceDebug()
             }
         }
     }

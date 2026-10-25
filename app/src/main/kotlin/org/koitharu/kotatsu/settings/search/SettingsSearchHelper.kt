@@ -249,6 +249,10 @@ class SettingsSearchHelper @Inject constructor(
 				addItem("rebuild_downloads_index", R.string.rebuild_downloads_index, R.string.rebuild_downloads_index_summary, crumbs, DownloadsSettingsFragment::class.java)
 				addItem("ignore_dose", R.string.disable_battery_optimization, R.string.disable_battery_optimization_summary_downloads, crumbs, DownloadsSettingsFragment::class.java)
 			}
+			group(sectionCrumbs, ctx.getString(R.string.auto_download)) { crumbs ->
+				addItem(AppSettings.KEY_DOWNLOADS_NEXT_CHAPTER, R.string.auto_download_next_chapter, R.string.auto_download_next_chapter_summary, crumbs, DownloadsSettingsFragment::class.java)
+				addItem(AppSettings.KEY_DOWNLOADS_NEXT_CHAPTER_WIFI_ONLY, R.string.auto_download_wifi_only, R.string.auto_download_wifi_only_summary, crumbs, DownloadsSettingsFragment::class.java)
+			}
 			group(sectionCrumbs, ctx.getString(R.string.pages_saving)) { crumbs ->
 				addItem(AppSettings.KEY_PAGES_SAVE_DIR, R.string.default_page_save_dir, breadcrumbs = crumbs, fragmentClass = DownloadsSettingsFragment::class.java)
 				addItem(AppSettings.KEY_PAGES_SAVE_ASK, R.string.ask_for_dest_dir_every_time, breadcrumbs = crumbs, fragmentClass = DownloadsSettingsFragment::class.java)
