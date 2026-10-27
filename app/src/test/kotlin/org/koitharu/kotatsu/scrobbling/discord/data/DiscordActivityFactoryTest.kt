@@ -123,4 +123,21 @@ class DiscordActivityFactoryTest {
 		val activity = DiscordActivityFactory.create(snapshot.copy(coverUrl = "content://cover"), options)
 		assertNull(activity.largeImage)
 	}
+
+	@Test
+	fun `missing cover falls back to the placeholder`() {
+		val withPlaceholder = options.copy(placeholderImageUrl = "https://example.org/placeholder.png")
+		assertEquals(
+			"https://example.org/placeholder.png",
+			DiscordActivityFactory.create(snapshot.copy(coverUrl = null), withPlaceholder).largeImage,
+		)
+		assertEquals(
+			"https://example.org/placeholder.png",
+			DiscordActivityFactory.create(snapshot.copy(coverUrl = "content://cover"), withPlaceholder).largeImage,
+		)
+		assertEquals(
+			"https://example.org/cover.jpg",
+			DiscordActivityFactory.create(snapshot, withPlaceholder).largeImage,
+		)
+	}
 }

@@ -38,6 +38,8 @@ data class DiscordPresenceOptions(
 	val largeTextFormat: String,
 	val smallText: String,
 	val smallImageUrl: String?,
+	/** Shown as the large image when the comic has no cover Discord can fetch. */
+	val placeholderImageUrl: String? = null,
 	val button1: DiscordButtonConfig,
 	val button1DefaultLabel: String,
 	val button1DefaultUrl: String,
@@ -83,7 +85,7 @@ object DiscordActivityFactory {
 				snapshot.currentChapter,
 				snapshot.totalChapters.toString(),
 			),
-			largeImage = snapshot.coverUrl?.takeIf(::isWebUrl),
+			largeImage = snapshot.coverUrl?.takeIf(::isWebUrl) ?: options.placeholderImageUrl?.takeIf(::isWebUrl),
 			largeText = sanitize(String.format(Locale.ROOT, options.largeTextFormat, snapshot.comicTitle)),
 			smallImage = options.smallImageUrl?.takeIf(::isWebUrl),
 			smallText = options.smallText,
