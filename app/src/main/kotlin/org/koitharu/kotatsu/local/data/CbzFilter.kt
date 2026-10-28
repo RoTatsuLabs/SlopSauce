@@ -2,9 +2,14 @@ package org.koitharu.kotatsu.local.data
 
 import org.jetbrains.annotations.Blocking
 import org.koitharu.kotatsu.core.model.isNovelSource
+import org.koitharu.kotatsu.core.util.AlphanumComparator
 import org.koitharu.kotatsu.local.data.output.LocalMangaOutput.Companion.ENTRY_NAME_INDEX
 import org.koitharu.kotatsu.parsers.model.Manga
 import java.io.File
+import java.nio.file.Files
+
+/** A folder holding a file with this name is skipped by the local library scan. */
+const val FILENAME_SKIP = ".notamanga"
 
 private fun isZipExtension(ext: String?): Boolean {
 	return ext.equals("cbz", ignoreCase = true) || ext.equals("zip", ignoreCase = true)
@@ -48,21 +53,41 @@ fun isSupportedArchive(string: String): Boolean {
 	return isZipExtension(ext) || isPdfExtension(ext) || isRarExtension(ext) || isEpubExtension(ext)
 }
 
-/** Deep enough for `book/volume/chapter/page.jpg`, shallow enough not to walk a whole memory card. */
-private const val CONTENT_SCAN_DEPTH = 3
+/** Far deeper than any real library; only guards against runaway trees and symlink loops. */
+private const val MAX_SCAN_DEPTH = 32
+
+/** A folder the library scan may descend into: not hidden, not a symlink, not marked [FILENAME_SKIP]. */
+private fun File.isScannable(): Boolean = isDirectory && !isHidden &&
+	!Files.isSymbolicLink(toPath()) && !File(this, FILENAME_SKIP).exists()
 
 /**
- * True when a folder actually holds manga: an index, an archive, or an image somewhere near the top.
+ * True when a folder actually holds manga: an index, an archive, or an image at any depth below it.
  * Any other folder that happens to sit in a storage dir — fonts, novel plugins, translations,
  * backups — would otherwise be listed as a manga with no cover and no chapters.
  */
 @Blocking
-fun File.hasMangaContent(depth: Int = CONTENT_SCAN_DEPTH): Boolean {
+fun File.hasMangaContent(depth: Int = MAX_SCAN_DEPTH): Boolean {
 	val children = listFiles() ?: return false
 	if (children.any { it.isFile && (it.name == ENTRY_NAME_INDEX || it.isMangaContentFile) }) {
 		return true
 	}
-	return depth > 0 && children.any { it.isDirectory && it.hasMangaContent(depth - 1) }
+	return depth > 0 && children.any { it.isScannable() && it.hasMangaContent(depth - 1) }
+}
+
+/** Every EPUB below this folder at any depth, in natural path order (`Volume 2` before `Volume 10`). */
+@Blocking
+fun File.findEpubFiles(): List<File> {
+	val result = ArrayList<File>()
+	fun walk(dir: File, depth: Int) {
+		for (child in dir.listFiles().orEmpty()) {
+			when {
+				child.isEpubFile && !child.isHidden -> result.add(child)
+				depth > 0 && child.isScannable() -> walk(child, depth - 1)
+			}
+		}
+	}
+	walk(this, MAX_SCAN_DEPTH)
+	return result.sortedWith(compareBy(AlphanumComparator()) { it.relativeTo(this).path })
 }
 
 // ponytail: an extension set rather than MimeTypes — the scan above visits every file in every
