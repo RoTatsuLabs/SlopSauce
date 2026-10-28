@@ -27,6 +27,7 @@ import kotlinx.serialization.json.Json
 import org.koitharu.kotatsu.mihon.model.ExternalRepoInfo
 import org.koitharu.kotatsu.settings.sources.catalog.ExtensionInstallMode
 import org.koitharu.kotatsu.settings.sources.catalog.ExtensionStoreRegistryState
+import org.koitharu.kotatsu.BuildConfig
 import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.core.model.ContentWarning
 import org.koitharu.kotatsu.core.model.ZoomMode
@@ -1293,6 +1294,20 @@ class AppSettings @Inject constructor(@ApplicationContext context: Context) {
 			}
 		}
 
+	val isBackupTelegramEnabled: Boolean
+		get() = prefs.getBoolean(KEY_BACKUP_TELEGRAM_ENABLED, false)
+
+	/** Token of the built-in bot, injected at build time. Null when the build has none. */
+	val backupTelegramBotToken: String?
+		get() = BuildConfig.TELEGRAM_BOT_TOKEN.nullIfEmpty()
+
+	var backupTelegramChatId: String?
+		get() = prefs.getString(KEY_BACKUP_TELEGRAM_CHAT_ID, null)?.trim()?.nullIfEmpty()
+		set(value) = prefs.edit { putString(KEY_BACKUP_TELEGRAM_CHAT_ID, value?.nullIfEmpty()) }
+
+	val isBackupTelegramConfigured: Boolean
+		get() = isBackupTelegramEnabled && backupTelegramBotToken != null && backupTelegramChatId != null
+
 	val periodicalBackupMaxCount: Int
 		get() {
 			if (!prefs.getBoolean(KEY_BACKUP_PERIODICAL_TRIM, true)) return Int.MAX_VALUE
@@ -1637,6 +1652,7 @@ class AppSettings @Inject constructor(@ApplicationContext context: Context) {
 			KEY_PROTECT_APP_BIOMETRIC_OLD,
 			KEY_PROXY_PASSWORD,
 			KEY_PROXY_LOGIN,
+			KEY_BACKUP_TELEGRAM_CHAT_ID,
 			KEY_INCOGNITO_MODE,
 			KEY_ONBOARDING_COMPLETED,
 			KEY_ONBOARDING_INSTALL_ID,
@@ -1666,6 +1682,7 @@ class AppSettings @Inject constructor(@ApplicationContext context: Context) {
 			KEY_BACKUP_PERIODICAL_FREQ,
 			KEY_BACKUP_PERIODICAL_TRIM,
 			KEY_BACKUP_PERIODICAL_COUNT,
+			KEY_BACKUP_TELEGRAM_ENABLED,
 			KEY_SHIZUKU_INSTALLER,
 			KEY_PRIVATE_INSTALLER,
 			KEY_DISCORD_ACCESS_TOKEN,
@@ -1698,6 +1715,8 @@ class AppSettings @Inject constructor(@ApplicationContext context: Context) {
 		const val KEY_BACKUP_PERIODICAL_FREQ = "backup_periodic_freq"
 		const val KEY_BACKUP_PERIODICAL_TRIM = "backup_periodic_trim"
 		const val KEY_BACKUP_PERIODICAL_COUNT = "backup_periodic_count"
+		const val KEY_BACKUP_TELEGRAM_ENABLED = "backup_telegram"
+		const val KEY_BACKUP_TELEGRAM_CHAT_ID = "backup_telegram_chat_id"
 
 		// old keys are for migration only
 		private const val KEY_IMAGES_PROXY_OLD = "images_proxy"
