@@ -46,7 +46,6 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 private const val MAX_PARALLELISM = 4
-private const val FILENAME_SKIP = ".notamanga"
 
 @Singleton
 @OptIn(InternalParsersApi::class)

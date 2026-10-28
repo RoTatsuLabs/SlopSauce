@@ -29,6 +29,7 @@ import org.koitharu.kotatsu.core.util.ext.toFileNameSafe
 import org.koitharu.kotatsu.core.util.ext.toListSorted
 import org.koitharu.kotatsu.core.util.ext.toZipUri
 import org.koitharu.kotatsu.local.data.MangaIndex
+import org.koitharu.kotatsu.local.data.findEpubFiles
 import org.koitharu.kotatsu.local.data.hasEpubExtension
 import org.koitharu.kotatsu.local.data.hasZipExtension
 import org.koitharu.kotatsu.local.data.hasMangaContent
@@ -63,9 +64,7 @@ class LocalMangaParser(private val uri: Uri) {
 	suspend fun getManga(withDetails: Boolean): LocalManga = runInterruptible(Dispatchers.IO) {
 		val epubFiles = when {
 			rootFile.isEpubFile -> listOf(rootFile)
-			rootFile.isDirectory -> rootFile.listFiles { f: File -> f.isEpubFile }
-				?.sortedWith(compareBy(AlphanumComparator()) { it.name })
-				.orEmpty()
+			rootFile.isDirectory -> rootFile.findEpubFiles()
 
 			else -> emptyList()
 		}
