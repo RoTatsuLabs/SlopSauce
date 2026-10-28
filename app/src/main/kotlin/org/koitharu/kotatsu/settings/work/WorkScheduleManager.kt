@@ -50,9 +50,12 @@ class WorkScheduleManager @Inject constructor(
 
 			AppSettings.KEY_BACKUP_PERIODICAL_ENABLED,
 			AppSettings.KEY_BACKUP_PERIODICAL_FREQ,
-			AppSettings.KEY_BACKUP_PERIODICAL_OUTPUT -> updateWorker(
+			AppSettings.KEY_BACKUP_PERIODICAL_OUTPUT,
+			AppSettings.KEY_BACKUP_TELEGRAM_ENABLED,
+			AppSettings.KEY_BACKUP_TELEGRAM_CHAT_ID -> updateWorker(
 				scheduler = backupScheduler,
-				isEnabled = settings.isPeriodicalBackupEnabled && settings.periodicalBackupDirectory != null,
+				isEnabled = settings.isPeriodicalBackupEnabled &&
+					(settings.periodicalBackupDirectory != null || settings.isBackupTelegramConfigured),
 				force = key != AppSettings.KEY_BACKUP_PERIODICAL_ENABLED,
 			)
 

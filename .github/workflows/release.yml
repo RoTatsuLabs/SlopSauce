@@ -83,6 +83,8 @@ jobs:
         sed -i -E "s/versionCode = [0-9]+/versionCode = ${NEXT_CODE}/" "$BUILD_GRADLE"
 
     - name: Build Release APK
+      env:
+        TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
       run: |
         ./gradlew assembleRelease --no-daemon --stacktrace \
           -PRELEASE_STORE_FILE=../release.keystore \

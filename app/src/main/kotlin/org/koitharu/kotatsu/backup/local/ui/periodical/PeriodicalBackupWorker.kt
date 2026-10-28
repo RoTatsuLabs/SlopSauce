@@ -26,6 +26,7 @@ import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.backup.local.data.LocalBackupRepository
 import org.koitharu.kotatsu.backup.local.domain.BackupUtils
 import org.koitharu.kotatsu.backup.local.domain.ExternalBackupStorage
+import org.koitharu.kotatsu.backup.local.domain.TelegramBackupUploader
 import org.koitharu.kotatsu.backup.local.ui.BaseBackupRestoreService
 import org.koitharu.kotatsu.core.nav.AppRouter
 import org.koitharu.kotatsu.core.prefs.AppSettings
@@ -46,6 +47,7 @@ class PeriodicalBackupWorker @AssistedInject constructor(
 	@Assisted workerParams: WorkerParameters,
 	private val repository: LocalBackupRepository,
 	private val externalBackupStorage: ExternalBackupStorage,
+	private val telegramUploader: TelegramBackupUploader,
 	private val settings: AppSettings,
 ) : CoroutineWorker(context, workerParams) {
 
@@ -53,13 +55,15 @@ class PeriodicalBackupWorker @AssistedInject constructor(
 
 	override suspend fun doWork(): Result {
 		trySetForeground()
-		val outputUri: Uri
+		var outputUri: Uri? = null
 		val tempFile = BackupUtils.createTempFile(applicationContext)
 		try {
 			ZipOutputStream(tempFile.outputStream()).use { output ->
 				repository.createBackup(output, MutableStateFlow(Progress.INDETERMINATE))
 			}
-			outputUri = externalBackupStorage.put(tempFile)
+			if (settings.periodicalBackupDirectory != null) {
+				outputUri = externalBackupStorage.put(tempFile)
+			}
 		} catch (e: CancellationException) {
 			tempFile.delete()
 			throw e
@@ -69,9 +73,27 @@ class PeriodicalBackupWorker @AssistedInject constructor(
 			postErrorNotification(e)
 			return Result.failure()
 		}
+		var telegramError: Throwable? = null
+		if (settings.isBackupTelegramConfigured) {
+			try {
+				telegramUploader.send(tempFile)
+			} catch (e: CancellationException) {
+				tempFile.delete()
+				throw e
+			} catch (e: Throwable) {
+				e.printStackTraceDebug()
+				telegramError = e
+			}
+		}
 		tempFile.delete()
-		externalBackupStorage.trim(settings.periodicalBackupMaxCount)
-		postCompletionNotification(outputUri)
+		if (outputUri != null) {
+			externalBackupStorage.trim(settings.periodicalBackupMaxCount)
+		}
+		if (telegramError != null) {
+			postErrorNotification(telegramError)
+		} else {
+			postCompletionNotification(outputUri?.lastPathSegment ?: tempFile.name)
+		}
 		return Result.success()
 	}
 
@@ -103,11 +125,11 @@ class PeriodicalBackupWorker @AssistedInject constructor(
 			.build()
 	}
 
-	private fun postCompletionNotification(uri: Uri) {
+	private fun postCompletionNotification(name: String?) {
 		if (!applicationContext.checkNotificationPermission(BaseBackupRestoreService.CHANNEL_ID)) return
 		val notification = NotificationCompat.Builder(applicationContext, BaseBackupRestoreService.CHANNEL_ID)
 			.setContentTitle(applicationContext.getString(R.string.backup_saved))
-			.setContentText(uri.lastPathSegment)
+			.setContentText(name)
 			.setSmallIcon(R.drawable.general_notification)
 			.setPriority(NotificationCompat.PRIORITY_DEFAULT)
 			.setSilent(true)
@@ -147,7 +169,7 @@ class PeriodicalBackupWorker @AssistedInject constructor(
 
 		override suspend fun schedule() {
 			val frequencyMillis = settings.periodicalBackupFrequencyMillis
-			if (frequencyMillis <= 0L || settings.periodicalBackupDirectory == null) {
+			if (frequencyMillis <= 0L || (settings.periodicalBackupDirectory == null && !settings.isBackupTelegramConfigured)) {
 				return unschedule()
 			}
 			val constraints = Constraints.Builder()
