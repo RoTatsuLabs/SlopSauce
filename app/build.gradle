@@ -14,6 +14,19 @@ plugins {
 // Discord application used for Rich Presence (Discord Developer Portal > General Information).
 def discordAppId = '1563199688310521938'
 
+// Built-in Telegram bot used for backups. Never commit the token: pass it as the TELEGRAM_BOT_TOKEN
+// environment variable, a -PTELEGRAM_BOT_TOKEN Gradle property or a local.properties entry.
+def telegramBotToken = System.getenv('TELEGRAM_BOT_TOKEN') ?: project.findProperty('TELEGRAM_BOT_TOKEN')
+if (telegramBotToken == null) {
+	def localProps = rootProject.file('local.properties')
+	if (localProps.exists()) {
+		def props = new Properties()
+		localProps.withInputStream { props.load(it) }
+		telegramBotToken = props.getProperty('TELEGRAM_BOT_TOKEN')
+	}
+}
+telegramBotToken = (telegramBotToken ?: '').toString().trim()
+
 android {
 	compileSdk {
 		version = release(37) {
@@ -37,6 +50,8 @@ android {
 			generateLocaleConfig = false
 		}
 		buildConfigField 'long', 'DISCORD_APP_ID', "${discordAppId}L"
+		buildConfigField 'String', 'TELEGRAM_BOT_TOKEN', "\"${telegramBotToken}\""
+		buildConfigField 'String', 'TELEGRAM_BOT_USERNAME', '"SlopSauceVaultBot"'
 		manifestPlaceholders = [discordAppId: discordAppId]
 	}
 	externalNativeBuild {

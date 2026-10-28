@@ -1,5 +1,6 @@
 package org.koitharu.kotatsu.backup.local.ui.periodical
 
+import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -23,16 +24,21 @@ import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.fragment.app.viewModels
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.StateFlow
+import org.koitharu.kotatsu.BuildConfig
 import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.core.os.OpenDocumentTreeHelper
 import org.koitharu.kotatsu.core.prefs.AppSettings
+import org.koitharu.kotatsu.core.util.ext.getDisplayMessage
+import org.koitharu.kotatsu.core.util.ext.observeEvent
 import org.koitharu.kotatsu.core.util.ext.tryLaunch
 import org.koitharu.kotatsu.settings.compose.ActionSettingsItem
 import org.koitharu.kotatsu.settings.compose.BaseComposeSettingsFragment
 import org.koitharu.kotatsu.settings.compose.DropSauceTheme
+import org.koitharu.kotatsu.settings.compose.EditTextSettingsItem
 import org.koitharu.kotatsu.settings.compose.ListSettingsItem
 import org.koitharu.kotatsu.settings.compose.PlainInfoSettingsItem
 import org.koitharu.kotatsu.settings.compose.SettingsGroup
@@ -68,9 +74,37 @@ class PeriodicalBackupSettingsFragment :
 				PeriodicalBackupScreen(
 					backupsDirectory = viewModel.backupsDirectory,
 					lastBackupDate = viewModel.lastBackupDate,
+					isTelegramSending = viewModel.isTelegramSending,
+					isTelegramLinking = viewModel.isTelegramLinking,
+					onLinkTelegram = viewModel::linkTelegram,
 					onPickDirectory = ::pickDirectory,
+					onSendToTelegram = viewModel::sendToTelegram,
 				)
 			}
+		}
+	}
+
+	override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+		super.onViewCreated(view, savedInstanceState)
+		viewModel.onTelegramSent.observeEvent(viewLifecycleOwner) {
+			Snackbar.make(view, R.string.backup_telegram_sent, Snackbar.LENGTH_SHORT).show()
+		}
+		viewModel.onTelegramLink.observeEvent(viewLifecycleOwner) { url ->
+			try {
+				startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+			} catch (_: ActivityNotFoundException) {
+				Snackbar.make(view, R.string.operation_not_supported, Snackbar.LENGTH_SHORT).show()
+			}
+		}
+		viewModel.onTelegramLinked.observeEvent(viewLifecycleOwner) {
+			Snackbar.make(view, R.string.backup_telegram_linked, Snackbar.LENGTH_SHORT).show()
+		}
+		viewModel.onError.observeEvent(viewLifecycleOwner) { e ->
+			MaterialAlertDialogBuilder(requireContext())
+				.setPositiveButton(android.R.string.ok, null)
+				.setTitle(R.string.error_occurred)
+				.setMessage(e.getDisplayMessage(resources))
+				.show()
 		}
 	}
 
@@ -94,11 +128,17 @@ class PeriodicalBackupSettingsFragment :
 private fun PeriodicalBackupScreen(
 	backupsDirectory: StateFlow<String?>,
 	lastBackupDate: StateFlow<Date?>,
+	isTelegramSending: StateFlow<Boolean>,
+	isTelegramLinking: StateFlow<Boolean>,
+	onLinkTelegram: () -> Unit,
 	onPickDirectory: () -> Unit,
+	onSendToTelegram: () -> Unit,
 ) {
 	val ctx = LocalContext.current
 	val directory by backupsDirectory.collectAsState()
 	val lastBackup by lastBackupDate.collectAsState()
+	val telegramSending by isTelegramSending.collectAsState()
+	val telegramLinking by isTelegramLinking.collectAsState()
 
 	val frequencyEntries = remember { ctx.resources.getStringArray(R.array.backup_frequency).toList() }
 	val frequencyValues = remember { ctx.resources.getStringArray(R.array.backup_frequency_values).toList() }
@@ -107,6 +147,10 @@ private fun PeriodicalBackupScreen(
 	var frequency by rememberStringPref(AppSettings.KEY_BACKUP_PERIODICAL_FREQ, "3")
 	var trim by rememberBooleanPref(AppSettings.KEY_BACKUP_PERIODICAL_TRIM, true)
 	var maxCount by rememberIntPref(AppSettings.KEY_BACKUP_PERIODICAL_COUNT, 10)
+	var telegramEnabled by rememberBooleanPref(AppSettings.KEY_BACKUP_TELEGRAM_ENABLED, false)
+	var telegramChatId by rememberStringPref(AppSettings.KEY_BACKUP_TELEGRAM_CHAT_ID, "")
+	val telegramAvailable = BuildConfig.TELEGRAM_BOT_TOKEN.isNotEmpty()
+	val telegramReady = telegramChatId.isNotBlank()
 
 	val dirIsWarning = directory == null
 	val dirSubtitle = when (directory) {
@@ -171,6 +215,55 @@ private fun PeriodicalBackupScreen(
 						icon = R.drawable.ic_storage,
 						shape = pos.shape,
 						enabled = enabled && trim,
+					)
+				}
+			}
+		}
+		if (telegramAvailable) item {
+			SettingsGroup(title = stringResource(R.string.backup_telegram)) {
+				item { pos ->
+					SwitchSettingsItem(
+						title = stringResource(R.string.backup_telegram_enable),
+						subtitle = stringResource(R.string.backup_telegram_summary),
+						checked = telegramEnabled,
+						onCheckedChange = { telegramEnabled = it },
+						icon = R.drawable.ic_share,
+						shape = pos.shape,
+					)
+				}
+				item { pos ->
+					ActionSettingsItem(
+						title = stringResource(R.string.backup_telegram_link),
+						subtitle = when {
+							telegramLinking -> stringResource(R.string.backup_telegram_link_waiting)
+							telegramChatId.isNotBlank() -> stringResource(R.string.backup_telegram_linked_to, telegramChatId)
+							else -> stringResource(R.string.backup_telegram_link_summary)
+						},
+						icon = R.drawable.ic_account_circle,
+						shape = pos.shape,
+						enabled = telegramEnabled && !telegramLinking,
+						onClick = onLinkTelegram,
+					)
+				}
+				item { pos ->
+					EditTextSettingsItem(
+						title = stringResource(R.string.backup_telegram_chat_id),
+						value = telegramChatId,
+						hint = stringResource(R.string.backup_telegram_chat_id_hint),
+						onValueChange = { telegramChatId = it.trim() },
+						icon = R.drawable.ic_account_circle,
+						shape = pos.shape,
+						enabled = telegramEnabled,
+					)
+				}
+				item { pos ->
+					ActionSettingsItem(
+						title = stringResource(R.string.backup_telegram_send_now),
+						subtitle = if (telegramSending) stringResource(R.string.creating_backup) else null,
+						icon = R.drawable.ic_upload_file,
+						shape = pos.shape,
+						enabled = telegramEnabled && telegramReady && !telegramSending,
+						onClick = onSendToTelegram,
 					)
 				}
 			}
