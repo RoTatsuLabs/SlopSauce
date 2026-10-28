@@ -155,6 +155,7 @@ class DiscordRpc @Inject constructor(
 		largeTextFormat = context.getString(R.string.reading_s),
 		smallText = context.getString(R.string.discord_rpc_description),
 		smallImageUrl = context.getString(R.string.app_icon_url),
+		placeholderImageUrl = context.getString(R.string.discord_placeholder_url),
 		button1 = DiscordButtonConfig(
 			enabled = settings.isDiscordButton1Enabled,
 			label = settings.discordButton1Label,

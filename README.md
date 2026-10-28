@@ -45,11 +45,14 @@ SlopSauce is a free and open-source comic and novel reader for Android, built to
 
 <p align="center">
   <img src="assets/main_favorites-preview.webp" alt="SlopSauce favorites screen" width="31%" />
-  <img src="assets/manga_details_page-preview.webp" alt="SlopSauce details screen" width="31%" />
-  <img src="assets/reading_ui-preview.webp" alt="SlopSauce manga reading screen" width="31%" />
-  <img src="assets/novel_reading_ui-preview.webp" alt="SlopSauce novel reading screen" width="31%" />
-  <img src="assets/extension_page-preview.webp" alt="SlopSauce extensions screen" width="31%" />
+  <img src="assets/feed-preview.webp" alt="SlopSauce feed screen" width="31%" />
   <img src="assets/settings-preview.webp" alt="SlopSauce settings screen" width="31%" />
+  <img src="assets/extension_page-preview.webp" alt="SlopSauce extensions screen" width="31%" />
+  <img src="assets/manga_details_page-preview.webp" alt="SlopSauce details screen" width="31%" />
+  <img src="assets/chapters_list-preview.webp" alt="SlopSauce chapter list" width="31%" />
+  <img src="assets/paged_reading_ui-preview.webp" alt="SlopSauce manga reading screen" width="31%" />
+  <img src="assets/reading_ui-preview.webp" alt="SlopSauce manhwa reading screen" width="31%" />
+  <img src="assets/novel_reading_ui-preview.webp" alt="SlopSauce novel reading screen" width="31%" />
 </p>
 
 <p align="center">
