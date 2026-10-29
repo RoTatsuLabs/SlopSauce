@@ -434,6 +434,12 @@ class AppSettings @Inject constructor(@ApplicationContext context: Context) {
 	val isReaderRotateWideInverted: Boolean
 		get() = prefs.getBoolean(KEY_READER_ROTATE_WIDE_INVERT, false)
 
+	val isReaderWideSplit: Boolean
+		get() = prefs.getBoolean(KEY_READER_WIDE_SPLIT, false)
+
+	val isReaderDoubleTapFill: Boolean
+		get() = prefs.getBoolean(KEY_READER_DOUBLE_TAP_FILL, false)
+
 	val isReaderZoomButtonsEnabled: Boolean
 		get() = prefs.getBoolean(KEY_READER_ZOOM_BUTTONS, false)
 
@@ -1138,11 +1144,6 @@ class AppSettings @Inject constructor(@ApplicationContext context: Context) {
 		get() = prefs.getBoolean(KEY_READER_TTS_FAB, false)
 		set(value) = prefs.edit { putBoolean(KEY_READER_TTS_FAB, value) }
 
-	// Page preloading is always on (no user setting): the only thing that turns it off is the system
-	// restricting our background data.
-	val isPagesPreloadEnabled: Boolean
-		get() = !isBackgroundNetworkRestricted()
-
 	val is32BitColorsEnabled: Boolean
 		get() = prefs.getBoolean(KEY_32BIT_COLOR, false)
 
@@ -1496,6 +1497,8 @@ class AppSettings @Inject constructor(@ApplicationContext context: Context) {
 		const val KEY_READER_CROP = "reader_crop"
 		const val KEY_READER_ROTATE_WIDE = "reader_rotate_wide"
 		const val KEY_READER_ROTATE_WIDE_INVERT = "reader_rotate_wide_invert"
+		const val KEY_READER_WIDE_SPLIT = "reader_wide_split"
+		const val KEY_READER_DOUBLE_TAP_FILL = "reader_double_tap_fill"
 		const val KEY_PROTECT_APP = "protect_app"
 		const val KEY_PROTECT_APP_TIMEOUT = "protect_app_timeout"
 		const val KEY_APP_PASSWORD = "app_password"
