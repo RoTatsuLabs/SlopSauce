@@ -2,6 +2,7 @@ package org.koitharu.kotatsu.backup.local.domain
 
 import androidx.annotation.StringRes
 import org.koitharu.kotatsu.R
+import java.util.EnumSet
 import java.util.Locale
 import java.util.zip.ZipEntry
 
@@ -27,6 +28,21 @@ enum class BackupSection(
 	;
 
 	companion object {
+
+		/** Sections the user can include or leave out; the index is always written. */
+		val selectable: List<BackupSection> = entries.filter { it != INDEX }
+
+		fun byEntryName(name: String): BackupSection? = entries.find { it.entryName == name }
+
+		/** Always keeps the index and adds categories when favourites are chosen, as restore requires. */
+		fun normalize(selected: Set<BackupSection>): Set<BackupSection> {
+			val result = EnumSet.of(INDEX)
+			result.addAll(selected)
+			if (FAVOURITES in result) {
+				result.add(CATEGORIES)
+			}
+			return result
+		}
 
 		fun of(entry: ZipEntry): BackupSection? {
 			val name = entry.name.lowercase(Locale.ROOT)

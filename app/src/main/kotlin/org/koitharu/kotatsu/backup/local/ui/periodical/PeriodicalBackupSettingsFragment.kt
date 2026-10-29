@@ -30,6 +30,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.StateFlow
 import org.koitharu.kotatsu.BuildConfig
 import org.koitharu.kotatsu.R
+import org.koitharu.kotatsu.backup.local.domain.BackupSection
 import org.koitharu.kotatsu.core.os.OpenDocumentTreeHelper
 import org.koitharu.kotatsu.core.prefs.AppSettings
 import org.koitharu.kotatsu.core.util.ext.getDisplayMessage
@@ -40,6 +41,7 @@ import org.koitharu.kotatsu.settings.compose.BaseComposeSettingsFragment
 import org.koitharu.kotatsu.settings.compose.DropSauceTheme
 import org.koitharu.kotatsu.settings.compose.EditTextSettingsItem
 import org.koitharu.kotatsu.settings.compose.ListSettingsItem
+import org.koitharu.kotatsu.settings.compose.MultiSelectSettingsItem
 import org.koitharu.kotatsu.settings.compose.PlainInfoSettingsItem
 import org.koitharu.kotatsu.settings.compose.SettingsGroup
 import org.koitharu.kotatsu.settings.compose.SettingsScaffold
@@ -48,6 +50,7 @@ import org.koitharu.kotatsu.settings.compose.SwitchSettingsItem
 import org.koitharu.kotatsu.settings.compose.rememberBooleanPref
 import org.koitharu.kotatsu.settings.compose.rememberIntPref
 import org.koitharu.kotatsu.settings.compose.rememberStringPref
+import org.koitharu.kotatsu.settings.compose.rememberStringSetPref
 import java.util.Date
 import javax.inject.Inject
 
@@ -147,6 +150,9 @@ private fun PeriodicalBackupScreen(
 	var frequency by rememberStringPref(AppSettings.KEY_BACKUP_PERIODICAL_FREQ, "3")
 	var trim by rememberBooleanPref(AppSettings.KEY_BACKUP_PERIODICAL_TRIM, true)
 	var maxCount by rememberIntPref(AppSettings.KEY_BACKUP_PERIODICAL_COUNT, 10)
+	val backupSections = remember { BackupSection.selectable }
+	val backupSectionNames = remember { backupSections.mapTo(HashSet()) { it.entryName } }
+	var includedSections by rememberStringSetPref(AppSettings.KEY_BACKUP_SECTIONS, backupSectionNames)
 	var telegramEnabled by rememberBooleanPref(AppSettings.KEY_BACKUP_TELEGRAM_ENABLED, false)
 	var telegramChatId by rememberStringPref(AppSettings.KEY_BACKUP_TELEGRAM_CHAT_ID, "")
 	val telegramAvailable = BuildConfig.TELEGRAM_BOT_TOKEN.isNotEmpty()
@@ -215,6 +221,21 @@ private fun PeriodicalBackupScreen(
 						icon = R.drawable.ic_storage,
 						shape = pos.shape,
 						enabled = enabled && trim,
+					)
+				}
+			}
+		}
+		item {
+			SettingsGroup {
+				item { pos ->
+					MultiSelectSettingsItem(
+						title = stringResource(R.string.backup_contents),
+						entries = backupSections.map { stringResource(it.titleResId) },
+						entryValues = backupSections.map { it.entryName },
+						selectedValues = includedSections,
+						onValuesChange = { if (it.isNotEmpty()) includedSections = it },
+						icon = R.drawable.ic_save,
+						shape = pos.shape,
 					)
 				}
 			}

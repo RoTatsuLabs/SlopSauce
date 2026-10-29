@@ -29,6 +29,7 @@ import org.koitharu.kotatsu.settings.sources.catalog.ExtensionInstallMode
 import org.koitharu.kotatsu.settings.sources.catalog.ExtensionStoreRegistryState
 import org.koitharu.kotatsu.BuildConfig
 import org.koitharu.kotatsu.R
+import org.koitharu.kotatsu.backup.local.domain.BackupSection
 import org.koitharu.kotatsu.core.model.ContentWarning
 import org.koitharu.kotatsu.core.model.ZoomMode
 import org.koitharu.kotatsu.core.network.DoHProvider
@@ -1294,6 +1295,13 @@ class AppSettings @Inject constructor(@ApplicationContext context: Context) {
 			}
 		}
 
+	/** What periodic and Telegram backups include. Everything unless the user narrowed it down. */
+	val backupSections: Set<BackupSection>
+		get() = prefs.getStringSet(KEY_BACKUP_SECTIONS, null)
+			?.mapNotNullTo(HashSet()) { BackupSection.byEntryName(it) }
+			?.takeIf { it.isNotEmpty() }
+			?: BackupSection.selectable.toSet()
+
 	val isBackupTelegramEnabled: Boolean
 		get() = prefs.getBoolean(KEY_BACKUP_TELEGRAM_ENABLED, false)
 
@@ -1715,6 +1723,7 @@ class AppSettings @Inject constructor(@ApplicationContext context: Context) {
 		const val KEY_BACKUP_PERIODICAL_FREQ = "backup_periodic_freq"
 		const val KEY_BACKUP_PERIODICAL_TRIM = "backup_periodic_trim"
 		const val KEY_BACKUP_PERIODICAL_COUNT = "backup_periodic_count"
+		const val KEY_BACKUP_SECTIONS = "backup_sections"
 		const val KEY_BACKUP_TELEGRAM_ENABLED = "backup_telegram"
 		const val KEY_BACKUP_TELEGRAM_CHAT_ID = "backup_telegram_chat_id"
 
