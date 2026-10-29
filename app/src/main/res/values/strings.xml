@@ -1073,8 +1073,9 @@
     <!-- For chapters -->
     <string name="chapters_all">All</string>
     <string name="auto_download">Auto download</string>
-    <string name="auto_download_next_chapter">Download next chapter</string>
-    <string name="auto_download_next_chapter_summary">While reading, save the next chapter to your device once you pass half of the current one</string>
+    <string name="auto_download_next_chapter">Download next chapters</string>
+    <string name="auto_download_next_chapter_summary">While reading, save the upcoming chapters to your device once you pass half of the current one</string>
+    <string name="auto_download_count">Chapters to download ahead</string>
     <string name="auto_download_wifi_only">Wi-Fi only</string>
     <string name="auto_download_wifi_only_summary">Wait for an unmetered connection before downloading the next chapter</string>
     <string name="download_over_cellular">Downloading over cellular network</string>

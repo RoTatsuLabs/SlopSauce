@@ -458,7 +458,7 @@ class ReaderViewModel @Inject constructor(
     }
 
     /**
-     * Past the middle of a chapter, queues the next one as a regular download (see the Downloads
+     * Past the middle of a chapter, queues the next few as regular downloads (see the Downloads
      * settings). Skipped for local comics, chapters already on the device and chapters already queued.
      */
     private fun autoDownloadNextChapter(chapterPages: Int, chapterId: Long, pageIndex: Int) {
@@ -469,18 +469,21 @@ class ReaderViewModel @Inject constructor(
         val chapters = details.allChapters
         val currentIndex = chapters.indexOfFirst { it.id == chapterId }
         if (currentIndex < 0) return
-        val next = chapters.getOrNull(currentIndex + 1) ?: return
-        if (details.local?.manga?.chapters?.any { it.id == next.id } == true) return
-        if (!autoDownloadRequested.add(next.id)) return
+        val localIds = details.local?.manga?.chapters?.mapTo(HashSet()) { it.id }.orEmpty()
+        val upcoming = chapters
+            .subList(currentIndex + 1, minOf(chapters.size, currentIndex + 1 + settings.nextChapterAutoDownloadCount))
+            .filter { it.id !in localIds && autoDownloadRequested.add(it.id) }
+        if (upcoming.isEmpty()) return
+        val ids = upcoming.mapTo(LinkedHashSet()) { it.id }
         val allowMetered = !settings.isNextChapterAutoDownloadWifiOnly
         viewModelScope.launch(Dispatchers.Default) {
             try {
-                scheduleDownload(setOf(next.id), allowMetered)
+                scheduleDownload(ids, allowMetered)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
                 // background nicety: never interrupt reading with an error dialog
-                autoDownloadRequested.remove(next.id)
+                autoDownloadRequested.removeAll(ids)
                 e.printStackTraceDebug()
             }
         }
