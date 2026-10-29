@@ -58,8 +58,10 @@ import org.koitharu.kotatsu.settings.compose.ListSettingsItem
 import org.koitharu.kotatsu.settings.compose.PlainInfoSettingsItem
 import org.koitharu.kotatsu.settings.compose.SettingsGroup
 import org.koitharu.kotatsu.settings.compose.SettingsScaffold
+import org.koitharu.kotatsu.settings.compose.SliderSettingsItem
 import org.koitharu.kotatsu.settings.compose.SwitchSettingsItem
 import org.koitharu.kotatsu.settings.compose.rememberBooleanPref
+import org.koitharu.kotatsu.settings.compose.rememberIntPref
 import org.koitharu.kotatsu.settings.compose.rememberStringPref
 import javax.inject.Inject
 import org.koitharu.kotatsu.favourites.domain.FavouritesRepository
@@ -537,6 +539,7 @@ private fun DownloadsScreen(
 	)
 	var pagesDirAsk by rememberBooleanPref(AppSettings.KEY_PAGES_SAVE_ASK, true)
 	var autoDownloadNext by rememberBooleanPref(AppSettings.KEY_DOWNLOADS_NEXT_CHAPTER, false)
+	var autoDownloadCount by rememberIntPref(AppSettings.KEY_DOWNLOADS_NEXT_CHAPTER_COUNT, 1)
 	var autoDownloadWifiOnly by rememberBooleanPref(AppSettings.KEY_DOWNLOADS_NEXT_CHAPTER_WIFI_ONLY, true)
 
 	LaunchedEffect(metered) { onMeteredChanged() }
@@ -622,6 +625,19 @@ private fun DownloadsScreen(
 						onCheckedChange = { autoDownloadNext = it },
 						icon = R.drawable.ic_download,
 						shape = pos.shape,
+					)
+				}
+				item { pos ->
+					SliderSettingsItem(
+						title = stringResource(R.string.auto_download_count),
+						value = autoDownloadCount.coerceIn(1, 10),
+						valueFrom = 1,
+						valueTo = 10,
+						stepSize = 1,
+						onValueChange = { autoDownloadCount = it },
+						icon = R.drawable.ic_download,
+						shape = pos.shape,
+						enabled = autoDownloadNext,
 					)
 				}
 				item { pos ->

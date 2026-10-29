@@ -938,6 +938,10 @@ class AppSettings @Inject constructor(@ApplicationContext context: Context) {
 	val isNextChapterAutoDownloadEnabled: Boolean
 		get() = prefs.getBoolean(KEY_DOWNLOADS_NEXT_CHAPTER, false)
 
+	/** How many chapters after the current one the auto download queues. */
+	val nextChapterAutoDownloadCount: Int
+		get() = prefs.getInt(KEY_DOWNLOADS_NEXT_CHAPTER_COUNT, 1).coerceIn(1, 10)
+
 	val isNextChapterAutoDownloadWifiOnly: Boolean
 		get() = prefs.getBoolean(KEY_DOWNLOADS_NEXT_CHAPTER_WIFI_ONLY, true)
 
@@ -1521,6 +1525,7 @@ class AppSettings @Inject constructor(@ApplicationContext context: Context) {
 		const val KEY_DOWNLOADS_FORMAT = "downloads_format"
 		const val KEY_DOWNLOADS_NEXT_CHAPTER = "downloads_next_chapter"
 		const val KEY_DOWNLOADS_NEXT_CHAPTER_WIFI_ONLY = "downloads_next_chapter_wifi_only"
+		const val KEY_DOWNLOADS_NEXT_CHAPTER_COUNT = "downloads_next_chapter_count"
 		const val KEY_ALL_FAVOURITES_VISIBLE = "all_favourites_visible"
 		const val KEY_DOH = "doh"
 		const val KEY_MIHON_USER_AGENT = "mihon_user_agent"
