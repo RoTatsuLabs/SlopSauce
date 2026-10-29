@@ -79,8 +79,9 @@ class LocalBackupRepository @Inject constructor(
 	suspend fun createBackup(
 		output: ZipOutputStream,
 		progress: FlowCollector<Progress>?,
+		include: Set<BackupSection> = BackupSection.entries.toSet(),
 	) {
-		val sections = BackupSection.entries
+		val sections = BackupSection.normalize(include).sortedBy { it.ordinal }
 		progress?.emit(Progress.INDETERMINATE)
 		var commonProgress = Progress(0, sections.size)
 		for (section in sections) {

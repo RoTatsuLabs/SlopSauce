@@ -29,6 +29,7 @@ import org.koitharu.kotatsu.settings.sources.catalog.ExtensionInstallMode
 import org.koitharu.kotatsu.settings.sources.catalog.ExtensionStoreRegistryState
 import org.koitharu.kotatsu.BuildConfig
 import org.koitharu.kotatsu.R
+import org.koitharu.kotatsu.backup.local.domain.BackupSection
 import org.koitharu.kotatsu.core.model.ContentWarning
 import org.koitharu.kotatsu.core.model.ZoomMode
 import org.koitharu.kotatsu.core.network.DoHProvider
@@ -1299,6 +1300,19 @@ class AppSettings @Inject constructor(@ApplicationContext context: Context) {
 			}
 		}
 
+	/** What the periodic backup saved to the device includes. Everything unless narrowed down. */
+	val backupSections: Set<BackupSection>
+		get() = readBackupSections(KEY_BACKUP_SECTIONS)
+
+	/** What the backup sent to Telegram includes. Everything unless narrowed down. */
+	val backupTelegramSections: Set<BackupSection>
+		get() = readBackupSections(KEY_BACKUP_TELEGRAM_SECTIONS)
+
+	private fun readBackupSections(key: String): Set<BackupSection> = prefs.getStringSet(key, null)
+		?.mapNotNullTo(HashSet()) { BackupSection.byEntryName(it) }
+		?.takeIf { it.isNotEmpty() }
+		?: BackupSection.selectable.toSet()
+
 	val isBackupTelegramEnabled: Boolean
 		get() = prefs.getBoolean(KEY_BACKUP_TELEGRAM_ENABLED, false)
 
@@ -1691,6 +1705,7 @@ class AppSettings @Inject constructor(@ApplicationContext context: Context) {
 			KEY_BACKUP_PERIODICAL_TRIM,
 			KEY_BACKUP_PERIODICAL_COUNT,
 			KEY_BACKUP_TELEGRAM_ENABLED,
+			KEY_BACKUP_TELEGRAM_SECTIONS,
 			KEY_SHIZUKU_INSTALLER,
 			KEY_PRIVATE_INSTALLER,
 			KEY_DISCORD_ACCESS_TOKEN,
@@ -1723,6 +1738,8 @@ class AppSettings @Inject constructor(@ApplicationContext context: Context) {
 		const val KEY_BACKUP_PERIODICAL_FREQ = "backup_periodic_freq"
 		const val KEY_BACKUP_PERIODICAL_TRIM = "backup_periodic_trim"
 		const val KEY_BACKUP_PERIODICAL_COUNT = "backup_periodic_count"
+		const val KEY_BACKUP_SECTIONS = "backup_sections"
+		const val KEY_BACKUP_TELEGRAM_SECTIONS = "backup_telegram_sections"
 		const val KEY_BACKUP_TELEGRAM_ENABLED = "backup_telegram"
 		const val KEY_BACKUP_TELEGRAM_CHAT_ID = "backup_telegram_chat_id"
 

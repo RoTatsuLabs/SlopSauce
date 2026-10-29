@@ -13,6 +13,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
@@ -29,6 +32,7 @@ import org.koitharu.kotatsu.backup.MihonBackupExporter
 import org.koitharu.kotatsu.backup.MihonBackupManager
 import org.koitharu.kotatsu.backup.MihonBackupManager.Options
 import org.koitharu.kotatsu.backup.MihonBackupManager.RestoreReport
+import org.koitharu.kotatsu.backup.local.domain.BackupSection
 import org.koitharu.kotatsu.backup.local.domain.BackupUtils
 import org.koitharu.kotatsu.backup.local.ui.backup.BackupService
 import org.koitharu.kotatsu.backup.local.ui.periodical.PeriodicalBackupSettingsFragment
@@ -45,6 +49,7 @@ import org.koitharu.kotatsu.kotatsumigration.ui.showKotatsuMigrationCompleteDial
 import org.koitharu.kotatsu.settings.compose.ActionSettingsItem
 import org.koitharu.kotatsu.settings.compose.BaseComposeSettingsFragment
 import org.koitharu.kotatsu.settings.compose.DropSauceTheme
+import org.koitharu.kotatsu.settings.compose.MultiChoiceDialog
 import org.koitharu.kotatsu.settings.compose.NavigationSettingsItem
 import org.koitharu.kotatsu.settings.compose.SettingsGroup
 import org.koitharu.kotatsu.settings.compose.SettingsScaffold
@@ -70,10 +75,12 @@ class BackupSettingsFragment : BaseComposeSettingsFragment(R.string.backup_resto
 		}
 	}
 
+	private var pendingSections: Set<BackupSection>? = null
+
 	private val createLocalBackupLauncher = registerForActivityResult(
 		ActivityResultContracts.CreateDocument(BackupUtils.MIME_TYPE),
 	) { uri ->
-		if (uri != null && BackupService.start(requireContext(), uri)) {
+		if (uri != null && BackupService.start(requireContext(), uri, pendingSections)) {
 			Toast.makeText(requireContext(), R.string.creating_backup, Toast.LENGTH_SHORT).show()
 		}
 	}
@@ -119,7 +126,8 @@ class BackupSettingsFragment : BaseComposeSettingsFragment(R.string.backup_resto
 					MigrationState.Idle -> stringResource(R.string.migrate_from_kotatsu_summary)
 				}
 				BackupScreen(
-					onCreateBackup = {
+					onCreateBackup = { sections ->
+						pendingSections = sections
 						createLocalBackupLauncher.launch(
 							BackupUtils.generateFileName(requireContext()),
 						)
@@ -254,7 +262,7 @@ class BackupSettingsFragment : BaseComposeSettingsFragment(R.string.backup_resto
 
 @Composable
 private fun BackupScreen(
-	onCreateBackup: () -> Unit,
+	onCreateBackup: (Set<BackupSection>) -> Unit,
 	onRestoreLocal: () -> Unit,
 	onOpenPeriodic: () -> Unit,
 	onRestoreFromTachiyomi: () -> Unit,
@@ -262,6 +270,21 @@ private fun BackupScreen(
 	onMigrateFromKotatsu: () -> Unit,
 	onExportToMihon: () -> Unit,
 ) {
+	var showCreateDialog by remember { mutableStateOf(false) }
+	if (showCreateDialog) {
+		val sections = BackupSection.selectable
+		MultiChoiceDialog(
+			title = stringResource(R.string.backup_contents),
+			entries = sections.map { stringResource(it.titleResId) },
+			selectedIndices = sections.indices.toSet(),
+			onConfirm = { indices ->
+				if (indices.isNotEmpty()) {
+					onCreateBackup(indices.mapTo(HashSet()) { sections[it] })
+				}
+			},
+			onDismiss = { showCreateDialog = false },
+		)
+	}
 	SettingsScaffold {
 		item {
 			SettingsGroup(title = stringResource(R.string.backup_restore)) {
@@ -272,7 +295,7 @@ private fun BackupScreen(
 						icon = R.drawable.ic_save,
 						
 						shape = pos.shape,
-						onClick = onCreateBackup,
+						onClick = { showCreateDialog = true },
 					)
 				}
 				item { pos ->
