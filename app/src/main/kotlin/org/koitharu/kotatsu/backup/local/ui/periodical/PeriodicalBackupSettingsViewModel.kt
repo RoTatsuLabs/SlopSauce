@@ -94,7 +94,7 @@ class PeriodicalBackupSettingsViewModel @Inject constructor(
 			val file = BackupUtils.createTempFile(appContext)
 			try {
 				ZipOutputStream(file.outputStream()).use { output ->
-					repository.createBackup(output, MutableStateFlow(Progress.INDETERMINATE))
+					repository.createBackup(output, MutableStateFlow(Progress.INDETERMINATE), settings.backupSections)
 				}
 				telegramUploader.send(file)
 				onTelegramSent.call(Unit)

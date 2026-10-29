@@ -59,7 +59,7 @@ class PeriodicalBackupWorker @AssistedInject constructor(
 		val tempFile = BackupUtils.createTempFile(applicationContext)
 		try {
 			ZipOutputStream(tempFile.outputStream()).use { output ->
-				repository.createBackup(output, MutableStateFlow(Progress.INDETERMINATE))
+				repository.createBackup(output, MutableStateFlow(Progress.INDETERMINATE), settings.backupSections)
 			}
 			if (settings.periodicalBackupDirectory != null) {
 				outputUri = externalBackupStorage.put(tempFile)

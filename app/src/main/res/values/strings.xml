@@ -696,6 +696,7 @@
     <string name="frequency_once_per_month">Once per month</string>
     <string name="periodic_backups_enable">Enable periodic backups</string>
     <string name="backups_output_directory">Backups output directory</string>
+    <string name="backup_contents">Backup contents</string>
     <string name="backup_telegram">Telegram</string>
     <string name="backup_telegram_enable">Send backups to Telegram</string>
     <string name="backup_telegram_summary">Upload each periodic backup to your Telegram chat</string>

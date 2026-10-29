@@ -19,6 +19,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.backup.local.data.LocalBackupRepository
+import org.koitharu.kotatsu.backup.local.domain.BackupSection
 import org.koitharu.kotatsu.backup.local.ui.BaseBackupRestoreService
 import org.koitharu.kotatsu.core.nav.AppRouter
 import org.koitharu.kotatsu.core.util.CompositeResult
@@ -51,6 +52,9 @@ class BackupService : BaseBackupRestoreService() {
 		)
 		val destination = intent.getStringExtra(AppRouter.KEY_DATA)?.toUriOrNull()
 			?: throw FileNotFoundException()
+		val sections = intent.getStringArrayExtra(KEY_SECTIONS)
+			?.mapNotNullTo(HashSet()) { BackupSection.byEntryName(it) }
+			?: BackupSection.entries.toSet()
 		applicationContext.powerManager.withPartialWakeLock(TAG) {
 			val progress = MutableStateFlow(Progress.INDETERMINATE)
 			val progressUpdateJob = if (applicationContext.checkNotificationPermission(CHANNEL_ID)) {
@@ -64,7 +68,7 @@ class BackupService : BaseBackupRestoreService() {
 			}
 			try {
 				ZipOutputStream(contentResolver.openOutputStream(destination)).use { output ->
-					repository.createBackup(output, progress)
+					repository.createBackup(output, progress, sections)
 				}
 			} catch (e: Throwable) {
 				try {
@@ -116,11 +120,15 @@ class BackupService : BaseBackupRestoreService() {
 
 		private const val TAG = "BACKUP"
 		private const val FOREGROUND_NOTIFICATION_ID = 33
+		private const val KEY_SECTIONS = "sections"
 
 		@CheckResult
-		fun start(context: Context, uri: Uri): Boolean = try {
+		fun start(context: Context, uri: Uri, sections: Set<BackupSection>? = null): Boolean = try {
 			val intent = Intent(context, BackupService::class.java)
 			intent.putExtra(AppRouter.KEY_DATA, uri.toString())
+			if (sections != null) {
+				intent.putExtra(KEY_SECTIONS, sections.map { it.entryName }.toTypedArray())
+			}
 			ContextCompat.startForegroundService(context, intent)
 			true
 		} catch (e: Exception) {
