@@ -24,6 +24,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.backup.local.data.LocalBackupRepository
+import org.koitharu.kotatsu.backup.local.domain.BackupSection
 import org.koitharu.kotatsu.backup.local.domain.BackupUtils
 import org.koitharu.kotatsu.backup.local.domain.ExternalBackupStorage
 import org.koitharu.kotatsu.backup.local.domain.TelegramBackupUploader
@@ -37,6 +38,7 @@ import org.koitharu.kotatsu.core.util.ext.printStackTraceDebug
 import org.koitharu.kotatsu.core.util.ext.trySetForeground
 import org.koitharu.kotatsu.core.util.progress.Progress
 import org.koitharu.kotatsu.settings.work.PeriodicWorkScheduler
+import java.io.File
 import java.util.concurrent.TimeUnit
 import java.util.zip.ZipOutputStream
 import javax.inject.Inject
@@ -55,46 +57,70 @@ class PeriodicalBackupWorker @AssistedInject constructor(
 
 	override suspend fun doWork(): Result {
 		trySetForeground()
+		val saveLocally = settings.periodicalBackupDirectory != null
+		val sendToTelegram = settings.isBackupTelegramConfigured
+		val localSections = settings.backupSections
+		val telegramSections = settings.backupTelegramSections
+		val files = ArrayList<File>(2)
 		var outputUri: Uri? = null
-		val tempFile = BackupUtils.createTempFile(applicationContext)
+		var fileName: String? = null
+		var telegramError: Throwable? = null
 		try {
-			ZipOutputStream(tempFile.outputStream()).use { output ->
-				repository.createBackup(output, MutableStateFlow(Progress.INDETERMINATE), settings.backupSections)
+			var localFile: File? = null
+			if (saveLocally) {
+				localFile = createBackupFile(localSections).also(files::add)
+				fileName = localFile.name
+				outputUri = externalBackupStorage.put(localFile)
 			}
-			if (settings.periodicalBackupDirectory != null) {
-				outputUri = externalBackupStorage.put(tempFile)
+			if (sendToTelegram) {
+				try {
+					val telegramFile = if (localFile != null && localSections == telegramSections) {
+						localFile
+					} else {
+						createBackupFile(telegramSections).also(files::add)
+					}
+					fileName = fileName ?: telegramFile.name
+					telegramUploader.send(telegramFile)
+				} catch (e: CancellationException) {
+					throw e
+				} catch (e: Throwable) {
+					if (!saveLocally) throw e
+					e.printStackTraceDebug()
+					telegramError = e
+				}
 			}
 		} catch (e: CancellationException) {
-			tempFile.delete()
+			files.forEach { it.delete() }
 			throw e
 		} catch (e: Throwable) {
 			e.printStackTraceDebug()
-			tempFile.delete()
+			files.forEach { it.delete() }
 			postErrorNotification(e)
 			return Result.failure()
 		}
-		var telegramError: Throwable? = null
-		if (settings.isBackupTelegramConfigured) {
-			try {
-				telegramUploader.send(tempFile)
-			} catch (e: CancellationException) {
-				tempFile.delete()
-				throw e
-			} catch (e: Throwable) {
-				e.printStackTraceDebug()
-				telegramError = e
-			}
-		}
-		tempFile.delete()
+		files.forEach { it.delete() }
 		if (outputUri != null) {
 			externalBackupStorage.trim(settings.periodicalBackupMaxCount)
 		}
 		if (telegramError != null) {
 			postErrorNotification(telegramError)
 		} else {
-			postCompletionNotification(outputUri?.lastPathSegment ?: tempFile.name)
+			postCompletionNotification(outputUri?.lastPathSegment ?: fileName)
 		}
 		return Result.success()
+	}
+
+	private suspend fun createBackupFile(sections: Set<BackupSection>): File {
+		val file = BackupUtils.createTempFile(applicationContext)
+		try {
+			ZipOutputStream(file.outputStream()).use { output ->
+				repository.createBackup(output, MutableStateFlow(Progress.INDETERMINATE), sections)
+			}
+		} catch (e: Throwable) {
+			file.delete()
+			throw e
+		}
+		return file
 	}
 
 	override suspend fun getForegroundInfo(): ForegroundInfo {

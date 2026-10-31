@@ -153,6 +153,7 @@ private fun PeriodicalBackupScreen(
 	val backupSections = remember { BackupSection.selectable }
 	val backupSectionNames = remember { backupSections.mapTo(HashSet()) { it.entryName } }
 	var includedSections by rememberStringSetPref(AppSettings.KEY_BACKUP_SECTIONS, backupSectionNames)
+	var telegramSections by rememberStringSetPref(AppSettings.KEY_BACKUP_TELEGRAM_SECTIONS, backupSectionNames)
 	var telegramEnabled by rememberBooleanPref(AppSettings.KEY_BACKUP_TELEGRAM_ENABLED, false)
 	var telegramChatId by rememberStringPref(AppSettings.KEY_BACKUP_TELEGRAM_CHAT_ID, "")
 	val telegramAvailable = BuildConfig.TELEGRAM_BOT_TOKEN.isNotEmpty()
@@ -223,10 +224,6 @@ private fun PeriodicalBackupScreen(
 						enabled = enabled && trim,
 					)
 				}
-			}
-		}
-		item {
-			SettingsGroup {
 				item { pos ->
 					MultiSelectSettingsItem(
 						title = stringResource(R.string.backup_contents),
@@ -236,6 +233,7 @@ private fun PeriodicalBackupScreen(
 						onValuesChange = { if (it.isNotEmpty()) includedSections = it },
 						icon = R.drawable.ic_save,
 						shape = pos.shape,
+						enabled = enabled,
 					)
 				}
 			}
@@ -273,6 +271,18 @@ private fun PeriodicalBackupScreen(
 						hint = stringResource(R.string.backup_telegram_chat_id_hint),
 						onValueChange = { telegramChatId = it.trim() },
 						icon = R.drawable.ic_account_circle,
+						shape = pos.shape,
+						enabled = telegramEnabled,
+					)
+				}
+				item { pos ->
+					MultiSelectSettingsItem(
+						title = stringResource(R.string.backup_contents),
+						entries = backupSections.map { stringResource(it.titleResId) },
+						entryValues = backupSections.map { it.entryName },
+						selectedValues = telegramSections,
+						onValuesChange = { if (it.isNotEmpty()) telegramSections = it },
+						icon = R.drawable.ic_save,
 						shape = pos.shape,
 						enabled = telegramEnabled,
 					)
