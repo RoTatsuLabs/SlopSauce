@@ -31,7 +31,7 @@ object SecretGate {
 	private fun askPin(activity: FragmentActivity) {
 		showPinDialog(activity, R.string.secret_enter_pin) { pin ->
 			if (SecretSpace.verifyPin(pin)) {
-				offerBiometric(activity)
+				SecretSpace.enter(activity)
 			} else {
 				Toast.makeText(activity, R.string.secret_wrong_pin, Toast.LENGTH_SHORT).show()
 			}
@@ -55,13 +55,11 @@ object SecretGate {
 		}
 	}
 
-	/** Offers fingerprint unlock once, then opens the space. */
 	private fun offerBiometric(activity: FragmentActivity) {
-		if (SecretSpace.isBiometricEnabled || SecretSpace.isBiometricOffered || !canUseBiometric(activity)) {
+		if (!canUseBiometric(activity)) {
 			SecretSpace.enter(activity)
 			return
 		}
-		SecretSpace.isBiometricOffered = true
 		MaterialAlertDialogBuilder(activity)
 			.setMessage(R.string.secret_use_biometric)
 			.setCancelable(false)
