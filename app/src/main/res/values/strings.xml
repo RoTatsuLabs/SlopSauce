@@ -1368,4 +1368,7 @@
     <string name="secret_use_biometric">Use fingerprint to unlock?</string>
     <string name="secret_use_pin">Use PIN</string>
     <string name="secret_leave">Leave secret space</string>
+    <string name="secret_biometric_unavailable">Fingerprint is not available on this device</string>
+    <string name="secret_change_pin">Change secret PIN</string>
+    <string name="secret_fingerprint">Fingerprint unlock</string>
 </resources>

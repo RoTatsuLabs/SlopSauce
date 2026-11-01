@@ -73,6 +73,39 @@ object SecretGate {
 			.show()
 	}
 
+	/** Changes the PIN after checking the current one. */
+	fun changePin(activity: FragmentActivity) {
+		showPinDialog(activity, R.string.secret_enter_pin) { current ->
+			if (!SecretSpace.verifyPin(current)) {
+				Toast.makeText(activity, R.string.secret_wrong_pin, Toast.LENGTH_SHORT).show()
+				return@showPinDialog
+			}
+			showPinDialog(activity, R.string.secret_set_pin) { pin ->
+				if (pin.length < MIN_PIN_LENGTH) {
+					Toast.makeText(activity, R.string.secret_pin_too_short, Toast.LENGTH_SHORT).show()
+					return@showPinDialog
+				}
+				showPinDialog(activity, R.string.secret_confirm_pin) { repeated ->
+					if (repeated == pin) {
+						SecretSpace.setPin(pin)
+					} else {
+						Toast.makeText(activity, R.string.secret_pin_mismatch, Toast.LENGTH_SHORT).show()
+					}
+				}
+			}
+		}
+	}
+
+	/** Turns fingerprint unlock on or off; returns the resulting state. */
+	fun setBiometric(activity: FragmentActivity, enabled: Boolean): Boolean {
+		val result = enabled && canUseBiometric(activity)
+		if (enabled && !result) {
+			Toast.makeText(activity, R.string.secret_biometric_unavailable, Toast.LENGTH_SHORT).show()
+		}
+		SecretSpace.isBiometricEnabled = result
+		return result
+	}
+
 	private fun askBiometric(activity: FragmentActivity) {
 		val prompt = BiometricPrompt(
 			activity,
