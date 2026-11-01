@@ -32,6 +32,7 @@ object SecretSpace {
 	private const val KEY_HASH = "hash"
 	private const val KEY_SALT = "salt"
 	private const val KEY_BIOMETRIC = "bio"
+	private const val KEY_BIO_OFFERED = "bio_offered"
 	private const val KEY_SEEDED = "ss_seeded"
 	private val SEED_SKIP = setOf(
 		AppSettings.KEY_HIDE_FAVOURITES_IN_BROWSE,
@@ -118,6 +119,10 @@ object SecretSpace {
 	var isBiometricEnabled: Boolean
 		get() = gate().getBoolean(KEY_BIOMETRIC, false)
 		set(value) = gate().edit { putBoolean(KEY_BIOMETRIC, value) }
+
+	var isBiometricOffered: Boolean
+		get() = gate().getBoolean(KEY_BIO_OFFERED, false)
+		set(value) = gate().edit { putBoolean(KEY_BIO_OFFERED, value) }
 
 	fun setPin(pin: String) {
 		val salt = UUID.randomUUID().toString()

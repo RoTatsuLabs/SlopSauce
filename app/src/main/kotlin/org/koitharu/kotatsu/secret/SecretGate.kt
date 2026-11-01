@@ -7,7 +7,7 @@ import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.Toast
 import androidx.biometric.BiometricManager
-import androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_STRONG
+import androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_WEAK
 import androidx.biometric.BiometricPrompt
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
@@ -31,7 +31,7 @@ object SecretGate {
 	private fun askPin(activity: FragmentActivity) {
 		showPinDialog(activity, R.string.secret_enter_pin) { pin ->
 			if (SecretSpace.verifyPin(pin)) {
-				SecretSpace.enter(activity)
+				offerBiometric(activity)
 			} else {
 				Toast.makeText(activity, R.string.secret_wrong_pin, Toast.LENGTH_SHORT).show()
 			}
@@ -55,11 +55,13 @@ object SecretGate {
 		}
 	}
 
+	/** Offers fingerprint unlock once, then opens the space. */
 	private fun offerBiometric(activity: FragmentActivity) {
-		if (!canUseBiometric(activity)) {
+		if (SecretSpace.isBiometricEnabled || SecretSpace.isBiometricOffered || !canUseBiometric(activity)) {
 			SecretSpace.enter(activity)
 			return
 		}
+		SecretSpace.isBiometricOffered = true
 		MaterialAlertDialogBuilder(activity)
 			.setMessage(R.string.secret_use_biometric)
 			.setCancelable(false)
@@ -90,14 +92,14 @@ object SecretGate {
 		prompt.authenticate(
 			BiometricPrompt.PromptInfo.Builder()
 				.setTitle(activity.getString(R.string.secret_enter_pin))
-				.setAllowedAuthenticators(BIOMETRIC_STRONG)
+				.setAllowedAuthenticators(BIOMETRIC_WEAK)
 				.setNegativeButtonText(activity.getString(R.string.secret_use_pin))
 				.build(),
 		)
 	}
 
 	private fun canUseBiometric(activity: FragmentActivity) =
-		BiometricManager.from(activity).canAuthenticate(BIOMETRIC_STRONG) == BiometricManager.BIOMETRIC_SUCCESS
+		BiometricManager.from(activity).canAuthenticate(BIOMETRIC_WEAK) == BiometricManager.BIOMETRIC_SUCCESS
 
 	private fun showPinDialog(activity: FragmentActivity, titleRes: Int, onResult: (String) -> Unit) {
 		val input = EditText(activity).apply {
