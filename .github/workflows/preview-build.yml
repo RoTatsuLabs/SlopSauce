@@ -8,8 +8,8 @@ name: Preview Build
 # (KEYSTORE_BASE64, RELEASE_* secrets), so previews update over each other. Without the secrets it
 # falls back to the runner's throwaway debug key.
 #
-# The APK is published as a workflow artifact (zipped by GitHub) for anyone who prefers the Actions tab.
-# The SHA-256/SHA-1/MD5 hashes are printed to the run summary.
+# One APK per ABI (arm64-v8a, armeabi-v7a, x86_64, x86) plus a universal one, each published as its own
+# workflow artifact (zipped by GitHub). File names and SHA-256 hashes are printed to the run summary.
 on:
   workflow_dispatch:
 
@@ -23,7 +23,7 @@ concurrency:
 
 jobs:
   preview:
-    name: Build preview APK
+    name: Build preview APKs
     if: github.actor == github.repository_owner
     runs-on: ubuntu-latest
 
@@ -70,47 +70,74 @@ jobs:
           fi
           ./gradlew :app:assemblePreview --no-daemon --stacktrace "${ARGS[@]}"
 
-      - name: Collect APK and compute checksums
+      - name: Collect APKs and compute checksums
         id: apk
         run: |
           set -euo pipefail
-          APK=$(find app/build/outputs/apk/preview -name '*.apk' | head -n1)
-          if [ -z "$APK" ]; then
-            echo "::error::No preview APK found under app/build/outputs/apk/preview"
-            exit 1
-          fi
+          shopt -s nullglob
           SHORT_SHA=$(git rev-parse --short HEAD)
           SAFE_REF=$(echo "${GITHUB_REF_NAME}" | tr '/ ' '__')
-          DEST="SlopSauce-preview-${SAFE_REF}-${SHORT_SHA}.apk"
-          cp "$APK" "$DEST"
+          BASE="SlopSauce-preview-${SAFE_REF}-${SHORT_SHA}"
+          mkdir -p out
 
-          SHA256=$(sha256sum "$DEST" | awk '{print $1}')
-          SHA1=$(sha1sum "$DEST" | awk '{print $1}')
-          MD5=$(md5sum "$DEST" | awk '{print $1}')
-          SIZE=$(du -h "$DEST" | cut -f1)
-
-          echo "apk_name=${DEST}" >> "$GITHUB_OUTPUT"
-
-          # Write release details to the run summary.
           {
             echo "**Preview build of \`${GITHUB_REF_NAME}\`** — non-debuggable, no dev tooling, installs"
             echo "as a separate app (\`org.haziffe.dropsauce.preview\`, \"SlopSauce Preview\")."
             echo ""
-            echo "| Field | Value |"
-            echo "| --- | --- |"
-            echo "| File | \`${DEST}\` |"
-            echo "| Branch | \`${GITHUB_REF_NAME}\` |"
-            echo "| Commit | \`${SHORT_SHA}\` |"
-            echo "| Size | ${SIZE} |"
-            echo "| SHA-256 | \`${SHA256}\` |"
-            echo "| SHA-1 | \`${SHA1}\` |"
-            echo "| MD5 | \`${MD5}\` |"
+            echo "| File | Size | SHA-256 |"
+            echo "| --- | --- | --- |"
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Upload preview APK as a workflow artifact
+          for ABI in arm64-v8a armeabi-v7a x86_64 x86 universal; do
+            FILES=(app/build/outputs/apk/preview/*-"${ABI}"-*.apk)
+            if [ ${#FILES[@]} -ne 1 ]; then
+              echo "::error::Expected exactly one ${ABI} APK under app/build/outputs/apk/preview, found ${#FILES[@]}"
+              exit 1
+            fi
+            DEST="out/${BASE}-${ABI}.apk"
+            cp "${FILES[0]}" "$DEST"
+            SHA256=$(sha256sum "$DEST" | awk '{print $1}')
+            SIZE=$(du -h "$DEST" | cut -f1)
+            echo "| \`$(basename "$DEST")\` | ${SIZE} | \`${SHA256}\` |" >> "$GITHUB_STEP_SUMMARY"
+          done
+          echo "base=${BASE}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload arm64-v8a APK
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ steps.apk.outputs.apk_name }}
-          path: ${{ steps.apk.outputs.apk_name }}
+          name: ${{ steps.apk.outputs.base }}-arm64-v8a
+          path: out/${{ steps.apk.outputs.base }}-arm64-v8a.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload armeabi-v7a APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.apk.outputs.base }}-armeabi-v7a
+          path: out/${{ steps.apk.outputs.base }}-armeabi-v7a.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload x86_64 APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.apk.outputs.base }}-x86_64
+          path: out/${{ steps.apk.outputs.base }}-x86_64.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload x86 APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.apk.outputs.base }}-x86
+          path: out/${{ steps.apk.outputs.base }}-x86.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload universal APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.apk.outputs.base }}-universal
+          path: out/${{ steps.apk.outputs.base }}-universal.apk
           if-no-files-found: error
           retention-days: 30

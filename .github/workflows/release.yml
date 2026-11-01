@@ -151,20 +151,13 @@ jobs:
       run: |
         mkdir -p release
         shopt -s nullglob
-        APK_FILES=(app/build/outputs/apk/release/*.apk)
-        if [ ${#APK_FILES[@]} -eq 0 ]; then
-          echo "Error: No APK file found"
-          exit 1
-        fi
-
-        for apk in "${APK_FILES[@]}"; do
-          if [ ${#APK_FILES[@]} -eq 1 ]; then
-            target="release/SlopSauce-v${{ inputs.version_name }}.apk"
-          else
-            original_apk_name=$(basename "$apk" .apk)
-            target="release/SlopSauce-v${{ inputs.version_name }}-${original_apk_name}.apk"
+        for ABI in arm64-v8a armeabi-v7a x86_64 x86 universal; do
+          FILES=(app/build/outputs/apk/release/*-"${ABI}"-*.apk)
+          if [ ${#FILES[@]} -ne 1 ]; then
+            echo "::error::Expected exactly one ${ABI} APK under app/build/outputs/apk/release, found ${#FILES[@]}"
+            exit 1
           fi
-          cp "$apk" "$target"
+          cp "${FILES[0]}" "release/SlopSauce-v${{ inputs.version_name }}-${ABI}.apk"
         done
 
     - name: Create Release
@@ -179,7 +172,7 @@ jobs:
         ${{ steps.changelog.outputs.changelog }}
 
         ### Installation Instructions
-        1. Download and install the apk file first
+        1. Download and install the apk file for your device first: `arm64-v8a` for most phones, `armeabi-v7a` for older 32-bit phones, `x86_64`/`x86` for emulators and Chromebooks, or `universal` if you are unsure
         2. Go to the Explore menu > Manage and click the pen icon to add an extension repo
         3. Install and use the extensions, read, add items to the favorites and ENJOY!
 
