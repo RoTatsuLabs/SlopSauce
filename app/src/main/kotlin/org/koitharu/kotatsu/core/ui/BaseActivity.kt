@@ -45,6 +45,7 @@ import org.koitharu.kotatsu.core.util.ext.adjustPopupMenuIcons
 import org.koitharu.kotatsu.core.util.ext.isWebViewUnavailable
 import org.koitharu.kotatsu.core.util.ext.setOptionalIconsVisibleCompat
 import org.koitharu.kotatsu.main.ui.protect.ScreenshotPolicyHelper
+import org.koitharu.kotatsu.secret.SecretSpace
 
 abstract class BaseActivity<B : ViewBinding> :
 	AppCompatActivity(),
@@ -78,7 +79,7 @@ abstract class BaseActivity<B : ViewBinding> :
 		if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
 			AppCompatDelegate.setApplicationLocales(entryPoint.settings.appLocales)
 		}
-		super.attachBaseContext(newBase.withUiScale(entryPoint.settings.uiScalePercent))
+		super.attachBaseContext(SecretSpace.wrap(newBase.withUiScale(entryPoint.settings.uiScalePercent)))
 	}
 
 	override fun onCreate(savedInstanceState: Bundle?) {

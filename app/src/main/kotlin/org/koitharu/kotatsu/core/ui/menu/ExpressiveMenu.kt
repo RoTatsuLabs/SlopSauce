@@ -21,6 +21,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -73,6 +74,7 @@ import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.InputMode
+import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.Layout
@@ -94,6 +96,7 @@ import androidx.core.view.WindowInsetsCompat
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.core.util.ext.getThemeColor
 import org.koitharu.kotatsu.settings.compose.DropSauceTheme
@@ -110,6 +113,7 @@ class MenuPopup(private val anchor: View) {
 	private var onItemClick: ((MenuItem) -> Boolean)? = null
 	private var onDismiss: (() -> Unit)? = null
 	private var forceShowIcon = false
+	private val holds = mutableMapOf<Int, MenuHold>()
 
 	val menu: Menu get() = builder
 
@@ -137,8 +141,13 @@ class MenuPopup(private val anchor: View) {
 		onDismiss = listener
 	}
 
+	/** Runs [action] instead of a click when the row of [itemId] is held for [millis]. */
+	fun setOnItemHoldListener(itemId: Int, millis: Long, action: () -> Unit) {
+		holds[itemId] = MenuHold(millis, action)
+	}
+
 	fun show() {
-		showExpressiveMenu(anchor, builder, builder.visibleItems, forceShowIcon) { onDismiss?.invoke() }
+		showExpressiveMenu(anchor, builder, builder.visibleItems, forceShowIcon, holds) { onDismiss?.invoke() }
 	}
 }
 
@@ -152,6 +161,7 @@ fun showExpressiveMenu(
 	menu: MenuBuilder,
 	items: List<MenuItemImpl>,
 	forceShowIcon: Boolean = false,
+	holds: Map<Int, MenuHold> = emptyMap(),
 	onDismiss: () -> Unit = {},
 ) {
 	val root = anchor.rootView as? ViewGroup ?: return
@@ -187,6 +197,7 @@ fun showExpressiveMenu(
 			},
 			isChecked = item.isChecked,
 			hasDividerAbove = groupDividers && index > 0 && items[index - 1].groupId != item.groupId,
+			hold = holds[item.itemId],
 		)
 	}
 	val overlay = ComposeView(context)
@@ -199,6 +210,7 @@ fun showExpressiveMenu(
 				colors = colors,
 				// The menu is closed on dismiss instead, so tapping outside notifies its owner too, like before.
 				onItemClick = { menu.performItemAction(it, MenuBuilder.FLAG_PERFORM_NO_CLOSE) },
+				onItemHold = { it.action() },
 				onDismiss = {
 					menu.close()
 					onDismiss()
@@ -228,7 +240,10 @@ private class MenuEntry(
 	val check: CheckMark,
 	val isChecked: Boolean,
 	val hasDividerAbove: Boolean,
+	val hold: MenuHold?,
 )
+
+class MenuHold(val millis: Long, val action: () -> Unit)
 
 /** Where the card ended up, decided once at layout time; the card never moves or resizes after that. */
 private class MenuGeometry(
@@ -268,6 +283,7 @@ private fun ExpressiveMenuOverlay(
 	safeArea: Rect,
 	colors: MenuColors,
 	onItemClick: (MenuItem) -> Unit,
+	onItemHold: (MenuHold) -> Unit,
 	onDismiss: () -> Unit,
 	onClosed: (wasKeyboard: Boolean) -> Unit,
 ) {
@@ -337,6 +353,12 @@ private fun ExpressiveMenuOverlay(
 							close()
 						}
 					},
+					onItemHold = { hold ->
+						if (!isClosing) {
+							onItemHold(hold)
+							close()
+						}
+					},
 				)
 			},
 		) { measurables, constraints ->
@@ -393,6 +415,7 @@ private fun MenuCard(
 	contentAlpha: () -> Float,
 	requestInitialFocus: Boolean,
 	onItemClick: (MenuItem) -> Unit,
+	onItemHold: (MenuHold) -> Unit,
 ) {
 	var cardCoordinates by remember { mutableStateOf<LayoutCoordinates?>(null) }
 	val focusRequester = remember { FocusRequester() }
@@ -443,6 +466,7 @@ private fun MenuCard(
 					heightProgress = heightProgress,
 					modifier = if (index == firstFocusable) Modifier.focusRequester(focusRequester) else Modifier,
 					onClick = { onItemClick(entry.item) },
+					onHold = onItemHold,
 				)
 			}
 		}
@@ -462,8 +486,11 @@ private fun MenuRow(
 	heightProgress: () -> Float,
 	modifier: Modifier,
 	onClick: () -> Unit,
+	onHold: (MenuHold) -> Unit,
 ) {
 	val interactionSource = remember { MutableInteractionSource() }
+	// A held row must not also fire its click when the finger is lifted.
+	var holdFired by remember { mutableStateOf(false) }
 	val isPressed by interactionSource.collectIsPressedAsState()
 	val isFocused by interactionSource.collectIsFocusedAsState()
 	var rowTop by remember { mutableFloatStateOf(Float.NaN) }
@@ -499,12 +526,35 @@ private fun MenuRow(
 			.height(ItemHeight)
 			.clip(RoundedCornerShape(ItemHeight / 2))
 			.background(if (isPressed || isFocused) colors.highlight else Color.Transparent)
+			.then(
+				if (entry.hold == null) {
+					Modifier
+				} else {
+					Modifier.pointerInput(entry.hold) {
+						awaitEachGesture {
+							awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+							holdFired = false
+							var released = false
+							withTimeoutOrNull(entry.hold.millis) {
+								waitForUpOrCancellation(PointerEventPass.Initial)
+								released = true
+							}
+							if (!released) {
+								holdFired = true
+								onHold(entry.hold)
+							}
+						}
+					}
+				},
+			)
 			.clickable(
 				interactionSource = interactionSource,
 				indication = null,
 				enabled = entry.isEnabled,
 				role = Role.Button,
-				onClick = onClick,
+				onClick = {
+					if (holdFired) holdFired = false else onClick()
+				},
 			)
 			.padding(horizontal = ItemPadding),
 		verticalAlignment = Alignment.CenterVertically,

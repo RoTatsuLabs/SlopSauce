@@ -12,6 +12,8 @@ import android.widget.LinearLayout
 import androidx.activity.viewModels
 import androidx.appcompat.view.ActionMode
 import org.koitharu.kotatsu.core.ui.menu.MenuPopup
+import org.koitharu.kotatsu.secret.SecretGate
+import org.koitharu.kotatsu.secret.SecretSpace
 import androidx.core.graphics.Insets
 import androidx.core.view.MenuProvider
 import androidx.core.view.ViewCompat
@@ -183,7 +185,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), AppBarOwner, BottomNav
 			navigationDelegate.observeTitle().observe(this) { tv.text = it }
 		}
 
-		addMainOverflowMenuProvider(MainMenuProvider(viewModel))
+		addMainOverflowMenuProvider(MainMenuProvider(viewModel, onLeaveSecret = { SecretSpace.leave(this) }))
 
 		val exitCallback = ExitCallback(this, viewBinding.container)
 		onBackPressedDispatcher.addCallback(exitCallback)
@@ -301,6 +303,9 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), AppBarOwner, BottomNav
 		}
 		popup.setOnDismissListener {
 			providers.forEach { it.onMenuClosed(menu) }
+		}
+		if (!SecretSpace.isActive) {
+			popup.setOnItemHoldListener(R.id.action_incognito, SECRET_HOLD_MS) { SecretGate.open(this) }
 		}
 		popup.show()
 	}
@@ -721,6 +726,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), AppBarOwner, BottomNav
 	private companion object {
 
 		private const val FAB_SHRINK_DELAY_MS = 1500L
+		private const val SECRET_HOLD_MS = 3000L
 		private const val ACTION_MODE_TOP_BAR_FADE_DURATION_MS = 150L
 	}
 }
