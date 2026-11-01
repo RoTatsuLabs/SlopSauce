@@ -696,6 +696,8 @@
     <string name="frequency_once_per_month">Once per month</string>
     <string name="periodic_backups_enable">Enable periodic backups</string>
     <string name="backups_output_directory">Backups output directory</string>
+    <string name="hide_favourites">Hide favourites</string>
+    <string name="hide_favourites_summary">Leave titles you already favourited out of source lists</string>
     <string name="backup_contents">Backup contents</string>
     <string name="backup_telegram">Telegram</string>
     <string name="backup_telegram_enable">Send backups to Telegram</string>

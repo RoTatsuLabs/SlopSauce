@@ -48,6 +48,9 @@ class MangaDataRepository @Inject constructor(
 	private val appShortcutManagerProvider: Provider<AppShortcutManager>,
 ) {
 
+	/** Ids of every favourited manga, re-emitted whenever favourites change. */
+	fun observeFavouriteIds(): Flow<Set<Long>> = db.getFavouritesDao().observeMangaIds().map { it.toSet() }
+
 	suspend fun saveReaderMode(manga: Manga, mode: ReaderMode) {
 		db.withTransaction {
 			storeMangaLocked(manga, replaceExisting = false)

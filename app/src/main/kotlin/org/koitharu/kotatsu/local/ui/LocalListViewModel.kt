@@ -77,6 +77,8 @@ class LocalListViewModel @Inject constructor(
 		settings.subscribe(this)
 	}
 
+	override fun canHideFavourites(): Boolean = false
+
 	override suspend fun onBuildList(list: MutableList<ListModel>) {
 		super.onBuildList(list)
 		if (showInlineFilter) {

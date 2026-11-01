@@ -8,6 +8,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -15,6 +16,8 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
@@ -26,6 +29,7 @@ import org.koitharu.kotatsu.core.model.distinctById
 import org.koitharu.kotatsu.core.parser.MangaDataRepository
 import org.koitharu.kotatsu.core.parser.MangaRepository
 import org.koitharu.kotatsu.core.prefs.AppSettings
+import org.koitharu.kotatsu.core.prefs.observeAsFlow
 import org.koitharu.kotatsu.core.prefs.ListMode
 import org.koitharu.kotatsu.core.util.ext.MutableEventFlow
 import org.koitharu.kotatsu.core.util.ext.call
@@ -61,11 +65,11 @@ open class RemoteListViewModel @Inject constructor(
 	savedStateHandle: SavedStateHandle,
 	mangaRepositoryFactory: MangaRepository.Factory,
 	final override val filterCoordinator: FilterCoordinator,
-	settings: AppSettings,
+	private val settings: AppSettings,
 	protected val mangaListMapper: MangaListMapper,
 	private val exploreRepository: ExploreRepository,
 	sourcesRepository: MangaSourcesRepository,
-	mangaDataRepository: MangaDataRepository,
+	private val mangaDataRepository: MangaDataRepository,
 	private val extensionStoreManager: ExtensionStoreManager,
 	@LocalStorageChanges localStorageChanges: SharedFlow<LocalManga?>
 ) : MangaListViewModel(settings, mangaDataRepository, localStorageChanges), FilterCoordinator.Owner {
@@ -92,11 +96,15 @@ open class RemoteListViewModel @Inject constructor(
 	private val mangaList = MutableStateFlow<List<Manga>?>(null)
 	private val hasNextPage = MutableStateFlow(false)
 	private val listError = MutableStateFlow<Throwable?>(null)
+	@Volatile
+	private var hiddenAny = false
 	private var loadingJob: Job? = null
 	private var randomJob: Job? = null
 
 	override val content = combine(
-		mangaList.map { it?.skipNsfwIfNeeded() },
+		combine(mangaList, observeHiddenIds()) { list, hidden ->
+			list?.skipNsfwIfNeeded()?.let { if (hidden.isEmpty()) it else it.filterNot { m -> m.id in hidden } }
+		},
 		observeListModeWithTriggers(),
 		listError,
 		hasNextPage,
@@ -111,6 +119,8 @@ open class RemoteListViewModel @Inject constructor(
 				)
 
 				list == null -> add(LoadingState)
+				// every loaded title was hidden: keep paging instead of showing "nothing found"
+				list.isEmpty() && hasNext && hiddenAny -> add(LoadingFooter())
 				list.isEmpty() -> add(createEmptyState(canResetFilter = filterCoordinator.isFilterApplied))
 				else -> {
 					mapMangaList(this, list, mode)
@@ -215,6 +225,18 @@ open class RemoteListViewModel @Inject constructor(
 				hasNextPage.value = false
 			}
 		}.also { loadingJob = it }
+	}
+
+	/** Whether favourited titles may be hidden here; the local library must always show them. */
+	protected open fun canHideFavourites(): Boolean = true
+
+	private fun observeHiddenIds(): Flow<Set<Long>> {
+		if (!canHideFavourites()) return flowOf(emptySet())
+		return settings.observeAsFlow(AppSettings.KEY_HIDE_FAVOURITES_IN_BROWSE) { isHideFavouritesInBrowse }
+			.flatMapLatest { hide ->
+				if (hide) mangaDataRepository.observeFavouriteIds() else flowOf(emptySet())
+			}
+			.onEach { hiddenAny = it.isNotEmpty() }
 	}
 
 	protected open fun createEmptyState(canResetFilter: Boolean) = EmptyState(

@@ -1313,6 +1313,11 @@ class AppSettings @Inject constructor(@ApplicationContext context: Context) {
 		?.takeIf { it.isNotEmpty() }
 		?: BackupSection.selectable.toSet()
 
+	/** Hides favourited manga from source browse lists. */
+	var isHideFavouritesInBrowse: Boolean
+		get() = prefs.getBoolean(KEY_HIDE_FAVOURITES_IN_BROWSE, false)
+		set(value) = prefs.edit { putBoolean(KEY_HIDE_FAVOURITES_IN_BROWSE, value) }
+
 	val isBackupTelegramEnabled: Boolean
 		get() = prefs.getBoolean(KEY_BACKUP_TELEGRAM_ENABLED, false)
 
@@ -1739,6 +1744,7 @@ class AppSettings @Inject constructor(@ApplicationContext context: Context) {
 		const val KEY_BACKUP_PERIODICAL_TRIM = "backup_periodic_trim"
 		const val KEY_BACKUP_PERIODICAL_COUNT = "backup_periodic_count"
 		const val KEY_BACKUP_SECTIONS = "backup_sections"
+		const val KEY_HIDE_FAVOURITES_IN_BROWSE = "hide_favourites_in_browse"
 		const val KEY_BACKUP_TELEGRAM_SECTIONS = "backup_telegram_sections"
 		const val KEY_BACKUP_TELEGRAM_ENABLED = "backup_telegram"
 		const val KEY_BACKUP_TELEGRAM_CHAT_ID = "backup_telegram_chat_id"
