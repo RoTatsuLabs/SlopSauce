@@ -1376,6 +1376,9 @@
     <string name="secret_settings_title">Settings for the secret space</string>
     <string name="secret_settings_copy">Copy main app settings</string>
     <string name="secret_settings_fresh">Start fresh</string>
+    <string name="secret_delete">Delete secret space</string>
+    <string name="secret_delete_summary">Remove everything in it and the PIN</string>
+    <string name="secret_delete_confirm">This permanently deletes the library, history, bookmarks, downloads, settings and PIN of the secret space. The main app is not affected.</string>
     <string name="secret_import">Import from main app</string>
     <string name="secret_import_summary">Copy data from the main app into this space</string>
     <string name="secret_import_running">Importing…</string>

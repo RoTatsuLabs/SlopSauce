@@ -26,6 +26,7 @@ object SecretSpace {
 
 	internal const val EXTERNAL_DIR = ".secret"
 	private const val MARKER = ".ss_enter"
+	private const val WIPE = ".ss_wipe"
 	private const val MARKER_TTL_MS = 30_000L
 	private const val LEAVE_DELAY_MS = 2_000L
 	private const val GATE_PREFS = "ss_gate"
@@ -59,6 +60,7 @@ object SecretSpace {
 			marker.delete()
 		}
 		if (!isActive) {
+			wipeIfRequested(base)
 			return base
 		}
 		return SecretContext(base).also { seedSettings(base, it) }
@@ -154,6 +156,35 @@ object SecretSpace {
 		restart(activity)
 	}
 
+	/** Deletes everything in the secret space, including the PIN, then restarts into the main space. */
+	fun delete(activity: Activity) {
+		wipeFile(raw).apply {
+			parentFile?.mkdirs()
+			writeText("1")
+		}
+		markerFile(raw).delete()
+		restart(activity)
+	}
+
+	/** Runs in the main space after a restart, once the secret process is gone. */
+	private fun wipeIfRequested(base: Context) {
+		val flag = wipeFile(base)
+		if (!flag.exists()) {
+			return
+		}
+		Thread {
+			runCatching {
+				val storage = base.createDeviceProtectedStorageContext()
+				for (name in listOf("databases", "shared_prefs", "files", "cache", "code_cache")) {
+					File(storage.dataDir, name).deleteRecursively()
+				}
+				storage.noBackupFilesDir.listFiles()?.filter { it.name != WIPE }?.forEach { it.deleteRecursively() }
+				base.getExternalFilesDirs(null).forEach { dir -> dir?.let { File(it, EXTERNAL_DIR).deleteRecursively() } }
+				flag.delete()
+			}
+		}.start()
+	}
+
 	/** Restarts the app into the main space. */
 	fun leave(activity: Activity) {
 		markerFile(raw).delete()
@@ -181,6 +212,8 @@ object SecretSpace {
 	}
 
 	private fun gate() = raw.createDeviceProtectedStorageContext().getSharedPreferences(GATE_PREFS, Context.MODE_PRIVATE)
+
+	private fun wipeFile(context: Context) = File(context.createDeviceProtectedStorageContext().noBackupFilesDir, WIPE)
 
 	private fun markerFile(context: Context) = File(context.createDeviceProtectedStorageContext().noBackupFilesDir, MARKER)
 

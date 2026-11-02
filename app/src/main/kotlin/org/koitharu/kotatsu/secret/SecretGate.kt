@@ -116,6 +116,22 @@ object SecretGate {
 		}
 	}
 
+	/** Deletes the whole secret space after the PIN and a confirmation. */
+	fun deleteSpace(activity: FragmentActivity) {
+		showPinDialog(activity, R.string.secret_enter_pin) { pin ->
+			if (!SecretSpace.verifyPin(pin)) {
+				Toast.makeText(activity, R.string.secret_wrong_pin, Toast.LENGTH_SHORT).show()
+				return@showPinDialog
+			}
+			MaterialAlertDialogBuilder(activity)
+				.setTitle(R.string.secret_delete)
+				.setMessage(R.string.secret_delete_confirm)
+				.setNegativeButton(android.R.string.cancel, null)
+				.setPositiveButton(R.string.secret_delete) { _, _ -> SecretSpace.delete(activity) }
+				.show()
+		}
+	}
+
 	/** Turns fingerprint unlock on or off; returns the resulting state. */
 	fun setBiometric(activity: FragmentActivity, enabled: Boolean): Boolean {
 		val result = enabled && canUseBiometric(activity)

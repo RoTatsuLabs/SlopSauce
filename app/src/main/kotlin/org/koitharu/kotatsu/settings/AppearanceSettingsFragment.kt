@@ -132,6 +132,7 @@ class AppearanceSettingsFragment : BaseComposeSettingsFragment(R.string.appearan
 					onProtectToggle = ::onProtectToggle,
 					onChangeSecretPin = { SecretGate.changePin(requireActivity()) },
 					onSecretBiometric = { SecretGate.setBiometric(requireActivity(), it) },
+					onDeleteSecret = { SecretGate.deleteSpace(requireActivity()) },
 				)
 			}
 		}
@@ -226,6 +227,7 @@ private fun AppearanceScreen(
 	onProtectToggle: (Boolean) -> Unit,
 	onChangeSecretPin: () -> Unit,
 	onSecretBiometric: (Boolean) -> Boolean,
+	onDeleteSecret: () -> Unit,
 ) {
 	val ctx = LocalContext.current
 
@@ -714,6 +716,15 @@ private fun AppearanceScreen(
 							selectedIndex = if (secretBio) 0 else 1,
 							onSelected = { secretBio = onSecretBiometric(it == 0) },
 							icon = R.drawable.ic_lock,
+							shape = pos.shape,
+						)
+					}
+					item { pos ->
+						ActionSettingsItem(
+							title = stringResource(R.string.secret_delete),
+							subtitle = stringResource(R.string.secret_delete_summary),
+							onClick = onDeleteSecret,
+							icon = R.drawable.ic_delete,
 							shape = pos.shape,
 						)
 					}
