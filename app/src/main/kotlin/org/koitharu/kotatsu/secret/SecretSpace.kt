@@ -33,7 +33,6 @@ object SecretSpace {
 	private const val KEY_HASH = "hash"
 	private const val KEY_SALT = "salt"
 	private const val KEY_BIOMETRIC = "bio"
-	private const val KEY_SEED_MAIN = "seed_main"
 	private const val KEY_SEEDED = "ss_seeded"
 	private val SEED_SKIP = setOf(
 		AppSettings.KEY_HIDE_FAVOURITES_IN_BROWSE,
@@ -66,15 +65,24 @@ object SecretSpace {
 		return SecretContext(base).also { seedSettings(base, it) }
 	}
 
-	/** Copies the look and reading settings once, so the secret space feels the same. Nothing private goes along. */
+	/** Marks the secret space as set up and keeps sandbox extensions on. */
 	private fun seedSettings(base: Context, secret: Context) {
 		val name = base.packageName + "_preferences"
 		val target = secret.getSharedPreferences(name, Context.MODE_PRIVATE)
 		if (target.contains(KEY_SEEDED)) {
 			return
 		}
-		val copyMain = gate().getBoolean(KEY_SEED_MAIN, false)
-		val source = if (copyMain) base.getSharedPreferences(name, Context.MODE_PRIVATE).all else emptyMap()
+		target.edit {
+			putBoolean(AppSettings.KEY_PRIVATE_INSTALLER, true)
+			putBoolean(KEY_SEEDED, true)
+		}
+	}
+
+	/** Copies the look and reading settings of the main app into the secret space. Nothing private goes along. */
+	fun copyMainSettings() {
+		val name = raw.packageName + "_preferences"
+		val source = raw.getSharedPreferences(name, Context.MODE_PRIVATE).all
+		val target = SecretContext(raw).getSharedPreferences(name, Context.MODE_PRIVATE)
 		target.edit {
 			for ((key, value) in source) {
 				if (!AppSettings.isSyncableKey(key) || key in SEED_SKIP) continue
@@ -88,7 +96,6 @@ object SecretSpace {
 				}
 			}
 			putBoolean(AppSettings.KEY_PRIVATE_INSTALLER, true)
-			putBoolean(KEY_SEEDED, true)
 		}
 	}
 
@@ -112,11 +119,6 @@ object SecretSpace {
 			},
 		)
 	}
-
-	/** Whether the secret space starts with a copy of the main app settings (only read on the first entry). */
-	var copyMainSettings: Boolean
-		get() = gate().getBoolean(KEY_SEED_MAIN, false)
-		set(value) = gate().edit { putBoolean(KEY_SEED_MAIN, value) }
 
 	/** The storage of the main space, for importing data into the secret space. */
 	internal val mainContext: Context

@@ -55,10 +55,10 @@ object SecretGate {
 		}
 	}
 
-	/** Onboarding step 1: how to unlock. Skipped when the device has no usable fingerprint. */
+	/** Asks how to unlock. Skipped when the device has no usable fingerprint. */
 	private fun offerBiometric(activity: FragmentActivity) {
 		if (!canUseBiometric(activity)) {
-			askSettings(activity)
+			SecretSpace.enter(activity)
 			return
 		}
 		MaterialAlertDialogBuilder(activity)
@@ -71,23 +71,6 @@ object SecretGate {
 				),
 			) { _, which ->
 				SecretSpace.isBiometricEnabled = which == 0
-				askSettings(activity)
-			}
-			.show()
-	}
-
-	/** Onboarding step 2: start from the main app settings or from scratch. */
-	private fun askSettings(activity: FragmentActivity) {
-		MaterialAlertDialogBuilder(activity)
-			.setTitle(R.string.secret_settings_title)
-			.setCancelable(false)
-			.setItems(
-				arrayOf(
-					activity.getString(R.string.secret_settings_copy),
-					activity.getString(R.string.secret_settings_fresh),
-				),
-			) { _, which ->
-				SecretSpace.copyMainSettings = which == 0
 				SecretSpace.enter(activity)
 			}
 			.show()

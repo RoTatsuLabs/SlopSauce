@@ -16,6 +16,8 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.ui.platform.LocalContext
+import android.widget.Toast
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -66,10 +68,14 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.core.prefs.ColorScheme
+import org.koitharu.kotatsu.secret.SecretSpace
 import org.koitharu.kotatsu.settings.compose.ColorSchemePickerRow
 
-private const val PAGE_COUNT = 4
-private const val SYNC_PAGE = 2
+private enum class Slide { SECRET_SETTINGS, WELCOME, STORAGE, SYNC, FINISH }
+
+// The secret space has no cloud sync, and starts by asking whether to reuse the main app settings.
+private val NORMAL_SLIDES = listOf(Slide.WELCOME, Slide.STORAGE, Slide.SYNC, Slide.FINISH)
+private val SECRET_SLIDES = listOf(Slide.SECRET_SETTINGS, Slide.WELCOME, Slide.STORAGE, Slide.FINISH)
 private val CARD_SHAPE = RoundedCornerShape(24.dp)
 private val SCREEN_PADDING = 20.dp
 
@@ -100,6 +106,7 @@ data class OnboardingActions(
     val onOpenDiscord: () -> Unit,
     val onVisitWebsite: () -> Unit,
     val onFinish: () -> Unit,
+    val onCopyMainSettings: () -> Unit,
 )
 
 @Composable
@@ -113,15 +120,17 @@ fun OnboardingScreen(
     syncStepDone: Int,
     actions: OnboardingActions,
 ) {
-    val pagerState = rememberPagerState(pageCount = { PAGE_COUNT })
+    val slides = remember { if (SecretSpace.isActive) SECRET_SLIDES else NORMAL_SLIDES }
+    val pagerState = rememberPagerState(pageCount = { slides.size })
     val scope = rememberCoroutineScope()
     // A successful sign-in or restore finishes the sync slide, so move on to the next one.
     LaunchedEffect(syncStepDone) {
-        if (syncStepDone > 0 && pagerState.currentPage == SYNC_PAGE) {
-            pagerState.animateScrollToPage(SYNC_PAGE + 1)
+        val syncPage = slides.indexOf(Slide.SYNC)
+        if (syncStepDone > 0 && syncPage >= 0 && pagerState.currentPage == syncPage) {
+            pagerState.animateScrollToPage(syncPage + 1)
         }
     }
-    val isLastPage by remember { derivedStateOf { pagerState.currentPage == PAGE_COUNT - 1 } }
+    val isLastPage by remember { derivedStateOf { pagerState.currentPage == slides.size - 1 } }
     val backEnabled by remember { derivedStateOf { pagerState.currentPage > 0 } }
 
     // Back here steps to the previous slide, so it gets the same follow-the-finger preview the rest
@@ -166,17 +175,20 @@ fun OnboardingScreen(
                 .fillMaxSize()
                 .padding(bottom = 80.dp),
         ) { pageIndex ->
-            val iconRes = when (pageIndex) {
-                0 -> R.drawable.ic_welcome
-                1 -> R.drawable.ic_storage
-                2 -> R.drawable.ic_sync
-                else -> R.drawable.ic_save_ok
+            val slide = slides[pageIndex]
+            val iconRes = when (slide) {
+                Slide.SECRET_SETTINGS -> R.drawable.ic_lock
+                Slide.WELCOME -> R.drawable.ic_welcome
+                Slide.STORAGE -> R.drawable.ic_storage
+                Slide.SYNC -> R.drawable.ic_sync
+                Slide.FINISH -> R.drawable.ic_save_ok
             }
-            val titleRes = when (pageIndex) {
-                0 -> R.string.welcome
-                1 -> R.string.onboarding_storage_permissions_title
-                2 -> R.string.onboarding_sync_title
-                else -> R.string.onboarding_finish_title
+            val titleRes = when (slide) {
+                Slide.SECRET_SETTINGS -> R.string.secret_settings_title
+                Slide.WELCOME -> R.string.welcome
+                Slide.STORAGE -> R.string.onboarding_storage_permissions_title
+                Slide.SYNC -> R.string.onboarding_sync_title
+                Slide.FINISH -> R.string.onboarding_finish_title
             }
             Column(
                 modifier = Modifier
@@ -215,20 +227,24 @@ fun OnboardingScreen(
                     color = MaterialTheme.colorScheme.onSurface,
                 )
                 Spacer(Modifier.height(20.dp))
-                when (pageIndex) {
-                    0 -> WelcomeSlide(
+                when (slide) {
+                    Slide.SECRET_SETTINGS -> SecretSettingsSlide(
+                        actions = actions,
+                        onNext = { scope.launch { pagerState.animateScrollToPage(pageIndex + 1) } },
+                    )
+                    Slide.WELCOME -> WelcomeSlide(
                         selectedTheme = selectedTheme,
                         selectedColorScheme = selectedColorScheme,
                         isAmoledEnabled = isAmoledEnabled,
                         actions = actions,
                     )
-                    1 -> StorageSlide(
+                    Slide.STORAGE -> StorageSlide(
                         storageSummary = storageSummary,
                         permissions = permissions,
                         actions = actions,
                     )
-                    2 -> SyncSlide(isLoading = isLoading, actions = actions)
-                    else -> FinishSlide(actions = actions)
+                    Slide.SYNC -> SyncSlide(isLoading = isLoading, actions = actions)
+                    Slide.FINISH -> FinishSlide(actions = actions)
                 }
             }
         }
@@ -247,7 +263,7 @@ fun OnboardingScreen(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                repeat(PAGE_COUNT) { index ->
+                repeat(slides.size) { index ->
                     val isSelected by remember(index) { derivedStateOf { index == pagerState.currentPage } }
                     val dotWidth by animateDpAsState(
                         targetValue = if (isSelected) 24.dp else 8.dp,
@@ -572,6 +588,33 @@ private fun PermissionRow(
                 modifier = Modifier.size(18.dp),
             )
         }
+    }
+}
+
+// ── Secret space: settings ────────────────────────────────────────────────────
+
+@Composable
+private fun SecretSettingsSlide(actions: OnboardingActions, onNext: () -> Unit) {
+    val context = LocalContext.current
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Text(
+            text = stringResource(R.string.secret_settings_description),
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        ActionCard(
+            items = listOf(
+                ActionItem(R.drawable.ic_backup_restore, R.string.secret_settings_copy, true) {
+                    actions.onCopyMainSettings()
+                    Toast.makeText(context, R.string.secret_settings_copied, Toast.LENGTH_SHORT).show()
+                    onNext()
+                },
+                ActionItem(R.drawable.ic_check, R.string.secret_settings_fresh, true, onNext),
+            ),
+        )
     }
 }
 

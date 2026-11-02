@@ -1373,7 +1373,9 @@
     <string name="secret_unlock_method">Unlock method</string>
     <string name="secret_method_fingerprint">Fingerprint</string>
     <string name="secret_method_pin">PIN</string>
-    <string name="secret_settings_title">Settings for the secret space</string>
+    <string name="secret_settings_title">Settings</string>
+    <string name="secret_settings_description">Use the settings of the main app here, or start with the defaults. You can change them later.</string>
+    <string name="secret_settings_copied">Settings copied</string>
     <string name="secret_settings_copy">Copy main app settings</string>
     <string name="secret_settings_fresh">Start fresh</string>
     <string name="secret_space">Secret space</string>

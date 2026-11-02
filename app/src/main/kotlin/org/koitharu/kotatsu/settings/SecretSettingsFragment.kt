@@ -1,6 +1,7 @@
 package org.koitharu.kotatsu.settings
 
 import android.os.Bundle
+import android.widget.Toast
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -17,20 +18,29 @@ import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.launch
 import org.koitharu.kotatsu.R
+import org.koitharu.kotatsu.core.util.ext.getDisplayMessage
 import org.koitharu.kotatsu.secret.SecretGate
+import org.koitharu.kotatsu.secret.SecretImporter
 import org.koitharu.kotatsu.secret.SecretSpace
 import org.koitharu.kotatsu.settings.compose.ActionSettingsItem
 import org.koitharu.kotatsu.settings.compose.BaseComposeSettingsFragment
 import org.koitharu.kotatsu.settings.compose.DropSauceTheme
+import org.koitharu.kotatsu.settings.compose.MultiChoiceDialog
 import org.koitharu.kotatsu.settings.compose.SegmentedSettingsItem
 import org.koitharu.kotatsu.settings.compose.SettingsGroup
 import org.koitharu.kotatsu.settings.compose.SettingsScaffold
+import javax.inject.Inject
 
 /** Settings of the secret space itself. Only reachable from inside the secret space. */
 @AndroidEntryPoint
 class SecretSettingsFragment : BaseComposeSettingsFragment(R.string.secret_space) {
+
+	@Inject
+	lateinit var secretImporter: SecretImporter
 
 	override fun onCreateView(
 		inflater: LayoutInflater,
@@ -41,6 +51,7 @@ class SecretSettingsFragment : BaseComposeSettingsFragment(R.string.secret_space
 		setContent {
 			DropSauceTheme {
 				SecretScreen(
+					onImportFromMain = ::importFromMain,
 					onChangePin = { SecretGate.changePin(requireActivity()) },
 					onUnlockMethod = { SecretGate.setBiometric(requireActivity(), it) },
 					onDelete = { SecretGate.deleteSpace(requireActivity()) },
@@ -48,15 +59,43 @@ class SecretSettingsFragment : BaseComposeSettingsFragment(R.string.secret_space
 			}
 		}
 	}
+
+	private fun importFromMain(sections: Set<SecretImporter.Section>) {
+		Toast.makeText(requireContext(), R.string.secret_import_running, Toast.LENGTH_SHORT).show()
+		val context = requireContext().applicationContext
+		lifecycleScope.launch {
+			val message = runCatching { secretImporter.import(sections) }.fold(
+				onSuccess = { context.getString(R.string.secret_import_done) },
+				onFailure = { it.getDisplayMessage(context.resources) },
+			)
+			Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+		}
+	}
 }
 
 @Composable
 private fun SecretScreen(
+	onImportFromMain: (Set<SecretImporter.Section>) -> Unit,
 	onChangePin: () -> Unit,
 	onUnlockMethod: (Boolean) -> Boolean,
 	onDelete: () -> Unit,
 ) {
 	var biometric by remember { mutableStateOf(SecretSpace.isBiometricEnabled) }
+	var showImportDialog by remember { mutableStateOf(false) }
+	if (showImportDialog) {
+		val sections = SecretImporter.Section.entries
+		MultiChoiceDialog(
+			title = stringResource(R.string.secret_import),
+			entries = sections.map { stringResource(it.titleResId) },
+			selectedIndices = emptySet(),
+			onConfirm = { indices ->
+				if (indices.isNotEmpty()) {
+					onImportFromMain(indices.mapTo(HashSet()) { sections[it] })
+				}
+			},
+			onDismiss = { showImportDialog = false },
+		)
+	}
 	SettingsScaffold {
 		item {
 			SettingsGroup(title = stringResource(R.string.secret_unlock)) {
@@ -86,6 +125,15 @@ private fun SecretScreen(
 		item { Spacer(Modifier.height(8.dp).fillMaxWidth()) }
 		item {
 			SettingsGroup(title = stringResource(R.string.secret_data)) {
+				item { pos ->
+					ActionSettingsItem(
+						title = stringResource(R.string.secret_import),
+						subtitle = stringResource(R.string.secret_import_summary),
+						icon = R.drawable.ic_backup_restore,
+						shape = pos.shape,
+						onClick = { showImportDialog = true },
+					)
+				}
 				item { pos ->
 					ActionSettingsItem(
 						title = stringResource(R.string.secret_delete),
