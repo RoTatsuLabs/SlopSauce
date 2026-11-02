@@ -41,6 +41,7 @@ import org.koitharu.kotatsu.local.data.index.LocalMangaIndex
 import org.koitharu.kotatsu.local.domain.model.LocalManga
 import org.koitharu.kotatsu.parsers.util.suspendlazy.getOrNull
 import org.koitharu.kotatsu.scrobbling.discord.data.DiscordRpcManager
+import org.koitharu.kotatsu.secret.SecretSpace
 import org.koitharu.kotatsu.settings.work.WorkScheduleManager
 import org.koitharu.kotatsu.widget.common.WidgetThemeWatcher
 import javax.inject.Inject
@@ -90,9 +91,10 @@ open class BaseApp : Application(), Configuration.Provider {
 	override fun onCreate() {
 		super.onCreate()
 		PlatformRegistry.applicationContext = this // TODO replace with OkHttp.initialize
-		if (ACRA.isACRASenderServiceProcess()) {
+		if (ACRA.isACRASenderServiceProcess() || SecretSpace.isRestartProcess) {
 			return
 		}
+		SecretSpace.watchBackground(this)
 		// Link handling is no longer a setting; re-enable the alias for users who turned it off before.
 		val linksAlias = ComponentName(this, "org.koitharu.kotatsu.details.ui.DetailsByLinkActivity")
 		if (packageManager.getComponentEnabledSetting(linksAlias) == PackageManager.COMPONENT_ENABLED_STATE_DISABLED) {
@@ -117,12 +119,14 @@ open class BaseApp : Application(), Configuration.Provider {
 			setupDatabaseObservers()
 			localStorageChanges.collect(localMangaIndexProvider.get())
 		}
-		workScheduleManager.init()
+		if (!SecretSpace.isActive) {
+			workScheduleManager.init()
+		}
 	}
 
 	override fun attachBaseContext(base: Context) {
-		super.attachBaseContext(base)
-		if (ACRA.isACRASenderServiceProcess()) {
+		super.attachBaseContext(SecretSpace.attach(base))
+		if (ACRA.isACRASenderServiceProcess() || SecretSpace.isRestartProcess) {
 			return
 		}
 		initAcra {

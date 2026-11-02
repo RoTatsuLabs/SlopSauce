@@ -87,6 +87,7 @@ import org.koitharu.kotatsu.local.domain.model.LocalManga
 import org.koitharu.kotatsu.parsers.exception.TooManyRequestExceptions
 import org.koitharu.kotatsu.parsers.model.Manga
 import org.koitharu.kotatsu.parsers.model.MangaChapter
+import org.koitharu.kotatsu.secret.SecretSpace
 import org.koitharu.kotatsu.parsers.model.MangaPage
 import org.koitharu.kotatsu.parsers.util.ifNullOrEmpty
 import org.koitharu.kotatsu.parsers.util.mapToSet
@@ -128,7 +129,9 @@ class DownloadWorker @AssistedInject constructor(
 	private val notificationThrottler = Throttler(400)
 
 	override suspend fun doWork(): Result {
-		setForeground(getForegroundInfo())
+		if (!SecretSpace.isActive) {
+			setForeground(getForegroundInfo())
+		}
 		val manga = mangaDataRepository.findMangaById(task.mangaId, withChapters = true) ?: return Result.failure()
 		publishState(DownloadState(manga = manga, isIndeterminate = true).also { lastPublishedState = it })
 		val downloadedIds = getDoneChapters(manga)
@@ -149,7 +152,9 @@ class DownloadWorker @AssistedInject constructor(
 		} catch (_: CancellationException) {
 			withContext(NonCancellable) {
 				val notification = notificationFactory.create(currentState.copy(isStopped = true))
-				notificationManager.notify(id.hashCode(), notification)
+				if (!SecretSpace.isActive) {
+					notificationManager.notify(id.hashCode(), notification)
+				}
 			}
 			Result.failure(
 				currentState.copy(eta = -1L, isStuck = false).toWorkData(),
@@ -523,7 +528,11 @@ class DownloadWorker @AssistedInject constructor(
 			notificationThrottler.reset()
 		}
 		val notification = notificationFactory.create(state)
-		if (state.isFinalState) {
+		if (SecretSpace.isActive) {
+			if (!state.isFinalState && !notificationThrottler.throttle()) {
+				return
+			}
+		} else if (state.isFinalState) {
 			if (!notificationFactory.isSilent) {
 				notificationManager.notify(id.toString(), id.hashCode(), notification)
 			}
@@ -656,7 +665,9 @@ class DownloadWorker @AssistedInject constructor(
 					.setConstraints(constraints)
 					.addTag(TAG)
 					.setId(work.id)
-					.setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
+					.apply {
+						if (!SecretSpace.isActive) setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
+					}
 					.build()
 				workManager.awaitUpdateWork(request)
 			}
@@ -679,7 +690,9 @@ class DownloadWorker @AssistedInject constructor(
 			.keepResultsForAtLeast(30, TimeUnit.DAYS)
 			.setBackoffCriteria(BackoffPolicy.LINEAR, 10, TimeUnit.SECONDS)
 			.setInputData(task.toData())
-			.setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
+			.apply {
+				if (!SecretSpace.isActive) setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
+			}
 			.build()
 
 		private fun createConstraints(allowMeteredNetwork: Boolean) = Constraints.Builder()

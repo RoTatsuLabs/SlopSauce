@@ -1359,4 +1359,16 @@
     <string name="eye_reminder_title">Time to rest your eyes</string>
     <string name="eye_reminder_text">You\'ve been reading for %s. Take a short break and give your eyes some rest.</string>
     <string name="dismiss">Dismiss</string>
+    <string name="secret_enter_pin">Enter PIN</string>
+    <string name="secret_set_pin">Set a PIN</string>
+    <string name="secret_confirm_pin">Repeat the PIN</string>
+    <string name="secret_wrong_pin">Wrong PIN</string>
+    <string name="secret_pin_too_short">The PIN must have at least 4 digits</string>
+    <string name="secret_pin_mismatch">The PINs do not match</string>
+    <string name="secret_use_biometric">Use fingerprint to unlock?</string>
+    <string name="secret_use_pin">Use PIN</string>
+    <string name="secret_leave">Leave secret space</string>
+    <string name="secret_biometric_unavailable">Fingerprint is not available on this device</string>
+    <string name="secret_change_pin">Change secret PIN</string>
+    <string name="secret_fingerprint">Fingerprint unlock</string>
 </resources>
