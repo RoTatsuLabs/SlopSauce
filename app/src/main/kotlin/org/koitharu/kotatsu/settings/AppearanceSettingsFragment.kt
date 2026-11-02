@@ -57,6 +57,7 @@ import org.koitharu.kotatsu.settings.compose.DropSauceTheme
 import org.koitharu.kotatsu.settings.compose.ListSettingsItem
 import org.koitharu.kotatsu.settings.compose.MultiSelectSettingsItem
 import org.koitharu.kotatsu.settings.compose.NavigationSettingsItem
+import org.koitharu.kotatsu.settings.compose.SegmentedSettingsItem
 import org.koitharu.kotatsu.settings.compose.SettingsGroup
 import org.koitharu.kotatsu.settings.compose.SettingsScaffold
 import org.koitharu.kotatsu.settings.compose.SliderSettingsItem
@@ -704,10 +705,14 @@ private fun AppearanceScreen(
 					}
 					item { pos ->
 						var secretBio by remember { mutableStateOf(SecretSpace.isBiometricEnabled) }
-						SwitchSettingsItem(
-							title = stringResource(R.string.secret_fingerprint),
-							checked = secretBio,
-							onCheckedChange = { secretBio = onSecretBiometric(it) },
+						SegmentedSettingsItem(
+							title = stringResource(R.string.secret_unlock_method),
+							labels = listOf(
+								stringResource(R.string.secret_method_fingerprint),
+								stringResource(R.string.secret_method_pin),
+							),
+							selectedIndex = if (secretBio) 0 else 1,
+							onSelected = { secretBio = onSecretBiometric(it == 0) },
 							icon = R.drawable.ic_lock,
 							shape = pos.shape,
 						)

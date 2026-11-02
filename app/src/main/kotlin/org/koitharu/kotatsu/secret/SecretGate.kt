@@ -55,19 +55,41 @@ object SecretGate {
 		}
 	}
 
+	/** Onboarding step 1: how to unlock. Skipped when the device has no usable fingerprint. */
 	private fun offerBiometric(activity: FragmentActivity) {
 		if (!canUseBiometric(activity)) {
-			SecretSpace.enter(activity)
+			askSettings(activity)
 			return
 		}
 		MaterialAlertDialogBuilder(activity)
-			.setMessage(R.string.secret_use_biometric)
+			.setTitle(R.string.secret_unlock_method)
 			.setCancelable(false)
-			.setPositiveButton(android.R.string.yes) { _, _ ->
-				SecretSpace.isBiometricEnabled = true
+			.setItems(
+				arrayOf(
+					activity.getString(R.string.secret_method_fingerprint),
+					activity.getString(R.string.secret_method_pin),
+				),
+			) { _, which ->
+				SecretSpace.isBiometricEnabled = which == 0
+				askSettings(activity)
+			}
+			.show()
+	}
+
+	/** Onboarding step 2: start from the main app settings or from scratch. */
+	private fun askSettings(activity: FragmentActivity) {
+		MaterialAlertDialogBuilder(activity)
+			.setTitle(R.string.secret_settings_title)
+			.setCancelable(false)
+			.setItems(
+				arrayOf(
+					activity.getString(R.string.secret_settings_copy),
+					activity.getString(R.string.secret_settings_fresh),
+				),
+			) { _, which ->
+				SecretSpace.copyMainSettings = which == 0
 				SecretSpace.enter(activity)
 			}
-			.setNegativeButton(android.R.string.no) { _, _ -> SecretSpace.enter(activity) }
 			.show()
 	}
 

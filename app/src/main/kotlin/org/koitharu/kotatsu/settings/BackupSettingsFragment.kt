@@ -46,6 +46,8 @@ import org.koitharu.kotatsu.kotatsumigration.domain.MigrationState
 import org.koitharu.kotatsu.kotatsumigration.ui.KotatsuMigrationService
 import org.koitharu.kotatsu.kotatsumigration.ui.showExtensionInstallPromptDialog
 import org.koitharu.kotatsu.kotatsumigration.ui.showKotatsuMigrationCompleteDialog
+import org.koitharu.kotatsu.secret.SecretImporter
+import org.koitharu.kotatsu.secret.SecretSpace
 import org.koitharu.kotatsu.settings.compose.ActionSettingsItem
 import org.koitharu.kotatsu.settings.compose.BaseComposeSettingsFragment
 import org.koitharu.kotatsu.settings.compose.DropSauceTheme
@@ -66,6 +68,9 @@ class BackupSettingsFragment : BaseComposeSettingsFragment(R.string.backup_resto
 
 	@Inject
 	lateinit var mihonExporter: MihonBackupExporter
+
+	@Inject
+	lateinit var secretImporter: SecretImporter
 
 	private val restoreMihonBackupLauncher = registerForActivityResult(
 		ActivityResultContracts.OpenDocument(),
@@ -152,6 +157,7 @@ class BackupSettingsFragment : BaseComposeSettingsFragment(R.string.backup_resto
 					onExportToMihon = {
 						exportMihonBackupLauncher.launch(MihonBackupExporter.generateFileName())
 					},
+					onImportFromMain = ::importFromMain,
 				)
 			}
 		}
@@ -164,6 +170,18 @@ class BackupSettingsFragment : BaseComposeSettingsFragment(R.string.backup_resto
 		}
 		migrationManager.onCompleted.observeEvent(viewLifecycleOwner) { summary ->
 			requireContext().showKotatsuMigrationCompleteDialog(summary)
+		}
+	}
+
+	private fun importFromMain(sections: Set<SecretImporter.Section>) {
+		Toast.makeText(requireContext(), R.string.secret_import_running, Toast.LENGTH_SHORT).show()
+		val context = requireContext().applicationContext
+		lifecycleScope.launch {
+			val message = runCatching { secretImporter.import(sections) }.fold(
+				onSuccess = { context.getString(R.string.secret_import_done) },
+				onFailure = { it.getDisplayMessage(context.resources) },
+			)
+			Toast.makeText(context, message, Toast.LENGTH_LONG).show()
 		}
 	}
 
@@ -269,8 +287,24 @@ private fun BackupScreen(
 	migrationSubtitle: String,
 	onMigrateFromKotatsu: () -> Unit,
 	onExportToMihon: () -> Unit,
+	onImportFromMain: (Set<SecretImporter.Section>) -> Unit,
 ) {
 	var showCreateDialog by remember { mutableStateOf(false) }
+	var showImportDialog by remember { mutableStateOf(false) }
+	if (showImportDialog) {
+		val sections = SecretImporter.Section.entries
+		MultiChoiceDialog(
+			title = stringResource(R.string.secret_import),
+			entries = sections.map { stringResource(it.titleResId) },
+			selectedIndices = emptySet(),
+			onConfirm = { indices ->
+				if (indices.isNotEmpty()) {
+					onImportFromMain(indices.mapTo(HashSet()) { sections[it] })
+				}
+			},
+			onDismiss = { showImportDialog = false },
+		)
+	}
 	if (showCreateDialog) {
 		val sections = BackupSection.selectable
 		MultiChoiceDialog(
@@ -317,6 +351,17 @@ private fun BackupScreen(
 						shape = pos.shape,
 						onClick = onOpenPeriodic,
 					)
+				}
+				if (SecretSpace.isActive) {
+					item { pos ->
+						ActionSettingsItem(
+							title = stringResource(R.string.secret_import),
+							subtitle = stringResource(R.string.secret_import_summary),
+							icon = R.drawable.ic_backup_restore,
+							shape = pos.shape,
+							onClick = { showImportDialog = true },
+						)
+					}
 				}
 			}
 		}

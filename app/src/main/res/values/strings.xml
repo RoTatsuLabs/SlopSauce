@@ -1370,5 +1370,14 @@
     <string name="secret_leave">Leave secret space</string>
     <string name="secret_biometric_unavailable">Fingerprint is not available on this device</string>
     <string name="secret_change_pin">Change secret PIN</string>
-    <string name="secret_fingerprint">Fingerprint unlock</string>
+    <string name="secret_unlock_method">Unlock method</string>
+    <string name="secret_method_fingerprint">Fingerprint</string>
+    <string name="secret_method_pin">PIN</string>
+    <string name="secret_settings_title">Settings for the secret space</string>
+    <string name="secret_settings_copy">Copy main app settings</string>
+    <string name="secret_settings_fresh">Start fresh</string>
+    <string name="secret_import">Import from main app</string>
+    <string name="secret_import_summary">Copy data from the main app into this space</string>
+    <string name="secret_import_running">Importing…</string>
+    <string name="secret_import_done">Import finished</string>
 </resources>

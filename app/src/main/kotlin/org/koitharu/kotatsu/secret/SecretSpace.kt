@@ -32,6 +32,7 @@ object SecretSpace {
 	private const val KEY_HASH = "hash"
 	private const val KEY_SALT = "salt"
 	private const val KEY_BIOMETRIC = "bio"
+	private const val KEY_SEED_MAIN = "seed_main"
 	private const val KEY_SEEDED = "ss_seeded"
 	private val SEED_SKIP = setOf(
 		AppSettings.KEY_HIDE_FAVOURITES_IN_BROWSE,
@@ -70,7 +71,8 @@ object SecretSpace {
 		if (target.contains(KEY_SEEDED)) {
 			return
 		}
-		val source = base.getSharedPreferences(name, Context.MODE_PRIVATE).all
+		val copyMain = gate().getBoolean(KEY_SEED_MAIN, false)
+		val source = if (copyMain) base.getSharedPreferences(name, Context.MODE_PRIVATE).all else emptyMap()
 		target.edit {
 			for ((key, value) in source) {
 				if (!AppSettings.isSyncableKey(key) || key in SEED_SKIP) continue
@@ -108,6 +110,15 @@ object SecretSpace {
 			},
 		)
 	}
+
+	/** Whether the secret space starts with a copy of the main app settings (only read on the first entry). */
+	var copyMainSettings: Boolean
+		get() = gate().getBoolean(KEY_SEED_MAIN, false)
+		set(value) = gate().edit { putBoolean(KEY_SEED_MAIN, value) }
+
+	/** The storage of the main space, for importing data into the secret space. */
+	internal val mainContext: Context
+		get() = raw
 
 	val isRestartProcess: Boolean
 		get() = processName().endsWith(":secret_restart")

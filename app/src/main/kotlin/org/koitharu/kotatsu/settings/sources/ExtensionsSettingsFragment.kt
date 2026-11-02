@@ -25,6 +25,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.koitharu.kotatsu.R
+import org.koitharu.kotatsu.secret.SecretSpace
 import org.koitharu.kotatsu.core.nav.router
 import org.koitharu.kotatsu.core.prefs.AppSettings
 import org.koitharu.kotatsu.explore.data.MangaSourcesRepository
@@ -245,13 +246,14 @@ private fun ExtensionsScreen(
 					SwitchSettingsItem(
 						title = stringResource(R.string.private_extensions),
 						subtitle = stringResource(R.string.private_extensions_summary),
-						checked = privateEnabled,
+						checked = privateEnabled || SecretSpace.isActive,
 						onCheckedChange = {
 							privateEnabled = it
 							if (it) onSandboxEnabled()
 						},
 						icon = R.drawable.ic_shield,
 						shape = pos.shape,
+						enabled = !SecretSpace.isActive,
 					)
 				}
 			}
