@@ -463,10 +463,11 @@ class ReaderViewModel @Inject constructor(
 
     /**
      * Past the middle of a chapter, queues the next few as regular downloads (see the Downloads
-     * settings). Skipped for local comics, chapters already on the device and chapters already queued.
+     * settings). Skipped in incognito mode, for local comics, chapters already on the device and chapters already queued.
      */
     private fun autoDownloadNextChapter(chapterPages: Int, chapterId: Long, pageIndex: Int) {
         if (!settings.isNextChapterAutoDownloadEnabled) return
+        if (isIncognitoMode.value != false || isPeekMode.value) return
         if (chapterPages == 0 || (pageIndex + 1) * 2 < chapterPages) return
         val details = mangaDetails.value ?: return
         if (details.isLocal) return
