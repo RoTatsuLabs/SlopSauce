@@ -29,8 +29,6 @@
   <a href="https://github.com/RoTatsuLabs/SlopSauce/releases/latest"><strong>Download APK</strong></a>
   |
   <a href="https://github.com/HuzaifaKhalid1311/DropSauce"><strong>Upstream (DropSauce)</strong></a>
-  |
-  <a href="https://github.com/RoTatsuLabs/SlopSauce/issues"><strong>Issues</strong></a>
 </p>
 
 ---
@@ -38,6 +36,8 @@
 ## About
 
 SlopSauce is a free and open-source comic and novel reader for Android, built to feel quick, clean, and comfortable to use with a lot of features
+
+SlopSauce is a personal fork, built for my own use and shared as is. It takes no issues or pull requests, and I give no support, no guarantees, and no promise of updates or fixes.
 
 ⭐Please give the repo a star if you like the project. It helps more people find it.🌟
 
@@ -67,6 +67,14 @@ SlopSauce is a free and open-source comic and novel reader for Android, built to
 - Google Drive sync, local backup/restore, and in-app updates to keep your setup moving with you.
 - Supports Kotatsu and Mihon backup restoration alongside google drive sync
 - Free and open-source under the GPLv3 license.
+
+## SlopSauce Exclusive
+
+- Secret space: a separate library, history, bookmarks and downloads behind a PIN or fingerprint. Hold Incognito in the ⋮ menu to open it. It locks when you leave the app and leaves nothing behind in the main app.
+- Telegram backup: send backups to your own Telegram chat with the built-in bot.
+- Backup contents: pick what goes into a backup, such as only your library. Restore reads what is inside, and periodic and Telegram backups each keep their own choice.
+- Download ahead: queue the next chapters while you read, with a count you set. It stays off in incognito mode.
+- Hide favourites: hide titles you already favourited from source lists, in Settings > Appearance.
 
 <details>
 <summary><strong>Features</strong></summary>
@@ -131,9 +139,6 @@ Android may ask you to allow installs from your browser or file manager. That is
 ### How do updates work?
 > SlopSauce supports in-app updates, and release APKs are also published on GitHub. You can update from inside the app or install the latest APK from the Releases page.
 
-### Can I contribute?
-> Yes. Pull requests for patches, fixes, and new features are welcome.
-
 ## Project structure
 
 ```plaintext
@@ -163,17 +168,6 @@ app/src/main/
     ├── values*/       # Strings, colors, themes, and translations
     └── xml/           # Android XML configuration
 ```
-
-## Contribute
-
-You can send a Pull Request for your patches, fixes, or new features here.
-
-1. Fork the repository.
-2. Create a focused branch for your change.
-3. Build locally with `./gradlew :app:assembleDebug`.
-4. Open a Pull Request with a short explanation of what changed.
-
-Small fixes are welcome. Clear screenshots or short screen recordings are extra helpful for UI changes.
 
 ## Credits
 
