@@ -115,6 +115,7 @@ class DownloadWorker @AssistedInject constructor(
 	@LocalStorageChanges private val localStorageChanges: MutableSharedFlow<LocalManga?>,
 	private val sourceThrottler: DownloadSourceThrottler,
 	private val downloadSlots: DownloadSlots,
+	private val summaryNotifier: DownloadSummaryNotifier,
 	private val imageProxyInterceptor: ImageProxyInterceptor,
 	notificationFactoryFactory: DownloadNotificationFactory.Factory,
 ) : CoroutineWorker(appContext, params) {
@@ -186,6 +187,7 @@ class DownloadWorker @AssistedInject constructor(
 				).toWorkData(),
 			)
 		} finally {
+			summaryNotifier.remove(id)
 			notificationManager.cancel(id.hashCode())
 		}
 	}
@@ -569,6 +571,9 @@ class DownloadWorker @AssistedInject constructor(
 			}
 		} else if (notificationThrottler.throttle()) {
 			notificationManager.notify(id.hashCode(), notification)
+			if (!task.isSilent) {
+				summaryNotifier.update(id, state)
+			}
 		} else {
 			return
 		}
@@ -731,12 +736,12 @@ class DownloadWorker @AssistedInject constructor(
 			.build()
 	}
 
-	private companion object {
+	companion object {
 
-		const val MAX_FAILSAFE_ATTEMPTS = 2
-		const val SPEED_WINDOW = 1_000L
-		const val DOWNLOAD_ERROR_DELAY = 2_000L
-		const val MAX_RETRY_DELAY = 7_200_000L // 2 hours
+		private const val MAX_FAILSAFE_ATTEMPTS = 2
+		private const val SPEED_WINDOW = 1_000L
+		private const val DOWNLOAD_ERROR_DELAY = 2_000L
+		private const val MAX_RETRY_DELAY = 7_200_000L // 2 hours
 		const val TAG = "download"
 	}
 }
