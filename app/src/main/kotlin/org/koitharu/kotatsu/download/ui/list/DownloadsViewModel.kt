@@ -33,6 +33,7 @@ import org.koitharu.kotatsu.core.util.ext.call
 import org.koitharu.kotatsu.core.util.ext.isEmpty
 import org.koitharu.kotatsu.download.domain.DownloadState
 import org.koitharu.kotatsu.download.ui.list.chapters.DownloadChapter
+import org.koitharu.kotatsu.download.ui.worker.DownloadSlots
 import org.koitharu.kotatsu.download.ui.worker.DownloadWorker
 import org.koitharu.kotatsu.list.ui.model.EmptyState
 import org.koitharu.kotatsu.list.ui.model.ListHeader
@@ -51,6 +52,7 @@ import javax.inject.Inject
 @HiltViewModel
 class DownloadsViewModel @Inject constructor(
 	private val workScheduler: DownloadWorker.Scheduler,
+	private val downloadSlots: DownloadSlots,
 	private val mangaDataRepository: MangaDataRepository,
 	private val mangaRepositoryFactory: MangaRepository.Factory,
 	@LocalStorageChanges private val localStorageChanges: MutableSharedFlow<LocalManga?>,
@@ -65,7 +67,8 @@ class DownloadsViewModel @Inject constructor(
 	private val works = combine(
 		workScheduler.observeWorks(),
 		expanded,
-	) { list, exp ->
+		downloadSlots.changes,
+	) { list, exp, _ ->
 		list.toDownloadsList(exp)
 	}.withErrorHandling()
 		.stateIn(viewModelScope + Dispatchers.Default, SharingStarted.Eagerly, null)
@@ -99,6 +102,20 @@ class DownloadsViewModel @Inject constructor(
 			workScheduler.retry(id)
 		}
 	}
+
+	fun moveToTop(ids: Set<Long>) {
+		downloadSlots.moveToTop(reorderable(ids))
+		onActionDone.call(ReversibleAction(R.string.downloads_reordered, null))
+	}
+
+	fun moveToEnd(ids: Set<Long>) {
+		downloadSlots.moveToEnd(reorderable(ids))
+		onActionDone.call(ReversibleAction(R.string.downloads_reordered, null))
+	}
+
+	private fun reorderable(ids: Set<Long>): List<UUID> = works.value.orEmpty()
+		.filter { it.canReorder && it.id.mostSignificantBits in ids }
+		.map { it.id }
 
 	fun cancel(ids: Set<Long>) {
 		launchJob(Dispatchers.Default) {
@@ -220,12 +237,13 @@ class DownloadsViewModel @Inject constructor(
 			return emptyStateList()
 		}
 		val queued = LinkedList<ListModel>()
+		val waiting = ArrayList<DownloadItemModel>()
 		val running = LinkedList<ListModel>()
 		val destination = ArrayDeque<ListModel>((size * 1.4).toInt())
 		var prevDate: DateTimeAgo? = null
 		for (item in this) {
 			when (item.workState) {
-				WorkInfo.State.RUNNING -> running += item
+				WorkInfo.State.RUNNING -> if (item.isQueued) waiting += item else running += item
 				WorkInfo.State.BLOCKED,
 				WorkInfo.State.ENQUEUED -> queued += item
 
@@ -247,6 +265,9 @@ class DownloadsViewModel @Inject constructor(
 			running.addFirst(ListHeader(R.string.in_progress))
 		}
 		destination.addAll(0, running)
+		if (waiting.isNotEmpty()) {
+			queued.addAll(0, waiting.sortedBy { downloadSlots.orderOf(it.id) })
+		}
 		if (queued.isNotEmpty()) {
 			queued.addFirst(ListHeader(R.string.queued))
 		}
@@ -278,6 +299,8 @@ class DownloadsViewModel @Inject constructor(
 			progress = DownloadState.getProgress(workData),
 			eta = DownloadState.getEta(workData),
 			isStuck = DownloadState.isStuck(workData),
+			speed = DownloadState.getSpeed(workData),
+			isQueued = DownloadState.isQueued(workData),
 			timestamp = DownloadState.getTimestamp(workData),
 			chaptersDownloaded = DownloadState.getDownloadedChapters(workData),
 			isExpanded = isExpanded,

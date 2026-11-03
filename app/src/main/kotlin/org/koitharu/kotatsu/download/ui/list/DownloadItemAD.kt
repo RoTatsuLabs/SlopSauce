@@ -139,19 +139,24 @@ fun downloadItemAD(
 
 			WorkInfo.State.RUNNING -> {
 				binding.textViewStatus.setText(
-					if (item.isPaused) R.string.paused else R.string.manga_downloading_,
+					when {
+						item.isPaused -> R.string.paused
+						item.isQueued -> R.string.download_waiting
+						else -> R.string.manga_downloading_
+					},
 				)
 				binding.progressBar.isIndeterminate = item.isIndeterminate
-				binding.progressBar.isVisible = true
+				binding.progressBar.isVisible = !item.isQueued
 				binding.progressBar.max = item.max
 				binding.progressBar.isEnabled = !item.isPaused
 				binding.progressBar.setProgressCompat(item.progress, payloads.isNotEmpty())
 				binding.textViewPercent.text = percentPattern.format((item.percent * 100f).format(1))
-				binding.textViewPercent.isVisible = true
+				binding.textViewPercent.isVisible = !item.isQueued
 				binding.textViewDetails.textAndVisible = when {
 					item.isPaused -> item.getErrorMessage(context)
+					item.isQueued -> null
 					item.isStuck -> context.getString(R.string.stuck)
-					else -> item.getEtaString()
+					else -> item.getDetails(context)
 				}
 				binding.buttonCancel.isVisible = true
 				binding.buttonResume.isVisible = item.isPaused

@@ -16,6 +16,18 @@
 		app:showAsAction="ifRoom|withText" />
 
 	<item
+		android:id="@+id/action_move_top"
+		android:icon="@drawable/ic_arrow_up"
+		android:title="@string/download_move_top"
+		app:showAsAction="ifRoom|withText" />
+
+	<item
+		android:id="@+id/action_move_end"
+		android:icon="@drawable/ic_expand_more"
+		android:title="@string/download_move_end"
+		app:showAsAction="ifRoom|withText" />
+
+	<item
 		android:id="@+id/action_cancel"
 		android:icon="@drawable/ic_cancel_multiple"
 		android:title="@android:string/cancel"

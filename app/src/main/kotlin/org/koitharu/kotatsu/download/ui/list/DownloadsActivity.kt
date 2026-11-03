@@ -174,6 +174,18 @@ class DownloadsActivity : BaseActivity<ActivityDownloadsBinding>(),
 				true
 			}
 
+			R.id.action_move_top -> {
+				viewModel.moveToTop(controller.snapshot())
+				mode?.finish()
+				true
+			}
+
+			R.id.action_move_end -> {
+				viewModel.moveToEnd(controller.snapshot())
+				mode?.finish()
+				true
+			}
+
 			R.id.action_select_all -> {
 				controller.addAll(viewModel.allIds())
 				true
@@ -189,16 +201,20 @@ class DownloadsActivity : BaseActivity<ActivityDownloadsBinding>(),
 		var canResume = true
 		var canCancel = true
 		var canRemove = true
+		var canReorder = snapshot.isNotEmpty()
 		for (item in snapshot) {
 			canPause = canPause and item.canPause
 			canResume = canResume and item.canResume
 			canCancel = canCancel and !item.workState.isFinished
 			canRemove = canRemove and item.workState.isFinished
+			canReorder = canReorder and item.canReorder
 		}
 		menu.findItem(R.id.action_pause)?.isVisible = canPause
 		menu.findItem(R.id.action_resume)?.isVisible = canResume
 		menu.findItem(R.id.action_cancel)?.isVisible = canCancel
 		menu.findItem(R.id.action_remove)?.isVisible = canRemove
+		menu.findItem(R.id.action_move_top)?.isVisible = canReorder
+		menu.findItem(R.id.action_move_end)?.isVisible = canReorder
 		return super.onPrepareActionMode(controller, mode, menu)
 	}
 }

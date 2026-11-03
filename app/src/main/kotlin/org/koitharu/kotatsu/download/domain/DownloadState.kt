@@ -19,6 +19,8 @@ data class DownloadState(
 	val currentPage: Int = 0,
 	val eta: Long = -1L,
 	val isStuck: Boolean = false,
+	val speed: Long = 0L,
+	val isQueued: Boolean = false,
 	val localManga: LocalManga? = null,
 	val downloadedChapters: Int = 0,
 	val timestamp: Long = System.currentTimeMillis(),
@@ -47,6 +49,8 @@ data class DownloadState(
 		.putInt(DATA_CHAPTERS, downloadedChapters)
 		.putBoolean(DATA_INDETERMINATE, isIndeterminate)
 		.putBoolean(DATA_PAUSED, isPaused)
+		.putLong(DATA_SPEED, speed)
+		.putBoolean(DATA_QUEUED, isQueued)
 		.build()
 
 	companion object {
@@ -61,12 +65,18 @@ data class DownloadState(
 		private const val DATA_ERROR = "error"
 		private const val DATA_INDETERMINATE = "indeterminate"
 		private const val DATA_PAUSED = "paused"
+		private const val DATA_SPEED = "speed"
+		private const val DATA_QUEUED = "queued"
 
 		fun getMangaId(data: Data): Long = data.getLong(DATA_MANGA_ID, 0L)
 
 		fun isIndeterminate(data: Data): Boolean = data.getBoolean(DATA_INDETERMINATE, false)
 
 		fun isPaused(data: Data): Boolean = data.getBoolean(DATA_PAUSED, false)
+
+		fun getSpeed(data: Data): Long = data.getLong(DATA_SPEED, 0L)
+
+		fun isQueued(data: Data): Boolean = data.getBoolean(DATA_QUEUED, false)
 
 		fun getMax(data: Data): Int = data.getInt(DATA_MAX, 0)
 

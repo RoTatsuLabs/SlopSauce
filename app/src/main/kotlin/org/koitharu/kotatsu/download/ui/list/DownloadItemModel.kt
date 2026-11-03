@@ -3,11 +3,13 @@ package org.koitharu.kotatsu.download.ui.list
 import android.content.Context
 import android.graphics.Color
 import android.text.format.DateUtils
+import android.text.format.Formatter
 import androidx.core.text.bold
 import androidx.core.text.buildSpannedString
 import androidx.core.text.color
 import androidx.work.WorkInfo
 import kotlinx.coroutines.flow.StateFlow
+import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.core.util.ext.getThemeColor
 import org.koitharu.kotatsu.download.ui.list.chapters.DownloadChapter
 import org.koitharu.kotatsu.list.ui.ListModelDiffCallback
@@ -28,6 +30,8 @@ data class DownloadItemModel(
 	val progress: Int,
 	val eta: Long,
 	val isStuck: Boolean,
+	val speed: Long,
+	val isQueued: Boolean,
 	val timestamp: Instant,
 	val chaptersDownloaded: Int,
 	val isExpanded: Boolean,
@@ -41,7 +45,10 @@ data class DownloadItemModel(
 		get() = workState == WorkInfo.State.RUNNING && !isPaused && eta > 0L
 
 	val canPause: Boolean
-		get() = workState == WorkInfo.State.RUNNING && !isPaused && error == null
+		get() = workState == WorkInfo.State.RUNNING && !isPaused && error == null && !isQueued
+
+	val canReorder: Boolean
+		get() = workState == WorkInfo.State.RUNNING && isQueued
 
 	val canResume: Boolean
 		get() = workState == WorkInfo.State.RUNNING && isPaused
@@ -57,6 +64,20 @@ data class DownloadItemModel(
 		)
 	} else {
 		null
+	}
+
+	/** Live speed and time left, for example "2.3 MB/s · in 4 minutes". */
+	fun getDetails(context: Context): CharSequence? {
+		val speedText = if (speed > 0L) {
+			context.getString(R.string.download_speed_format, Formatter.formatFileSize(context, speed))
+		} else {
+			null
+		}
+		val eta = getEtaString()
+		return when {
+			speedText != null && eta != null -> "$speedText · $eta"
+			else -> speedText ?: eta
+		}
 	}
 
 	fun getErrorMessage(context: Context): CharSequence? = if (error != null) {
