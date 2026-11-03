@@ -75,6 +75,23 @@ class DownloadsViewModel @Inject constructor(
 
 	val onActionDone = MutableEventFlow<ReversibleAction>()
 
+	/** Everything for the downloads screen: running first, then waiting in start order, queued, finished. */
+	val models: StateFlow<List<DownloadItemModel>?> = works.map { list ->
+		list?.sortedWith(
+			compareBy<DownloadItemModel> { rank(it) }
+				.thenBy { if (it.isQueued) downloadSlots.orderOf(it.id) else 0L }
+				.thenByDescending { if (it.isFinished || rank(it) == 0) it.timestamp else null }
+				.thenBy { it.timestamp },
+		)
+	}.stateIn(viewModelScope + Dispatchers.Default, SharingStarted.Eagerly, null)
+
+	private fun rank(item: DownloadItemModel): Int = when {
+		item.isFinished -> 3
+		item.workState == WorkInfo.State.RUNNING && !item.isQueued -> 0
+		item.workState == WorkInfo.State.RUNNING -> 1
+		else -> 2
+	}
+
 	val items = works.map {
 		it?.toUiList() ?: listOf(LoadingState)
 	}.stateIn(viewModelScope + Dispatchers.Default, SharingStarted.Eagerly, listOf(LoadingState))

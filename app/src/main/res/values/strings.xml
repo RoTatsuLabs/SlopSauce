@@ -25,6 +25,11 @@
     <string name="download_move_end">Move to end</string>
     <string name="downloads_reordered">Queue updated</string>
     <string name="download_speed_format">%s/s</string>
+    <string name="download_tab_all">All</string>
+    <string name="download_tab_downloading">Downloading</string>
+    <string name="download_tab_finished">Finished</string>
+    <string name="download_size_estimate">%1$s / ~%2$s</string>
+    <string name="download_summary_line">%1$d active · %2$d queued</string>
     <string name="download_speed">Speed</string>
     <string name="download_connections">Parallel connections</string>
     <string name="download_simultaneous">Simultaneous downloads</string>
