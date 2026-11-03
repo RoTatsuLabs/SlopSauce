@@ -21,6 +21,7 @@ data class DownloadState(
 	val isStuck: Boolean = false,
 	val speed: Long = 0L,
 	val isQueued: Boolean = false,
+	val downloadedBytes: Long = 0L,
 	val localManga: LocalManga? = null,
 	val downloadedChapters: Int = 0,
 	val timestamp: Long = System.currentTimeMillis(),
@@ -29,6 +30,16 @@ data class DownloadState(
 	val max: Int = totalChapters * totalPages
 
 	val progress: Int = totalPages * currentChapter + currentPage + 1
+
+	/** Total size guessed from the average size of the pages saved so far; 0 while unknown. */
+	val estimatedBytes: Long = if (downloadedBytes > 0L && progress > 0 && max > 0) {
+		maxOf(downloadedBytes, downloadedBytes * max / progress)
+	} else {
+		0L
+	}
+
+	/** How far the chapter being downloaded is, from 0 to 1. */
+	val chapterProgress: Float = if (totalPages > 0) (currentPage + 1f) / totalPages else 0f
 
 	val percent: Float = if (max > 0) progress.toFloat() / max else PROGRESS_NONE
 
@@ -51,6 +62,10 @@ data class DownloadState(
 		.putBoolean(DATA_PAUSED, isPaused)
 		.putLong(DATA_SPEED, speed)
 		.putBoolean(DATA_QUEUED, isQueued)
+		.putLong(DATA_BYTES, downloadedBytes)
+		.putLong(DATA_TOTAL_BYTES, estimatedBytes)
+		.putInt(DATA_TOTAL_CHAPTERS, totalChapters)
+		.putFloat(DATA_CHAPTER_PROGRESS, chapterProgress)
 		.build()
 
 	companion object {
@@ -67,6 +82,10 @@ data class DownloadState(
 		private const val DATA_PAUSED = "paused"
 		private const val DATA_SPEED = "speed"
 		private const val DATA_QUEUED = "queued"
+		private const val DATA_BYTES = "bytes"
+		private const val DATA_TOTAL_BYTES = "bytes_total"
+		private const val DATA_TOTAL_CHAPTERS = "chapters_total"
+		private const val DATA_CHAPTER_PROGRESS = "chapter_progress"
 
 		fun getMangaId(data: Data): Long = data.getLong(DATA_MANGA_ID, 0L)
 
@@ -77,6 +96,14 @@ data class DownloadState(
 		fun getSpeed(data: Data): Long = data.getLong(DATA_SPEED, 0L)
 
 		fun isQueued(data: Data): Boolean = data.getBoolean(DATA_QUEUED, false)
+
+		fun getDownloadedBytes(data: Data): Long = data.getLong(DATA_BYTES, 0L)
+
+		fun getEstimatedBytes(data: Data): Long = data.getLong(DATA_TOTAL_BYTES, 0L)
+
+		fun getTotalChapters(data: Data): Int = data.getInt(DATA_TOTAL_CHAPTERS, 0)
+
+		fun getChapterProgress(data: Data): Float = data.getFloat(DATA_CHAPTER_PROGRESS, 0f)
 
 		fun getMax(data: Data): Int = data.getInt(DATA_MAX, 0)
 

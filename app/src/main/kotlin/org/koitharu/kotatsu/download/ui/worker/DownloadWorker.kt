@@ -546,7 +546,10 @@ class DownloadWorker @AssistedInject constructor(
 			speedAt = now
 			speedBytes = bytes
 		}
-		val state = newState.copy(speed = if (newState.isParticularProgress) speedValue else 0L)
+		val state = newState.copy(
+			speed = if (newState.isParticularProgress) speedValue else 0L,
+			downloadedBytes = downloadedBytes.get(),
+		)
 		val previousState = currentState
 		lastPublishedState = state
 		if (previousState.isParticularProgress && state.isParticularProgress) {
