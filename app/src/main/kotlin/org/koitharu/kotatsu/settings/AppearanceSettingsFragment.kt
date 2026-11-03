@@ -48,8 +48,6 @@ import org.koitharu.kotatsu.core.util.ext.toList
 import org.koitharu.kotatsu.parsers.util.names
 import org.koitharu.kotatsu.parsers.util.toTitleCase
 import org.koitharu.kotatsu.settings.appearance.PreviewSettingsFragment
-import org.koitharu.kotatsu.secret.SecretGate
-import org.koitharu.kotatsu.secret.SecretSpace
 import org.koitharu.kotatsu.settings.compose.ActionSettingsItem
 import org.koitharu.kotatsu.settings.compose.BaseComposeSettingsFragment
 import org.koitharu.kotatsu.settings.compose.ColorSchemePickerRow
@@ -57,7 +55,6 @@ import org.koitharu.kotatsu.settings.compose.DropSauceTheme
 import org.koitharu.kotatsu.settings.compose.ListSettingsItem
 import org.koitharu.kotatsu.settings.compose.MultiSelectSettingsItem
 import org.koitharu.kotatsu.settings.compose.NavigationSettingsItem
-import org.koitharu.kotatsu.settings.compose.SegmentedSettingsItem
 import org.koitharu.kotatsu.settings.compose.SettingsGroup
 import org.koitharu.kotatsu.settings.compose.SettingsScaffold
 import org.koitharu.kotatsu.settings.compose.SliderSettingsItem
@@ -130,8 +127,6 @@ class AppearanceSettingsFragment : BaseComposeSettingsFragment(R.string.appearan
 						)
 					},
 					onProtectToggle = ::onProtectToggle,
-					onChangeSecretPin = { SecretGate.changePin(requireActivity()) },
-					onSecretBiometric = { SecretGate.setBiometric(requireActivity(), it) },
 				)
 			}
 		}
@@ -224,8 +219,6 @@ private fun AppearanceScreen(
 	onOpenDetailsAppearance: () -> Unit,
 	onOpenNavConfig: () -> Unit,
 	onProtectToggle: (Boolean) -> Unit,
-	onChangeSecretPin: () -> Unit,
-	onSecretBiometric: (Boolean) -> Boolean,
 ) {
 	val ctx = LocalContext.current
 
@@ -693,30 +686,6 @@ private fun AppearanceScreen(
 						shape = pos.shape,
 						enabled = protectApp,
 					)
-				}
-				if (SecretSpace.isActive) {
-					item { pos ->
-						ActionSettingsItem(
-							title = stringResource(R.string.secret_change_pin),
-							onClick = onChangeSecretPin,
-							icon = R.drawable.ic_lock,
-							shape = pos.shape,
-						)
-					}
-					item { pos ->
-						var secretBio by remember { mutableStateOf(SecretSpace.isBiometricEnabled) }
-						SegmentedSettingsItem(
-							title = stringResource(R.string.secret_unlock_method),
-							labels = listOf(
-								stringResource(R.string.secret_method_fingerprint),
-								stringResource(R.string.secret_method_pin),
-							),
-							selectedIndex = if (secretBio) 0 else 1,
-							onSelected = { secretBio = onSecretBiometric(it == 0) },
-							icon = R.drawable.ic_lock,
-							shape = pos.shape,
-						)
-					}
 				}
 				item { pos ->
 					ListSettingsItem(

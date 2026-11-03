@@ -45,6 +45,7 @@ import org.koitharu.kotatsu.core.nav.router
 import org.koitharu.kotatsu.settings.search.SettingsSearchMenuProvider
 import org.koitharu.kotatsu.settings.search.SettingsSearchViewModel
 import org.koitharu.kotatsu.settings.about.AboutSettingsFragment
+import org.koitharu.kotatsu.secret.SecretSpace
 import org.koitharu.kotatsu.settings.compose.CategoryPalette
 import org.koitharu.kotatsu.settings.compose.DropSauceTheme
 import org.koitharu.kotatsu.settings.compose.PlainInfoSettingsItem
@@ -165,6 +166,11 @@ private enum class SettingsSection(
 		intArrayOf(R.string.suggestions, R.string.tracking),
 		ServicesSettingsFragment::class.java,
 	),
+	SECRET(
+		R.string.secret_space, R.drawable.ic_lock, "services",
+		intArrayOf(R.string.secret_unlock_method, R.string.secret_delete),
+		SecretSettingsFragment::class.java,
+	),
 	ABOUT(
 		R.string.about, R.drawable.ic_info_outline, "about",
 		IntArray(0),
@@ -193,7 +199,7 @@ private fun RootSettingsContent(
 				// SettingsGroup's DSL block is NOT @Composable — @Composable calls
 				// (stringResource, MaterialTheme.colorScheme, …) only happen inside
 				// each `item { pos -> ... }` body which IS @Composable.
-				SettingsSection.values().forEach { section ->
+				SettingsSection.values().filter { it != SettingsSection.SECRET || SecretSpace.isActive }.forEach { section ->
 					item { pos ->
 						val subtitle = if (section == SettingsSection.ABOUT) {
 							appVersion
