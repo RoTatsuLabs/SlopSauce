@@ -115,7 +115,10 @@ object SecretSpace {
 				}
 
 				override fun onStop(owner: LifecycleOwner) {
-					handler.postDelayed({ exit(app) }, leaveDelayMs)
+					val delay = leaveDelayMs
+					if (delay >= 0) {
+						handler.postDelayed({ exit(app) }, delay)
+					}
 				}
 			},
 		)
@@ -128,7 +131,7 @@ object SecretSpace {
 	val isRestartProcess: Boolean
 		get() = processName().endsWith(":secret_restart")
 
-	/** How long the app may stay in the background before the space locks. */
+	/** How long the app may stay in the background before the space locks; negative means never. */
 	var leaveDelayMs: Long
 		get() = gate().getLong(KEY_LEAVE_DELAY, DEFAULT_LEAVE_DELAY_MS)
 		set(value) = gate().edit { putLong(KEY_LEAVE_DELAY, value) }

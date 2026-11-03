@@ -81,7 +81,7 @@ class SecretSettingsFragment : BaseComposeSettingsFragment(R.string.secret_space
 	}
 }
 
-private val LOCK_DELAYS = listOf(0L, 15_000L, 30_000L, 60_000L, 300_000L)
+private val LOCK_DELAYS = listOf(-1L, 0L, 15_000L, 30_000L, 60_000L, 300_000L)
 
 @Composable
 private fun SecretScreen(
@@ -145,6 +145,7 @@ private fun SecretScreen(
 					ListSettingsItem(
 						title = stringResource(R.string.secret_auto_lock),
 						entries = listOf(
+							stringResource(R.string.secret_lock_never),
 							stringResource(R.string.secret_lock_immediately),
 							stringResource(R.string.secret_lock_15s),
 							stringResource(R.string.secret_lock_30s),
