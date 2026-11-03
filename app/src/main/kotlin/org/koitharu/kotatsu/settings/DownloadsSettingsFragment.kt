@@ -54,6 +54,7 @@ import org.koitharu.kotatsu.parsers.util.names
 import org.koitharu.kotatsu.settings.compose.ActionSettingsItem
 import org.koitharu.kotatsu.settings.compose.BaseComposeSettingsFragment
 import org.koitharu.kotatsu.settings.compose.DropSauceTheme
+import org.koitharu.kotatsu.settings.compose.InfoSettingsItem
 import org.koitharu.kotatsu.settings.compose.ListSettingsItem
 import org.koitharu.kotatsu.settings.compose.PlainInfoSettingsItem
 import org.koitharu.kotatsu.settings.compose.SettingsGroup
@@ -538,6 +539,8 @@ private fun DownloadsScreen(
 		TriStateOption.ASK.name,
 	)
 	var pagesDirAsk by rememberBooleanPref(AppSettings.KEY_PAGES_SAVE_ASK, true)
+	var connections by rememberIntPref(AppSettings.KEY_DOWNLOADS_CONNECTIONS, 5)
+	var simultaneous by rememberIntPref(AppSettings.KEY_DOWNLOADS_SIMULTANEOUS, 3)
 	var autoDownloadNext by rememberBooleanPref(AppSettings.KEY_DOWNLOADS_NEXT_CHAPTER, false)
 	var autoDownloadCount by rememberIntPref(AppSettings.KEY_DOWNLOADS_NEXT_CHAPTER_COUNT, 1)
 	var autoDownloadWifiOnly by rememberBooleanPref(AppSettings.KEY_DOWNLOADS_NEXT_CHAPTER_WIFI_ONLY, true)
@@ -611,6 +614,42 @@ private fun DownloadsScreen(
 							onClick = onIgnoreDoze,
 						)
 					}
+				}
+			}
+		}
+		item { Spacer(Modifier.height(8.dp).fillMaxWidth()) }
+		item {
+			SettingsGroup(title = stringResource(R.string.download_speed)) {
+				item { pos ->
+					SliderSettingsItem(
+						title = stringResource(R.string.download_connections),
+						value = connections.coerceIn(1, 10),
+						valueFrom = 1,
+						valueTo = 10,
+						stepSize = 1,
+						onValueChange = { connections = it },
+						icon = R.drawable.ic_download,
+						shape = pos.shape,
+					)
+				}
+				item { pos ->
+					SliderSettingsItem(
+						title = stringResource(R.string.download_simultaneous),
+						value = simultaneous.coerceIn(1, 5),
+						valueFrom = 1,
+						valueTo = 5,
+						stepSize = 1,
+						onValueChange = { simultaneous = it },
+						icon = R.drawable.ic_download,
+						shape = pos.shape,
+					)
+				}
+				item { pos ->
+					InfoSettingsItem(
+						title = stringResource(R.string.download_speed_hint),
+						icon = R.drawable.ic_info_outline,
+						shape = pos.shape,
+					)
 				}
 			}
 		}

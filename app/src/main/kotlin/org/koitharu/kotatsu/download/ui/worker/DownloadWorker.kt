@@ -112,6 +112,7 @@ class DownloadWorker @AssistedInject constructor(
 	private val settings: AppSettings,
 	@LocalStorageChanges private val localStorageChanges: MutableSharedFlow<LocalManga?>,
 	private val sourceThrottler: DownloadSourceThrottler,
+	private val downloadSlots: DownloadSlots,
 	private val imageProxyInterceptor: ImageProxyInterceptor,
 	notificationFactoryFactory: DownloadNotificationFactory.Factory,
 ) : CoroutineWorker(appContext, params) {
@@ -141,7 +142,12 @@ class DownloadWorker @AssistedInject constructor(
 				pausingHandle.pause()
 			}
 			withContext(pausingHandle) {
-				downloadMangaImpl(manga, task, downloadedIds)
+				downloadSlots.withSlot(
+					limit = { settings.downloadMaxSimultaneous },
+					onWaiting = { publishState(currentState.copy(isIndeterminate = true, eta = -1L)) },
+				) {
+					downloadMangaImpl(manga, task, downloadedIds)
+				}
 			}
 			// Finished, but with chapters that failed on their own: Retry fetches just those
 			if (currentState.error != null) {
@@ -319,7 +325,7 @@ class DownloadWorker @AssistedInject constructor(
 		} ?: return
 		val pageCounter = AtomicInteger(0)
 		channelFlow {
-			val semaphore = Semaphore(MAX_PAGES_PARALLELISM)
+			val semaphore = Semaphore(settings.downloadConnections)
 			for ((pageIndex, page) in pages.withIndex()) {
 				checkIsPaused()
 				launch {
@@ -703,9 +709,6 @@ class DownloadWorker @AssistedInject constructor(
 	private companion object {
 
 		const val MAX_FAILSAFE_ATTEMPTS = 2
-		// Mihon's default parallel-page limit is 5. Keeping extension downloads below that makes
-		// DropSauce observably slower even after removing the accidental global rate limiter.
-		const val MAX_PAGES_PARALLELISM = 5
 		const val DOWNLOAD_ERROR_DELAY = 2_000L
 		const val MAX_RETRY_DELAY = 7_200_000L // 2 hours
 		const val TAG = "download"
