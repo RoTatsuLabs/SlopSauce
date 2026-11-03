@@ -28,7 +28,8 @@ object SecretSpace {
 	private const val MARKER = ".ss_enter"
 	private const val WIPE = ".ss_wipe"
 	private const val MARKER_TTL_MS = 30_000L
-	private const val LEAVE_DELAY_MS = 2_000L
+	private const val DEFAULT_LEAVE_DELAY_MS = 2_000L
+	private const val KEY_LEAVE_DELAY = "leave_delay"
 	private const val GATE_PREFS = "ss_gate"
 	private const val KEY_HASH = "hash"
 	private const val KEY_SALT = "salt"
@@ -114,7 +115,7 @@ object SecretSpace {
 				}
 
 				override fun onStop(owner: LifecycleOwner) {
-					handler.postDelayed({ exit(app) }, LEAVE_DELAY_MS)
+					handler.postDelayed({ exit(app) }, leaveDelayMs)
 				}
 			},
 		)
@@ -126,6 +127,22 @@ object SecretSpace {
 
 	val isRestartProcess: Boolean
 		get() = processName().endsWith(":secret_restart")
+
+	/** How long the app may stay in the background before the space locks. */
+	var leaveDelayMs: Long
+		get() = gate().getLong(KEY_LEAVE_DELAY, DEFAULT_LEAVE_DELAY_MS)
+		set(value) = gate().edit { putLong(KEY_LEAVE_DELAY, value) }
+
+	/** Size of the data stored in the secret space. */
+	fun usedBytes(base: Context): Long {
+		var total = 0L
+		val dirs = listOf(base.filesDir, base.cacheDir, base.noBackupFilesDir, base.getDatabasePath("x").parentFile) +
+			base.getExternalFilesDirs(null).filterNotNull()
+		for (dir in dirs.filterNotNull()) {
+			total += dir.walkTopDown().filter { it.isFile }.sumOf { it.length() }
+		}
+		return total
+	}
 
 	val hasPin: Boolean
 		get() = gate().getString(KEY_HASH, null) != null

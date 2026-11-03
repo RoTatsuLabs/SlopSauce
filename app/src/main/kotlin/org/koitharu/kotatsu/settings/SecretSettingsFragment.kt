@@ -1,6 +1,7 @@
 package org.koitharu.kotatsu.settings
 
 import android.os.Bundle
+import android.text.format.Formatter
 import android.widget.Toast
 import android.view.LayoutInflater
 import android.view.View
@@ -11,16 +12,20 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.core.util.ext.getDisplayMessage
 import org.koitharu.kotatsu.secret.SecretGate
@@ -29,6 +34,8 @@ import org.koitharu.kotatsu.secret.SecretSpace
 import org.koitharu.kotatsu.settings.compose.ActionSettingsItem
 import org.koitharu.kotatsu.settings.compose.BaseComposeSettingsFragment
 import org.koitharu.kotatsu.settings.compose.DropSauceTheme
+import org.koitharu.kotatsu.settings.compose.InfoSettingsItem
+import org.koitharu.kotatsu.settings.compose.ListSettingsItem
 import org.koitharu.kotatsu.settings.compose.MultiChoiceDialog
 import org.koitharu.kotatsu.settings.compose.SegmentedSettingsItem
 import org.koitharu.kotatsu.settings.compose.SettingsGroup
@@ -54,6 +61,7 @@ class SecretSettingsFragment : BaseComposeSettingsFragment(R.string.secret_space
 					onImportFromMain = ::importFromMain,
 					onChangePin = { SecretGate.changePin(requireActivity()) },
 					onUnlockMethod = { SecretGate.setBiometric(requireActivity(), it) },
+					onLockNow = { SecretSpace.leave(requireActivity()) },
 					onDelete = { SecretGate.deleteSpace(requireActivity()) },
 				)
 			}
@@ -73,13 +81,21 @@ class SecretSettingsFragment : BaseComposeSettingsFragment(R.string.secret_space
 	}
 }
 
+private val LOCK_DELAYS = listOf(0L, 15_000L, 30_000L, 60_000L, 300_000L)
+
 @Composable
 private fun SecretScreen(
 	onImportFromMain: (Set<SecretImporter.Section>) -> Unit,
 	onChangePin: () -> Unit,
 	onUnlockMethod: (Boolean) -> Boolean,
+	onLockNow: () -> Unit,
 	onDelete: () -> Unit,
 ) {
+	val context = LocalContext.current.applicationContext
+	var leaveDelay by remember { mutableStateOf(SecretSpace.leaveDelayMs) }
+	val usedBytes by produceState<Long?>(null) {
+		value = withContext(Dispatchers.IO) { SecretSpace.usedBytes(context) }
+	}
 	var biometric by remember { mutableStateOf(SecretSpace.isBiometricEnabled) }
 	var showImportDialog by remember { mutableStateOf(false) }
 	if (showImportDialog) {
@@ -124,7 +140,50 @@ private fun SecretScreen(
 		}
 		item { Spacer(Modifier.height(8.dp).fillMaxWidth()) }
 		item {
+			SettingsGroup(title = stringResource(R.string.secret_privacy)) {
+				item { pos ->
+					ListSettingsItem(
+						title = stringResource(R.string.secret_auto_lock),
+						entries = listOf(
+							stringResource(R.string.secret_lock_immediately),
+							stringResource(R.string.secret_lock_15s),
+							stringResource(R.string.secret_lock_30s),
+							stringResource(R.string.secret_lock_1m),
+							stringResource(R.string.secret_lock_5m),
+						),
+						entryValues = LOCK_DELAYS.map { it.toString() },
+						selectedValue = leaveDelay.toString(),
+						onValueChange = {
+							leaveDelay = it.toLong()
+							SecretSpace.leaveDelayMs = leaveDelay
+						},
+						icon = R.drawable.ic_lock,
+						shape = pos.shape,
+					)
+				}
+				item { pos ->
+					ActionSettingsItem(
+						title = stringResource(R.string.secret_lock_now),
+						subtitle = stringResource(R.string.secret_lock_now_summary),
+						onClick = onLockNow,
+						icon = R.drawable.ic_lock,
+						shape = pos.shape,
+					)
+				}
+			}
+		}
+		item { Spacer(Modifier.height(8.dp).fillMaxWidth()) }
+		item {
 			SettingsGroup(title = stringResource(R.string.secret_data)) {
+				item { pos ->
+					InfoSettingsItem(
+						title = stringResource(R.string.secret_storage_used),
+						subtitle = usedBytes?.let { Formatter.formatFileSize(context, it) }
+							?: stringResource(R.string.loading_),
+						icon = R.drawable.ic_storage,
+						shape = pos.shape,
+					)
+				}
 				item { pos ->
 					ActionSettingsItem(
 						title = stringResource(R.string.secret_import),

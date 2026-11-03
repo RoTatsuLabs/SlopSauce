@@ -1369,6 +1369,16 @@
     <string name="secret_use_pin">Use PIN</string>
     <string name="secret_leave">Leave secret space</string>
     <string name="secret_biometric_unavailable">Fingerprint is not available on this device</string>
+    <string name="secret_privacy">Privacy</string>
+    <string name="secret_auto_lock">Auto-lock</string>
+    <string name="secret_lock_immediately">Immediately</string>
+    <string name="secret_lock_15s">After 15 seconds</string>
+    <string name="secret_lock_30s">After 30 seconds</string>
+    <string name="secret_lock_1m">After 1 minute</string>
+    <string name="secret_lock_5m">After 5 minutes</string>
+    <string name="secret_lock_now">Lock now</string>
+    <string name="secret_lock_now_summary">Leave the secret space and return to the main app</string>
+    <string name="secret_storage_used">Storage used</string>
     <string name="secret_change_pin">Change secret PIN</string>
     <string name="secret_unlock_method">Unlock method</string>
     <string name="secret_method_fingerprint">Fingerprint</string>

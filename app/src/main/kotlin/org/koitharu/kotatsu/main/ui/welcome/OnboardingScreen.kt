@@ -69,13 +69,14 @@ import kotlinx.coroutines.launch
 import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.core.prefs.ColorScheme
 import org.koitharu.kotatsu.secret.SecretSpace
+import org.koitharu.kotatsu.settings.compose.SegmentedRow
 import org.koitharu.kotatsu.settings.compose.ColorSchemePickerRow
 
 private enum class Slide { SECRET_SETTINGS, WELCOME, STORAGE, SYNC, FINISH }
 
 // The secret space has no cloud sync, and starts by asking whether to reuse the main app settings.
 private val NORMAL_SLIDES = listOf(Slide.WELCOME, Slide.STORAGE, Slide.SYNC, Slide.FINISH)
-private val SECRET_SLIDES = listOf(Slide.SECRET_SETTINGS, Slide.WELCOME, Slide.STORAGE, Slide.FINISH)
+private val SECRET_SLIDES = listOf(Slide.WELCOME, Slide.STORAGE, Slide.SECRET_SETTINGS)
 private val CARD_SHAPE = RoundedCornerShape(24.dp)
 private val SCREEN_PADDING = 20.dp
 
@@ -130,6 +131,7 @@ fun OnboardingScreen(
             pagerState.animateScrollToPage(syncPage + 1)
         }
     }
+    var copyMainSettings by remember { mutableStateOf(false) }
     val isLastPage by remember { derivedStateOf { pagerState.currentPage == slides.size - 1 } }
     val backEnabled by remember { derivedStateOf { pagerState.currentPage > 0 } }
 
@@ -229,8 +231,8 @@ fun OnboardingScreen(
                 Spacer(Modifier.height(20.dp))
                 when (slide) {
                     Slide.SECRET_SETTINGS -> SecretSettingsSlide(
-                        actions = actions,
-                        onNext = { scope.launch { pagerState.animateScrollToPage(pageIndex + 1) } },
+                        copyMain = copyMainSettings,
+                        onChange = { copyMainSettings = it },
                     )
                     Slide.WELCOME -> WelcomeSlide(
                         selectedTheme = selectedTheme,
@@ -286,6 +288,9 @@ fun OnboardingScreen(
             FloatingActionButton(
                 onClick = {
                     if (isLastPage) {
+                        if (copyMainSettings && slides[pagerState.currentPage] == Slide.SECRET_SETTINGS) {
+                            actions.onCopyMainSettings()
+                        }
                         actions.onFinish()
                     } else {
                         scope.launch { pagerState.animateScrollToPage(pagerState.currentPage + 1) }
@@ -594,26 +599,24 @@ private fun PermissionRow(
 // ── Secret space: settings ────────────────────────────────────────────────────
 
 @Composable
-private fun SecretSettingsSlide(actions: OnboardingActions, onNext: () -> Unit) {
-    val context = LocalContext.current
+private fun SecretSettingsSlide(copyMain: Boolean, onChange: (Boolean) -> Unit) {
     Column(
         modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Text(
             text = stringResource(R.string.secret_settings_description),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        ActionCard(
-            items = listOf(
-                ActionItem(R.drawable.ic_backup_restore, R.string.secret_settings_copy, true) {
-                    actions.onCopyMainSettings()
-                    Toast.makeText(context, R.string.secret_settings_copied, Toast.LENGTH_SHORT).show()
-                    onNext()
-                },
-                ActionItem(R.drawable.ic_check, R.string.secret_settings_fresh, true, onNext),
+        SegmentedRow(
+            labels = listOf(
+                stringResource(R.string.secret_settings_fresh),
+                stringResource(R.string.secret_settings_copy),
             ),
+            selectedIndex = if (copyMain) 1 else 0,
+            onSelected = { onChange(it == 1) },
+            enabled = true,
         )
     }
 }
