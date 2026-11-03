@@ -35,6 +35,7 @@ import org.koitharu.kotatsu.kotatsumigration.domain.KotatsuMigrationManager
 import org.koitharu.kotatsu.kotatsumigration.ui.showExtensionInstallPromptDialog
 import org.koitharu.kotatsu.kotatsumigration.ui.showKotatsuMigrationCompleteDialog
 import org.koitharu.kotatsu.main.ui.MainActivity
+import org.koitharu.kotatsu.secret.SecretSpace
 import org.koitharu.kotatsu.settings.compose.DropSauceTheme
 import javax.inject.Inject
 
@@ -194,6 +195,7 @@ class OnboardingActivity : BaseActivity<ActivityOnboardingBinding>() {
                                 getString(R.string.onboarding_visit_website),
                             )
                         },
+                        onCopyMainSettings = { SecretSpace.copyMainSettings() },
                         onFinish = {
                             viewModel.completeOnboarding()
                             startActivity(Intent(this, MainActivity::class.java))

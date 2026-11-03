@@ -26,8 +26,10 @@ object SecretSpace {
 
 	internal const val EXTERNAL_DIR = ".secret"
 	private const val MARKER = ".ss_enter"
+	private const val WIPE = ".ss_wipe"
 	private const val MARKER_TTL_MS = 30_000L
-	private const val LEAVE_DELAY_MS = 2_000L
+	private const val DEFAULT_LEAVE_DELAY_MS = 2_000L
+	private const val KEY_LEAVE_DELAY = "leave_delay"
 	private const val GATE_PREFS = "ss_gate"
 	private const val KEY_HASH = "hash"
 	private const val KEY_SALT = "salt"
@@ -58,19 +60,30 @@ object SecretSpace {
 			marker.delete()
 		}
 		if (!isActive) {
+			wipeIfRequested(base)
 			return base
 		}
 		return SecretContext(base).also { seedSettings(base, it) }
 	}
 
-	/** Copies the look and reading settings once, so the secret space feels the same. Nothing private goes along. */
+	/** Marks the secret space as set up and keeps sandbox extensions on. */
 	private fun seedSettings(base: Context, secret: Context) {
 		val name = base.packageName + "_preferences"
 		val target = secret.getSharedPreferences(name, Context.MODE_PRIVATE)
 		if (target.contains(KEY_SEEDED)) {
 			return
 		}
-		val source = base.getSharedPreferences(name, Context.MODE_PRIVATE).all
+		target.edit {
+			putBoolean(AppSettings.KEY_PRIVATE_INSTALLER, true)
+			putBoolean(KEY_SEEDED, true)
+		}
+	}
+
+	/** Copies the look and reading settings of the main app into the secret space. Nothing private goes along. */
+	fun copyMainSettings() {
+		val name = raw.packageName + "_preferences"
+		val source = raw.getSharedPreferences(name, Context.MODE_PRIVATE).all
+		val target = SecretContext(raw).getSharedPreferences(name, Context.MODE_PRIVATE)
 		target.edit {
 			for ((key, value) in source) {
 				if (!AppSettings.isSyncableKey(key) || key in SEED_SKIP) continue
@@ -84,7 +97,6 @@ object SecretSpace {
 				}
 			}
 			putBoolean(AppSettings.KEY_PRIVATE_INSTALLER, true)
-			putBoolean(KEY_SEEDED, true)
 		}
 	}
 
@@ -103,14 +115,37 @@ object SecretSpace {
 				}
 
 				override fun onStop(owner: LifecycleOwner) {
-					handler.postDelayed({ exit(app) }, LEAVE_DELAY_MS)
+					val delay = leaveDelayMs
+					if (delay >= 0) {
+						handler.postDelayed({ exit(app) }, delay)
+					}
 				}
 			},
 		)
 	}
 
+	/** The storage of the main space, for importing data into the secret space. */
+	internal val mainContext: Context
+		get() = raw
+
 	val isRestartProcess: Boolean
 		get() = processName().endsWith(":secret_restart")
+
+	/** How long the app may stay in the background before the space locks; negative means never. */
+	var leaveDelayMs: Long
+		get() = gate().getLong(KEY_LEAVE_DELAY, DEFAULT_LEAVE_DELAY_MS)
+		set(value) = gate().edit { putLong(KEY_LEAVE_DELAY, value) }
+
+	/** Size of the data stored in the secret space. */
+	fun usedBytes(base: Context): Long {
+		var total = 0L
+		val dirs = listOf(base.filesDir, base.cacheDir, base.noBackupFilesDir, base.getDatabasePath("x").parentFile) +
+			base.getExternalFilesDirs(null).filterNotNull()
+		for (dir in dirs.filterNotNull()) {
+			total += dir.walkTopDown().filter { it.isFile }.sumOf { it.length() }
+		}
+		return total
+	}
 
 	val hasPin: Boolean
 		get() = gate().getString(KEY_HASH, null) != null
@@ -143,6 +178,35 @@ object SecretSpace {
 		restart(activity)
 	}
 
+	/** Deletes everything in the secret space, including the PIN, then restarts into the main space. */
+	fun delete(activity: Activity) {
+		wipeFile(raw).apply {
+			parentFile?.mkdirs()
+			writeText("1")
+		}
+		markerFile(raw).delete()
+		restart(activity)
+	}
+
+	/** Runs in the main space after a restart, once the secret process is gone. */
+	private fun wipeIfRequested(base: Context) {
+		val flag = wipeFile(base)
+		if (!flag.exists()) {
+			return
+		}
+		Thread {
+			runCatching {
+				val storage = base.createDeviceProtectedStorageContext()
+				for (name in listOf("databases", "shared_prefs", "files", "cache", "code_cache")) {
+					File(storage.dataDir, name).deleteRecursively()
+				}
+				storage.noBackupFilesDir.listFiles()?.filter { it.name != WIPE }?.forEach { it.deleteRecursively() }
+				base.getExternalFilesDirs(null).forEach { dir -> dir?.let { File(it, EXTERNAL_DIR).deleteRecursively() } }
+				flag.delete()
+			}
+		}.start()
+	}
+
 	/** Restarts the app into the main space. */
 	fun leave(activity: Activity) {
 		markerFile(raw).delete()
@@ -170,6 +234,8 @@ object SecretSpace {
 	}
 
 	private fun gate() = raw.createDeviceProtectedStorageContext().getSharedPreferences(GATE_PREFS, Context.MODE_PRIVATE)
+
+	private fun wipeFile(context: Context) = File(context.createDeviceProtectedStorageContext().noBackupFilesDir, WIPE)
 
 	private fun markerFile(context: Context) = File(context.createDeviceProtectedStorageContext().noBackupFilesDir, MARKER)
 
