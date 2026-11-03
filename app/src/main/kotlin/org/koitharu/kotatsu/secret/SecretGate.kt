@@ -55,19 +55,24 @@ object SecretGate {
 		}
 	}
 
+	/** Asks how to unlock. Skipped when the device has no usable fingerprint. */
 	private fun offerBiometric(activity: FragmentActivity) {
 		if (!canUseBiometric(activity)) {
 			SecretSpace.enter(activity)
 			return
 		}
 		MaterialAlertDialogBuilder(activity)
-			.setMessage(R.string.secret_use_biometric)
+			.setTitle(R.string.secret_unlock_method)
 			.setCancelable(false)
-			.setPositiveButton(android.R.string.yes) { _, _ ->
-				SecretSpace.isBiometricEnabled = true
+			.setItems(
+				arrayOf(
+					activity.getString(R.string.secret_method_fingerprint),
+					activity.getString(R.string.secret_method_pin),
+				),
+			) { _, which ->
+				SecretSpace.isBiometricEnabled = which == 0
 				SecretSpace.enter(activity)
 			}
-			.setNegativeButton(android.R.string.no) { _, _ -> SecretSpace.enter(activity) }
 			.show()
 	}
 
@@ -91,6 +96,22 @@ object SecretGate {
 					}
 				}
 			}
+		}
+	}
+
+	/** Deletes the whole secret space after the PIN and a confirmation. */
+	fun deleteSpace(activity: FragmentActivity) {
+		showPinDialog(activity, R.string.secret_enter_pin) { pin ->
+			if (!SecretSpace.verifyPin(pin)) {
+				Toast.makeText(activity, R.string.secret_wrong_pin, Toast.LENGTH_SHORT).show()
+				return@showPinDialog
+			}
+			MaterialAlertDialogBuilder(activity)
+				.setTitle(R.string.secret_delete)
+				.setMessage(R.string.secret_delete_confirm)
+				.setNegativeButton(android.R.string.cancel, null)
+				.setPositiveButton(R.string.secret_delete) { _, _ -> SecretSpace.delete(activity) }
+				.show()
 		}
 	}
 

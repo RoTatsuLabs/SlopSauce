@@ -271,6 +271,7 @@ private fun BackupScreen(
 	onExportToMihon: () -> Unit,
 ) {
 	var showCreateDialog by remember { mutableStateOf(false) }
+
 	if (showCreateDialog) {
 		val sections = BackupSection.selectable
 		MultiChoiceDialog(
