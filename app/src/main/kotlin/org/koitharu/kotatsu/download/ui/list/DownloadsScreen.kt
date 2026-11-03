@@ -22,7 +22,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -31,14 +32,18 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.PrimaryTabRow
+import androidx.compose.material3.FilledTonalIconButton
+import androidx.compose.material3.LargeFlexibleTopAppBar
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.Surface
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -104,8 +109,8 @@ private enum class DownloadsTab(val titleRes: Int) {
 	FINISHED(R.string.download_tab_finished),
 }
 
-private val ROW_COVER_WIDTH = 46.dp
-private val ROW_COVER_HEIGHT = 64.dp
+private val ROW_COVER_WIDTH = 60.dp
+private val ROW_COVER_HEIGHT = 86.dp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -140,11 +145,14 @@ fun DownloadsScreen(
 		DownloadsTab.FINISHED -> finished
 	}
 	val selectedItems = all.filter { it.id.mostSignificantBits in selected }
+	val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
 	Scaffold(
+		modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
 		topBar = {
 			if (selected.isEmpty()) {
-				TopAppBar(
+				LargeFlexibleTopAppBar(
+					scrollBehavior = scrollBehavior,
 					title = { Text(stringResource(R.string.downloads)) },
 					navigationIcon = {
 						IconButton(onClick = callbacks.onBack) {
@@ -206,17 +214,22 @@ fun DownloadsScreen(
 		},
 	) { padding ->
 		Column(Modifier.padding(padding).fillMaxSize()) {
-			PrimaryTabRow(selectedTabIndex = tab.ordinal) {
-				DownloadsTab.entries.forEach { entry ->
+			SingleChoiceSegmentedButtonRow(
+				modifier = Modifier
+					.fillMaxWidth()
+					.padding(horizontal = 16.dp, vertical = 8.dp),
+			) {
+				DownloadsTab.entries.forEachIndexed { index, entry ->
 					val count = when (entry) {
 						DownloadsTab.ALL -> all.size
 						DownloadsTab.ACTIVE -> active.size
 						DownloadsTab.FINISHED -> finished.size
 					}
-					Tab(
+					SegmentedButton(
 						selected = tab == entry,
 						onClick = { tab = entry },
-						text = { Text("${stringResource(entry.titleRes)} ($count)", maxLines = 1) },
+						shape = SegmentedButtonDefaults.itemShape(index, DownloadsTab.entries.size),
+						label = { Text("${stringResource(entry.titleRes)} $count", maxLines = 1) },
 					)
 				}
 			}
@@ -234,16 +247,23 @@ fun DownloadsScreen(
 					)
 				}
 
-				else -> LazyColumn(contentPadding = PaddingValues(bottom = 24.dp)) {
+				else -> LazyColumn(
+					contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 24.dp),
+					verticalArrangement = Arrangement.spacedBy(3.dp),
+				) {
 					if (tab != DownloadsTab.FINISHED && active.isNotEmpty()) {
-						item(key = "summary") { SummaryBar(active) }
+						item(key = "summary") {
+							SummaryBar(active)
+							Spacer(Modifier.height(8.dp))
+						}
 					}
-					items(visible, key = { it.id }) { item ->
+					itemsIndexed(visible, key = { _, it -> it.id }) { index, item ->
 						val id = item.id.mostSignificantBits
 						DownloadRow(
 							item = item,
 							imageLoader = imageLoader,
 							isSelected = id in selected,
+							shape = groupShape(index, visible.size),
 							callbacks = callbacks,
 							onClick = {
 								if (selected.isNotEmpty()) {
@@ -255,7 +275,6 @@ fun DownloadsScreen(
 							onLongClick = { selected = if (id in selected) selected - id else selected + id },
 							modifier = Modifier.animateItem(),
 						)
-						HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
 					}
 				}
 			}
@@ -368,25 +387,36 @@ private fun SummaryBar(active: List<DownloadItemModel>) {
 	val running = active.filter { it.workState == WorkInfo.State.RUNNING && !it.isQueued && !it.isPaused }
 	val speed = running.sumOf { it.speed }
 	val waiting = active.count { it.isQueued || it.workState != WorkInfo.State.RUNNING }
-	Row(
-		modifier = Modifier
-			.fillMaxWidth()
-			.background(MaterialTheme.colorScheme.surfaceContainer)
-			.padding(horizontal = 16.dp, vertical = 12.dp),
-		verticalAlignment = Alignment.CenterVertically,
+	Surface(
+		shape = MaterialTheme.shapes.extraLarge,
+		color = MaterialTheme.colorScheme.primaryContainer,
+		contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+		modifier = Modifier.fillMaxWidth(),
 	) {
-		Text(
-			text = context.getString(R.string.download_speed_format, Formatter.formatFileSize(context, speed)),
-			style = MaterialTheme.typography.titleLarge,
-			color = MaterialTheme.colorScheme.primary,
-		)
-		Spacer(Modifier.weight(1f))
-		Text(
-			text = stringResource(R.string.download_summary_line, running.size, waiting),
-			style = MaterialTheme.typography.bodyMedium,
-			color = MaterialTheme.colorScheme.onSurfaceVariant,
-		)
+		Column(Modifier.padding(horizontal = 24.dp, vertical = 20.dp)) {
+			Text(
+				text = context.getString(R.string.download_speed_format, Formatter.formatFileSize(context, speed)),
+				style = MaterialTheme.typography.displaySmall,
+			)
+			Spacer(Modifier.height(4.dp))
+			Text(
+				text = stringResource(R.string.download_summary_line, running.size, waiting),
+				style = MaterialTheme.typography.bodyLarge,
+			)
+		}
 	}
+}
+
+/** Cards in a list share one rounded block: big corners at the ends, small ones between. */
+private fun groupShape(index: Int, count: Int): RoundedCornerShape {
+	val big = 28.dp
+	val small = 6.dp
+	return RoundedCornerShape(
+		topStart = if (index == 0) big else small,
+		topEnd = if (index == 0) big else small,
+		bottomStart = if (index == count - 1) big else small,
+		bottomEnd = if (index == count - 1) big else small,
+	)
 }
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -395,142 +425,153 @@ private fun DownloadRow(
 	item: DownloadItemModel,
 	imageLoader: ImageLoader,
 	isSelected: Boolean,
+	shape: RoundedCornerShape,
 	callbacks: DownloadsCallbacks,
 	onClick: () -> Unit,
 	onLongClick: () -> Unit,
 	modifier: Modifier = Modifier,
 ) {
 	val context = LocalContext.current
-	val background by animateColorAsState(
-		if (isSelected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent,
+	val container by animateColorAsState(
+		if (isSelected) {
+			MaterialTheme.colorScheme.secondaryContainer
+		} else {
+			MaterialTheme.colorScheme.surfaceContainer
+		},
 		label = "row_bg",
 	)
 	val chapters by item.chapters.collectAsState()
 	val hasChapters = !chapters.isNullOrEmpty()
 	val hasError = item.error != null
-	Column(
-		modifier
+	val hasActions = !item.isFinished || hasChapters
+	Surface(
+		modifier = modifier
 			.fillMaxWidth()
-			.background(background)
+			.clip(shape)
 			.combinedClickable(onClick = onClick, onLongClick = onLongClick),
+		shape = shape,
+		color = container,
 	) {
-		Row(
-			modifier = Modifier.padding(start = 16.dp, end = 4.dp, top = 12.dp, bottom = 12.dp),
-			verticalAlignment = Alignment.CenterVertically,
-		) {
-			item.manga?.let { manga ->
-				AsyncImage(
-					model = remember(manga) {
-						ImageRequest.Builder(context)
-							.data(manga.coverUrl)
-							.crossfade(true)
-							.mangaSourceExtra(manga.source)
-							.stableMangaCoverKey(manga, manga.coverUrl)
-							.build()
-					},
-					imageLoader = imageLoader,
-					contentDescription = null,
-					contentScale = ContentScale.Crop,
-					modifier = Modifier
-						.size(ROW_COVER_WIDTH, ROW_COVER_HEIGHT)
-						.clip(RoundedCornerShape(8.dp)),
-				)
-			} ?: Spacer(Modifier.size(ROW_COVER_WIDTH, ROW_COVER_HEIGHT))
-			Spacer(Modifier.width(12.dp))
-			Column(Modifier.weight(1f)) {
-				Text(
-					text = item.manga?.title ?: stringResource(R.string.unknown),
-					style = MaterialTheme.typography.titleMedium,
-					maxLines = 1,
-					overflow = TextOverflow.Ellipsis,
-				)
-				Spacer(Modifier.height(2.dp))
-				Text(
-					text = item.getInfoLine(context),
-					style = MaterialTheme.typography.bodySmall,
-					color = MaterialTheme.colorScheme.onSurfaceVariant,
-					maxLines = 1,
-					overflow = TextOverflow.Ellipsis,
-				)
-				if (hasError) {
+		Column(Modifier.padding(start = 16.dp, end = 8.dp, top = 16.dp, bottom = if (hasActions) 8.dp else 16.dp)) {
+			Row(Modifier.padding(end = 8.dp)) {
+				item.manga?.let { manga ->
+					AsyncImage(
+						model = remember(manga) {
+							ImageRequest.Builder(context)
+								.data(manga.coverUrl)
+								.crossfade(true)
+								.mangaSourceExtra(manga.source)
+								.stableMangaCoverKey(manga, manga.coverUrl)
+								.build()
+						},
+						imageLoader = imageLoader,
+						contentDescription = null,
+						contentScale = ContentScale.Crop,
+						modifier = Modifier
+							.size(ROW_COVER_WIDTH, ROW_COVER_HEIGHT)
+							.clip(RoundedCornerShape(16.dp)),
+					)
+				} ?: Spacer(Modifier.size(ROW_COVER_WIDTH, ROW_COVER_HEIGHT))
+				Spacer(Modifier.width(16.dp))
+				Column(Modifier.weight(1f)) {
 					Text(
-						text = item.error.orEmpty(),
-						style = MaterialTheme.typography.bodySmall,
-						color = MaterialTheme.colorScheme.error,
+						text = item.manga?.title ?: stringResource(R.string.unknown),
+						style = MaterialTheme.typography.titleMedium,
 						maxLines = 2,
 						overflow = TextOverflow.Ellipsis,
 					)
-				}
-				if (item.workState == WorkInfo.State.RUNNING && !item.isQueued) {
-					Spacer(Modifier.height(8.dp))
-					SegmentedProgress(item)
-				}
-				if (item.isPaused && hasError) {
-					Row {
-						TextButton(onClick = { callbacks.onSkip(item) }) { Text(stringResource(R.string.skip)) }
-						TextButton(onClick = { callbacks.onSkipAll(item) }) { Text(stringResource(R.string.skip_all)) }
+					Spacer(Modifier.height(4.dp))
+					Text(
+						text = item.getInfoLine(context),
+						style = MaterialTheme.typography.bodyMedium,
+						color = MaterialTheme.colorScheme.onSurfaceVariant,
+						maxLines = 2,
+						overflow = TextOverflow.Ellipsis,
+					)
+					if (hasError) {
+						Text(
+							text = item.error.orEmpty(),
+							style = MaterialTheme.typography.bodySmall,
+							color = MaterialTheme.colorScheme.error,
+							maxLines = 2,
+							overflow = TextOverflow.Ellipsis,
+						)
 					}
 				}
 			}
-			when {
-				item.canPause -> IconButton(onClick = { callbacks.onPause(item) }) {
-					Icon(painterResource(R.drawable.ic_action_pause), stringResource(R.string.pause))
-				}
-
-				item.canResume -> IconButton(onClick = { callbacks.onResume(item) }) {
-					Icon(
-						painterResource(if (hasError) R.drawable.ic_retry else R.drawable.ic_action_resume),
-						stringResource(if (hasError) R.string.retry else R.string.resume),
-					)
-				}
-
-				item.canRetry -> IconButton(onClick = { callbacks.onRetry(item) }) {
-					Icon(painterResource(R.drawable.ic_retry), stringResource(R.string.retry))
-				}
+			if (item.workState == WorkInfo.State.RUNNING && !item.isQueued) {
+				Spacer(Modifier.height(14.dp))
+				Box(Modifier.padding(end = 8.dp)) { SegmentedProgress(item) }
 			}
-			if (!item.isFinished) {
-				IconButton(onClick = { callbacks.onCancel(item) }) {
-					Icon(painterResource(R.drawable.ic_close), stringResource(android.R.string.cancel))
-				}
-			}
-			if (hasChapters) {
-				val rotation by animateFloatAsState(if (item.isExpanded) 180f else 0f, label = "chevron")
-				IconButton(onClick = { callbacks.onExpand(item) }) {
-					Icon(
-						painterResource(R.drawable.ic_expand_more),
-						contentDescription = null,
-						modifier = Modifier.rotate(rotation),
-					)
-				}
-			}
-		}
-		AnimatedVisibility(item.isExpanded && hasChapters) {
-			Column(
-				Modifier
-					.fillMaxWidth()
-					.heightIn(max = 240.dp)
-					.verticalScroll(rememberScrollState())
-					.padding(start = 74.dp, end = 16.dp, bottom = 8.dp),
-			) {
-				chapters.orEmpty().forEach { chapter ->
-					Row(Modifier.padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-						if (chapter.isDownloaded) {
+			if (hasActions) {
+				Row(verticalAlignment = Alignment.CenterVertically) {
+					if (hasChapters) {
+						val rotation by animateFloatAsState(if (item.isExpanded) 180f else 0f, label = "chevron")
+						IconButton(onClick = { callbacks.onExpand(item) }) {
 							Icon(
-								painterResource(R.drawable.ic_check),
+								painterResource(R.drawable.ic_expand_more),
 								contentDescription = null,
-								tint = MaterialTheme.colorScheme.primary,
-								modifier = Modifier.size(18.dp),
+								modifier = Modifier.rotate(rotation),
 							)
-						} else {
-							Spacer(Modifier.size(18.dp))
 						}
-						Spacer(Modifier.width(8.dp))
-						Text(
-							text = listOfNotNull(chapter.number, chapter.name.ifEmpty { null }).joinToString("  "),
-							style = MaterialTheme.typography.bodyMedium,
-							maxLines = 1,
-							overflow = TextOverflow.Ellipsis,
-						)
+					}
+					Spacer(Modifier.weight(1f))
+					if (item.isPaused && hasError) {
+						TextButton(onClick = { callbacks.onSkip(item) }) { Text(stringResource(R.string.skip)) }
+						TextButton(onClick = { callbacks.onSkipAll(item) }) { Text(stringResource(R.string.skip_all)) }
+					}
+					if (!item.isFinished) {
+						IconButton(onClick = { callbacks.onCancel(item) }) {
+							Icon(painterResource(R.drawable.ic_close), stringResource(android.R.string.cancel))
+						}
+					}
+					when {
+						item.canPause -> FilledTonalIconButton(onClick = { callbacks.onPause(item) }) {
+							Icon(painterResource(R.drawable.ic_action_pause), stringResource(R.string.pause))
+						}
+
+						item.canResume -> FilledTonalIconButton(onClick = { callbacks.onResume(item) }) {
+							Icon(
+								painterResource(if (hasError) R.drawable.ic_retry else R.drawable.ic_action_resume),
+								stringResource(if (hasError) R.string.retry else R.string.resume),
+							)
+						}
+
+						item.canRetry -> FilledTonalIconButton(onClick = { callbacks.onRetry(item) }) {
+							Icon(painterResource(R.drawable.ic_retry), stringResource(R.string.retry))
+						}
+					}
+					Spacer(Modifier.width(4.dp))
+				}
+			}
+			AnimatedVisibility(item.isExpanded && hasChapters) {
+				Column(
+					Modifier
+						.fillMaxWidth()
+						.heightIn(max = 240.dp)
+						.verticalScroll(rememberScrollState())
+						.padding(start = 8.dp, end = 8.dp, bottom = 8.dp),
+				) {
+					chapters.orEmpty().forEach { chapter ->
+						Row(Modifier.padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+							if (chapter.isDownloaded) {
+								Icon(
+									painterResource(R.drawable.ic_check),
+									contentDescription = null,
+									tint = MaterialTheme.colorScheme.primary,
+									modifier = Modifier.size(18.dp),
+								)
+							} else {
+								Spacer(Modifier.size(18.dp))
+							}
+							Spacer(Modifier.width(8.dp))
+							Text(
+								text = listOfNotNull(chapter.number, chapter.name.ifEmpty { null }).joinToString("  "),
+								style = MaterialTheme.typography.bodyMedium,
+								maxLines = 1,
+								overflow = TextOverflow.Ellipsis,
+							)
+						}
 					}
 				}
 			}
@@ -548,8 +589,8 @@ private fun SegmentedProgress(item: DownloadItemModel) {
 		LinearProgressIndicator(
 			modifier = Modifier
 				.fillMaxWidth()
-				.height(6.dp)
-				.clip(RoundedCornerShape(3.dp)),
+				.height(8.dp)
+				.clip(RoundedCornerShape(4.dp)),
 		)
 		return
 	}
@@ -558,8 +599,8 @@ private fun SegmentedProgress(item: DownloadItemModel) {
 	Canvas(
 		Modifier
 			.fillMaxWidth()
-			.height(6.dp)
-			.clip(RoundedCornerShape(3.dp)),
+			.height(8.dp)
+			.clip(RoundedCornerShape(4.dp)),
 	) {
 		val h = size.height
 		if (total > MAX_SEGMENTS) {

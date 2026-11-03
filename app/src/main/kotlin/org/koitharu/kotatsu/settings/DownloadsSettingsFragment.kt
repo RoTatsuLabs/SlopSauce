@@ -54,9 +54,7 @@ import org.koitharu.kotatsu.parsers.util.names
 import org.koitharu.kotatsu.settings.compose.ActionSettingsItem
 import org.koitharu.kotatsu.settings.compose.BaseComposeSettingsFragment
 import org.koitharu.kotatsu.settings.compose.DropSauceTheme
-import org.koitharu.kotatsu.settings.compose.InfoSettingsItem
 import org.koitharu.kotatsu.settings.compose.ListSettingsItem
-import org.koitharu.kotatsu.settings.compose.PlainInfoSettingsItem
 import org.koitharu.kotatsu.settings.compose.SettingsGroup
 import org.koitharu.kotatsu.settings.compose.SettingsScaffold
 import org.koitharu.kotatsu.settings.compose.SliderSettingsItem
@@ -644,13 +642,6 @@ private fun DownloadsScreen(
 						shape = pos.shape,
 					)
 				}
-				item { pos ->
-					InfoSettingsItem(
-						title = stringResource(R.string.download_speed_hint),
-						icon = R.drawable.ic_info_outline,
-						shape = pos.shape,
-					)
-				}
 			}
 		}
 		item { Spacer(Modifier.height(8.dp).fillMaxWidth()) }
@@ -691,12 +682,6 @@ private fun DownloadsScreen(
 					)
 				}
 			}
-		}
-		item {
-			PlainInfoSettingsItem(
-				text = stringResource(R.string.downloads_settings_info),
-				icon = R.drawable.ic_info_outline,
-			)
 		}
 		item { Spacer(Modifier.height(8.dp).fillMaxWidth()) }
 		item {
