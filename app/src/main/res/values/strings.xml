@@ -30,9 +30,11 @@
     <string name="pause_all">Pause all</string>
     <string name="resume_all">Resume all</string>
     <string name="stop_all">Stop all</string>
-    <string name="download_speed">Speed</string>
-    <string name="download_connections">Parallel connections</string>
-    <string name="download_simultaneous">Simultaneous downloads</string>
+    <string name="download_speed">Speed and limits</string>
+    <string name="download_connections">Pages at once (per source)</string>
+    <string name="download_connections_summary">How many pages are fetched at the same time from one website. Higher is faster, but some sites block you if it is too high. Try 5 and go lower if downloads fail.</string>
+    <string name="download_simultaneous">Manga at once</string>
+    <string name="download_simultaneous_summary">How many manga download at the same time. The rest wait in the queue. Pages from the same website still share the limit above.</string>
     <string name="loading_">Loading...</string>
     <string name="computing_">Computing...</string>
     <string name="chapter_d_of_d">Chapter %1$d of %2$d</string>

@@ -170,6 +170,7 @@ fun SliderSettingsItem(
 	iconColors: CategoryIconColors? = null,
 	shape: Shape = androidx.compose.material3.MaterialTheme.shapes.medium,
 	enabled: Boolean = true,
+	subtitle: String? = null,
 ) {
 	InlineSliderSettingsRow(
 		title = title,
@@ -185,6 +186,7 @@ fun SliderSettingsItem(
 		iconColors = iconColors,
 		shape = shape,
 		enabled = enabled,
+		subtitle = subtitle,
 	)
 }
 

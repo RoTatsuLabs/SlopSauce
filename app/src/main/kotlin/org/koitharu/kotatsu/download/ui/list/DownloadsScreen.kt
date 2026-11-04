@@ -26,6 +26,11 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.foundation.Canvas
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
@@ -57,6 +62,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -475,7 +481,13 @@ private fun DownloadRow(
 			}
 			if (item.workState == WorkInfo.State.RUNNING && !item.isQueued) {
 				Spacer(Modifier.height(14.dp))
-				Box(Modifier.padding(end = 8.dp)) { SegmentedProgress(item) }
+				Column(Modifier.padding(end = 8.dp)) {
+					SegmentedProgress(item)
+					if (item.pageStates.isNotEmpty() && !item.isPaused && !item.isIndeterminate) {
+						Spacer(Modifier.height(6.dp))
+						PageSegments(item.pageStates)
+					}
+				}
 			}
 			if (hasActions) {
 				Row(verticalAlignment = Alignment.CenterVertically) {
@@ -583,6 +595,49 @@ private fun SegmentedProgress(item: DownloadItemModel) {
 				}
 				if (amount > 0f) {
 					drawRect(fill, Offset(x, 0f), Size(w * amount, h))
+				}
+			}
+		}
+	}
+}
+
+/**
+ * One segment per page of the chapter being downloaded. Finished pages are filled and the ones
+ * being fetched right now are striped and moving, so the parallel connections are visible.
+ */
+@Composable
+private fun PageSegments(states: String) {
+	val track = MaterialTheme.colorScheme.surfaceVariant
+	val fill = MaterialTheme.colorScheme.primary
+	val phase by rememberInfiniteTransition(label = "pages").animateFloat(
+		initialValue = 0f,
+		targetValue = 1f,
+		animationSpec = infiniteRepeatable(tween(900, easing = LinearEasing)),
+		label = "stripes",
+	)
+	Canvas(
+		Modifier
+			.fillMaxWidth()
+			.height(6.dp)
+			.clip(RoundedCornerShape(3.dp)),
+	) {
+		val h = size.height
+		val count = states.length
+		val gap = if (count > 60) 1.dp.toPx() else 2.dp.toPx()
+		val w = (size.width - gap * (count - 1)) / count
+		val step = 6.dp.toPx()
+		for (i in 0 until count) {
+			val x = i * (w + gap)
+			drawRect(track, Offset(x, 0f), Size(w, h))
+			when (states[i]) {
+				'2' -> drawRect(fill, Offset(x, 0f), Size(w, h))
+				'1' -> clipRect(x, 0f, x + w, h) {
+					drawRect(fill.copy(alpha = 0.35f), Offset(x, 0f), Size(w, h))
+					var sx = x - step + phase * step
+					while (sx < x + w + h) {
+						drawLine(fill, Offset(sx, h), Offset(sx + h, 0f), strokeWidth = step / 3f)
+						sx += step
+					}
 				}
 			}
 		}

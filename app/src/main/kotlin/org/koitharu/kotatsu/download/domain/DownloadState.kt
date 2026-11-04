@@ -21,6 +21,8 @@ data class DownloadState(
 	val isStuck: Boolean = false,
 	val speed: Long = 0L,
 	val isQueued: Boolean = false,
+	/** One char per page segment of the current chapter: 0 waiting, 1 downloading, 2 done. */
+	val pageStates: String = "",
 	val downloadedBytes: Long = 0L,
 	val localManga: LocalManga? = null,
 	val downloadedChapters: Int = 0,
@@ -62,6 +64,7 @@ data class DownloadState(
 		.putBoolean(DATA_PAUSED, isPaused)
 		.putLong(DATA_SPEED, speed)
 		.putBoolean(DATA_QUEUED, isQueued)
+		.putString(DATA_PAGE_STATES, pageStates)
 		.putLong(DATA_BYTES, downloadedBytes)
 		.putLong(DATA_TOTAL_BYTES, estimatedBytes)
 		.putInt(DATA_TOTAL_CHAPTERS, totalChapters)
@@ -83,6 +86,7 @@ data class DownloadState(
 		private const val DATA_SPEED = "speed"
 		private const val DATA_QUEUED = "queued"
 		private const val DATA_BYTES = "bytes"
+		private const val DATA_PAGE_STATES = "page_states"
 		private const val DATA_TOTAL_BYTES = "bytes_total"
 		private const val DATA_TOTAL_CHAPTERS = "chapters_total"
 		private const val DATA_CHAPTER_PROGRESS = "chapter_progress"
@@ -96,6 +100,8 @@ data class DownloadState(
 		fun getSpeed(data: Data): Long = data.getLong(DATA_SPEED, 0L)
 
 		fun isQueued(data: Data): Boolean = data.getBoolean(DATA_QUEUED, false)
+
+		fun getPageStates(data: Data): String = data.getString(DATA_PAGE_STATES).orEmpty()
 
 		fun getDownloadedBytes(data: Data): Long = data.getLong(DATA_BYTES, 0L)
 

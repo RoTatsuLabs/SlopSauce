@@ -34,6 +34,7 @@ data class DownloadItemModel(
 	val isStuck: Boolean,
 	val speed: Long,
 	val isQueued: Boolean,
+	val pageStates: String,
 	val downloadedBytes: Long,
 	val estimatedBytes: Long,
 	val totalChapters: Int,

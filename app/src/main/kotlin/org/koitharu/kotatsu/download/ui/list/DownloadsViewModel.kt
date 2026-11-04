@@ -318,6 +318,7 @@ class DownloadsViewModel @Inject constructor(
 			isStuck = DownloadState.isStuck(workData),
 			speed = DownloadState.getSpeed(workData),
 			isQueued = DownloadState.isQueued(workData),
+			pageStates = DownloadState.getPageStates(workData),
 			downloadedBytes = DownloadState.getDownloadedBytes(workData),
 			estimatedBytes = DownloadState.getEstimatedBytes(workData),
 			totalChapters = DownloadState.getTotalChapters(workData),

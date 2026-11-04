@@ -26,7 +26,10 @@ import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -246,14 +249,31 @@ class DownloadWorker @AssistedInject constructor(
 				val chapters = getChapters(mangaDetails, task)
 				var failedChapters = 0
 				var chapterError: Exception? = null
+				// The next chapter's page list is requested while the current one downloads, so the
+				// connections never sit idle waiting for it between chapters.
+				val prefetched = HashMap<Int, Deferred<List<MangaPage>?>>()
 				for ((chapterIndex, chapter) in chapters.withIndex()) {
 					checkIsPaused()
 					if (chaptersToSkip.remove(chapter.value.id)) {
+						prefetched.remove(chapterIndex)?.cancel()
 						publishState(currentState.copy(downloadedChapters = currentState.downloadedChapters + 1))
 						continue
 					}
 					try {
-						downloadChapter(output, destination, repo, mangaDetails, chapter, chapterIndex, chapters.size)
+						coroutineScope {
+							val next = (chapterIndex + 1 until chapters.size).firstOrNull {
+								chapters[it].value.id !in chaptersToSkip
+							}
+							if (next != null && next !in prefetched) {
+								prefetched[next] = async {
+									runCatchingCancellable { repo.getPages(mangaDetails, chapters[next].value) }.getOrNull()
+								}
+							}
+							downloadChapter(
+								output, destination, repo, mangaDetails, chapter, chapterIndex, chapters.size,
+								prefetched.remove(chapterIndex),
+							)
+						}
 					} catch (e: CancellationException) {
 						throw e
 					} catch (e: Exception) {
@@ -331,17 +351,20 @@ class DownloadWorker @AssistedInject constructor(
 		chapter: IndexedValue<MangaChapter>,
 		chapterIndex: Int,
 		chaptersCount: Int,
+		prefetchedPages: Deferred<List<MangaPage>?>? = null,
 	) {
-		val pages = runFailsafe {
+		val pages = prefetchedPages?.await() ?: runFailsafe {
 			repo.getPages(manga, chapter.value)
 		} ?: return
 		val pageCounter = AtomicInteger(0)
+		val pageStates = CharArray(pages.size) { PAGE_WAITING }
 		channelFlow {
 			val semaphore = Semaphore(settings.downloadConnections)
 			for ((pageIndex, page) in pages.withIndex()) {
 				checkIsPaused()
 				launch {
 					semaphore.withPermit {
+						pageStates[pageIndex] = PAGE_ACTIVE
 						runFailsafe {
 							val url = repo.getPageUrl(page)
 							val file = cache[url]
@@ -356,6 +379,7 @@ class DownloadWorker @AssistedInject constructor(
 								file.deleteAwait()
 							}
 						}
+						pageStates[pageIndex] = PAGE_DONE
 						send(pageIndex)
 					}
 				}
@@ -374,6 +398,7 @@ class DownloadWorker @AssistedInject constructor(
 					currentChapter = progress.currentChapter,
 					totalPages = progress.totalPages,
 					currentPage = progress.currentPage,
+					pageStates = summarizePages(pageStates),
 					isIndeterminate = false,
 					eta = etaEstimator.getEta(),
 					isStuck = etaEstimator.isStuck(),
@@ -385,6 +410,32 @@ class DownloadWorker @AssistedInject constructor(
 				localStorageChanges.emit(LocalMangaParser(output.rootFile).getManga(withDetails = false))
 			}.onFailure(Throwable::printStackTraceDebug)
 		}
+	}
+
+	/** Squeezes a long chapter into at most [MAX_PAGE_SEGMENTS] chars so it fits the work data. */
+	private fun summarizePages(states: CharArray): String {
+		if (states.size <= MAX_PAGE_SEGMENTS) return String(states)
+		val bucket = (states.size + MAX_PAGE_SEGMENTS - 1) / MAX_PAGE_SEGMENTS
+		val sb = StringBuilder()
+		for (start in states.indices step bucket) {
+			val end = minOf(start + bucket, states.size)
+			var done = 0
+			var active = false
+			for (i in start until end) {
+				when (states[i]) {
+					PAGE_DONE -> done++
+					PAGE_ACTIVE -> active = true
+				}
+			}
+			sb.append(
+				when {
+					done == end - start -> PAGE_DONE
+					active || done > 0 -> PAGE_ACTIVE
+					else -> PAGE_WAITING
+				},
+			)
+		}
+		return sb.toString()
 	}
 
 	private suspend fun <R> runFailsafe(
@@ -739,6 +790,10 @@ class DownloadWorker @AssistedInject constructor(
 	companion object {
 
 		private const val MAX_FAILSAFE_ATTEMPTS = 2
+		private const val MAX_PAGE_SEGMENTS = 120
+		private const val PAGE_WAITING = '0'
+		private const val PAGE_ACTIVE = '1'
+		private const val PAGE_DONE = '2'
 		private const val SPEED_WINDOW = 1_000L
 		private const val DOWNLOAD_ERROR_DELAY = 2_000L
 		private const val MAX_RETRY_DELAY = 7_200_000L // 2 hours

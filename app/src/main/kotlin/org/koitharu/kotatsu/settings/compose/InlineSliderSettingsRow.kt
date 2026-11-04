@@ -56,6 +56,7 @@ internal fun InlineSliderSettingsRow(
 	iconColors: CategoryIconColors? = null,
 	shape: Shape = MaterialTheme.shapes.medium,
 	enabled: Boolean = true,
+	subtitle: String? = null,
 ) {
 	var current by remember(value) { mutableFloatStateOf(value.toFloat()) }
 	val steps = if (stepSize > 0) ((valueTo - valueFrom) / stepSize - 1).coerceAtLeast(0) else 0
@@ -94,6 +95,13 @@ internal fun InlineSliderSettingsRow(
 					style = MaterialTheme.typography.labelLarge,
 					color = if (enabled) MaterialTheme.colorScheme.primary
 					else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f),
+				)
+			}
+			if (subtitle != null) {
+				Text(
+					text = subtitle,
+					style = MaterialTheme.typography.bodySmall,
+					color = MaterialTheme.colorScheme.onSurfaceVariant,
 				)
 			}
 			Slider(

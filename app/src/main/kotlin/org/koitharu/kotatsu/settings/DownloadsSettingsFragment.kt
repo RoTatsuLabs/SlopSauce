@@ -621,6 +621,7 @@ private fun DownloadsScreen(
 				item { pos ->
 					SliderSettingsItem(
 						title = stringResource(R.string.download_connections),
+						subtitle = stringResource(R.string.download_connections_summary),
 						value = connections.coerceIn(1, 10),
 						valueFrom = 1,
 						valueTo = 10,
@@ -633,6 +634,7 @@ private fun DownloadsScreen(
 				item { pos ->
 					SliderSettingsItem(
 						title = stringResource(R.string.download_simultaneous),
+						subtitle = stringResource(R.string.download_simultaneous_summary),
 						value = simultaneous.coerceIn(1, 5),
 						valueFrom = 1,
 						valueTo = 5,
