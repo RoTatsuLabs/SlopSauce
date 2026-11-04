@@ -12,6 +12,9 @@ abstract class ScrobblingDao {
 	@Query("SELECT * FROM scrobblings WHERE scrobbler = :scrobbler AND manga_id = :mangaId")
 	abstract suspend fun find(scrobbler: Int, mangaId: Long): ScrobblingEntity?
 
+	@Query("SELECT manga_id FROM scrobblings WHERE scrobbler = :scrobbler")
+	abstract suspend fun findMangaIds(scrobbler: Int): LongArray
+
 	@Query("SELECT * FROM scrobblings WHERE scrobbler = :scrobbler AND manga_id = :mangaId")
 	abstract fun observe(scrobbler: Int, mangaId: Long): Flow<ScrobblingEntity?>
 

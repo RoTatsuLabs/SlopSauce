@@ -15,6 +15,8 @@ import org.koitharu.kotatsu.core.network.CurlLoggingInterceptor
 import org.koitharu.kotatsu.scrobbling.anilist.data.AniListAuthenticator
 import org.koitharu.kotatsu.scrobbling.anilist.data.AniListInterceptor
 import org.koitharu.kotatsu.scrobbling.anilist.domain.AniListScrobbler
+import org.koitharu.kotatsu.scrobbling.autotrack.TrackerRateLimitInterceptor
+import org.koitharu.kotatsu.scrobbling.autotrack.TrackerRateLimiter
 import org.koitharu.kotatsu.scrobbling.common.data.ScrobblerStorage
 import org.koitharu.kotatsu.scrobbling.common.domain.Scrobbler
 import org.koitharu.kotatsu.scrobbling.common.domain.model.ScrobblerService
@@ -45,9 +47,11 @@ object ScrobblingModule {
 		@BaseHttpClient baseHttpClient: OkHttpClient,
 		authenticator: ShikimoriAuthenticator,
 		@ScrobblerType(ScrobblerService.SHIKIMORI) storage: ScrobblerStorage,
+		rateLimiter: TrackerRateLimiter,
 	): OkHttpClient = baseHttpClient.newBuilder().apply {
 		authenticator(authenticator)
 		addInterceptor(ShikimoriInterceptor(storage))
+		addInterceptor(TrackerRateLimitInterceptor(ScrobblerService.SHIKIMORI, rateLimiter))
 	}.build()
 
 	@Provides
@@ -57,9 +61,11 @@ object ScrobblingModule {
 		@BaseHttpClient baseHttpClient: OkHttpClient,
 		authenticator: MALAuthenticator,
 		@ScrobblerType(ScrobblerService.MAL) storage: ScrobblerStorage,
+		rateLimiter: TrackerRateLimiter,
 	): OkHttpClient = baseHttpClient.newBuilder().apply {
 		authenticator(authenticator)
 		addInterceptor(MALInterceptor(storage))
+		addInterceptor(TrackerRateLimitInterceptor(ScrobblerService.MAL, rateLimiter))
 	}.build()
 
 	@Provides
@@ -69,9 +75,11 @@ object ScrobblingModule {
 		@BaseHttpClient baseHttpClient: OkHttpClient,
 		authenticator: AniListAuthenticator,
 		@ScrobblerType(ScrobblerService.ANILIST) storage: ScrobblerStorage,
+		rateLimiter: TrackerRateLimiter,
 	): OkHttpClient = baseHttpClient.newBuilder().apply {
 		authenticator(authenticator)
 		addInterceptor(AniListInterceptor(storage))
+		addInterceptor(TrackerRateLimitInterceptor(ScrobblerService.ANILIST, rateLimiter))
 	}.build()
 
 	@Provides
@@ -81,9 +89,11 @@ object ScrobblingModule {
 		@BaseHttpClient baseHttpClient: OkHttpClient,
 		authenticator: MangaBakaAuthenticator,
 		@ScrobblerType(ScrobblerService.MANGABAKA) storage: ScrobblerStorage,
+		rateLimiter: TrackerRateLimiter,
 	): OkHttpClient = baseHttpClient.newBuilder().apply {
 		authenticator(authenticator)
 		addInterceptor(MangaBakaInterceptor(storage))
+		addInterceptor(TrackerRateLimitInterceptor(ScrobblerService.MANGABAKA, rateLimiter))
 	}.build()
 
 	@Provides
@@ -93,10 +103,12 @@ object ScrobblingModule {
 		@ScrobblerType(ScrobblerService.KITSU) storage: ScrobblerStorage,
 		database: MangaDatabase,
 		authenticator: KitsuAuthenticator,
+		rateLimiter: TrackerRateLimiter,
 	): KitsuRepository {
 		val okHttp = OkHttpClient.Builder().apply {
 			authenticator(authenticator)
 			addInterceptor(KitsuInterceptor(storage))
+			addInterceptor(TrackerRateLimitInterceptor(ScrobblerService.KITSU, rateLimiter))
 			if (BuildConfig.DEBUG) {
 				addInterceptor(CurlLoggingInterceptor())
 			}

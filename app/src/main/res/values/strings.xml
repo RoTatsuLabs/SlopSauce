@@ -711,6 +711,18 @@
     <string name="frequency_once_per_month">Once per month</string>
     <string name="periodic_backups_enable">Enable periodic backups</string>
     <string name="backups_output_directory">Backups output directory</string>
+    <string name="auto_track_favourites">Auto-track favourites</string>
+    <string name="auto_track_favourites_summary">Track a title on your signed-in trackers when you add it to favourites</string>
+    <string name="auto_track_untracked">Track untracked favourites</string>
+    <string name="auto_track_idle">Tracks favourites that are not on a tracker yet</string>
+    <string name="auto_track_waiting">Waiting for a connection or for the tracker\'s rate limit</string>
+    <string name="auto_track_progress">Tracking %1$d of %2$d</string>
+    <string name="auto_track_summary">Last run: %1$d tracked, %2$d need review, %3$d failed</string>
+    <string name="auto_track_no_trackers">Sign in to a tracker first</string>
+    <string name="auto_track_nothing">All your favourites are already tracked</string>
+    <string name="auto_track_confirm">%1$d favourites are not on %2$s yet. They are tracked one by one in the background. Only clear matches are linked, your reading progress is added, and trackers limit how fast this can go, so it may take a while.</string>
+    <string name="auto_track_start">Start</string>
+    <string name="auto_track_review">Needs review</string>
     <string name="in_favourites_from">In favorites · %s</string>
     <string name="source_and_favourite_elsewhere">%1$s · in favorites from %2$s</string>
     <string name="favourite_elsewhere_banner">Already in your favorites from %s</string>
@@ -1431,4 +1443,8 @@
     <string name="secret_import_summary">Copy data from the main app into this space</string>
     <string name="secret_import_running">Importing…</string>
     <string name="secret_import_done">Import finished</string>
+    <plurals name="auto_track_review_count">
+        <item quantity="one">%d title has no clear match. Tap to pick one by hand.</item>
+        <item quantity="other">%d titles have no clear match. Tap to pick one by hand.</item>
+    </plurals>
 </resources>

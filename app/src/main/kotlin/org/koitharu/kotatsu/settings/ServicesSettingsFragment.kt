@@ -23,6 +23,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
@@ -34,7 +35,13 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koitharu.kotatsu.R
+import org.koitharu.kotatsu.core.db.MangaDatabase
+import org.koitharu.kotatsu.core.db.entity.toManga
 import org.koitharu.kotatsu.core.nav.router
+import org.koitharu.kotatsu.core.util.ext.observe
+import org.koitharu.kotatsu.scrobbling.autotrack.AutoTrackStore
+import org.koitharu.kotatsu.scrobbling.autotrack.AutoTrackWorker
+import org.koitharu.kotatsu.scrobbling.autotrack.AutoTracker
 import org.koitharu.kotatsu.core.prefs.AppSettings
 import org.koitharu.kotatsu.core.ui.dialog.buildAlertDialog
 import org.koitharu.kotatsu.core.util.ext.getDisplayMessage
@@ -65,7 +72,21 @@ class ServicesSettingsFragment : BaseComposeSettingsFragment(R.string.services) 
 	@Inject
 	lateinit var scrobblerAuthHelper: ScrobblerAuthHelper
 
+	@Inject
+	lateinit var autoTracker: AutoTracker
+
+	@Inject
+	lateinit var autoTrackScheduler: AutoTrackWorker.Scheduler
+
+	@Inject
+	lateinit var autoTrackStore: AutoTrackStore
+
+	@Inject
+	lateinit var database: MangaDatabase
+
 	private val scrobblerSummary = MutableStateFlow<Map<ScrobblerService, String?>>(emptyMap())
+	private val autoTrackStatus = MutableStateFlow<String?>(null)
+	private val reviewCount = MutableStateFlow(0)
 
 	override fun onCreateView(
 		inflater: LayoutInflater,
@@ -76,8 +97,14 @@ class ServicesSettingsFragment : BaseComposeSettingsFragment(R.string.services) 
 		setContent {
 			DropSauceTheme {
 				val summaries by scrobblerSummary.asStateFlow().collectAsState()
+				val trackStatus by autoTrackStatus.asStateFlow().collectAsState()
+				val reviewTotal by reviewCount.asStateFlow().collectAsState()
 				ServicesScreen(
 					scrobblerSummaries = summaries,
+					autoTrackStatus = trackStatus,
+					reviewCount = reviewTotal,
+					onTrackUntracked = ::confirmTrackUntracked,
+					onOpenReview = ::showReviewList,
 					onOpenSuggestions = {
 						(activity as? SettingsActivity)?.openFragment(
 							SuggestionsSettingsFragment::class.java,
@@ -99,9 +126,76 @@ class ServicesSettingsFragment : BaseComposeSettingsFragment(R.string.services) 
 		}
 	}
 
+	override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+		super.onViewCreated(view, savedInstanceState)
+		autoTrackScheduler.observe().observe(viewLifecycleOwner) { progress ->
+			reviewCount.value = autoTrackStore.reviewItems().size
+			autoTrackStatus.value = when {
+				progress == null -> autoTrackStore.lastSummary?.let {
+					getString(R.string.auto_track_summary, it.tracked, it.needsReview, it.failed)
+				} ?: getString(R.string.auto_track_idle)
+
+				progress.isWaiting -> getString(R.string.auto_track_waiting)
+				else -> getString(R.string.auto_track_progress, progress.done, progress.total)
+			}
+		}
+	}
+
 	override fun onResume() {
 		super.onResume()
 		refreshScrobblers()
+		reviewCount.value = autoTrackStore.reviewItems().size
+	}
+
+	private fun confirmTrackUntracked() {
+		val context = context ?: return
+		viewLifecycleOwner.lifecycleScope.launch {
+			val active = autoTracker.enabledScrobblers
+			val pending = withContext(Dispatchers.Default) { autoTracker.findPending() }
+			val titles = pending.map { it.mangaId }.distinct().size
+			when {
+				active.isEmpty() -> Snackbar.make(requireView(), R.string.auto_track_no_trackers, Snackbar.LENGTH_LONG).show()
+				titles == 0 -> Snackbar.make(requireView(), R.string.auto_track_nothing, Snackbar.LENGTH_LONG).show()
+				else -> buildAlertDialog(context, isCentered = true) {
+					setTitle(R.string.auto_track_untracked)
+					setMessage(
+						context.getString(
+							R.string.auto_track_confirm,
+							titles,
+							active.joinToString { context.getString(it.scrobblerService.titleResId) },
+						),
+					)
+					setPositiveButton(R.string.auto_track_start) { _, _ -> autoTrackScheduler.start() }
+					setNegativeButton(android.R.string.cancel, null)
+				}.show()
+			}
+		}
+	}
+
+	private fun showReviewList() {
+		val context = context ?: return
+		viewLifecycleOwner.lifecycleScope.launch {
+			val items = withContext(Dispatchers.Default) {
+				autoTrackStore.reviewItems().mapNotNull { (mangaId, serviceId) ->
+					val service = ScrobblerService.entries.firstOrNull { it.id == serviceId } ?: return@mapNotNull null
+					val manga = database.getMangaDao().find(mangaId)?.toManga() ?: return@mapNotNull null
+					Triple(manga, service, "${manga.title} · ${context.getString(service.titleResId)}")
+				}
+			}
+			if (items.isEmpty()) {
+				autoTrackStore.clearReview()
+				reviewCount.value = 0
+				return@launch
+			}
+			buildAlertDialog(context, isCentered = true) {
+				setTitle(R.string.auto_track_review)
+				setItems(items.map { it.third }.toTypedArray()) { _, which ->
+					val (manga, service, _) = items[which]
+					router.showScrobblingSelectorSheet(manga, service)
+				}
+				setNegativeButton(android.R.string.cancel, null)
+			}.show()
+		}
 	}
 
 	private fun refreshScrobblers() {
@@ -167,6 +261,10 @@ class ServicesSettingsFragment : BaseComposeSettingsFragment(R.string.services) 
 @Composable
 private fun ServicesScreen(
 	scrobblerSummaries: Map<ScrobblerService, String?>,
+	autoTrackStatus: String?,
+	reviewCount: Int,
+	onTrackUntracked: () -> Unit,
+	onOpenReview: () -> Unit,
 	onOpenSuggestions: () -> Unit,
 	onOpenStatistics: () -> Unit,
 	onScrobblerClick: (ScrobblerService) -> Unit,
@@ -177,6 +275,7 @@ private fun ServicesScreen(
 	var statsEnabled by rememberBooleanPref(AppSettings.KEY_STATS_ENABLED, true)
 	var readingTime by rememberBooleanPref(AppSettings.KEY_READING_TIME, true)
 	var syncTrackingProgress by rememberBooleanPref(AppSettings.KEY_SCROBBLING_PROGRESS_SYNC, true)
+	var autoTrack by rememberBooleanPref(AppSettings.KEY_AUTO_TRACK_FAVOURITES, false)
 
 	var eyeReminder by rememberBooleanPref(AppSettings.KEY_EYE_REMINDER, false)
 	var eyeReminderInterval by rememberIntPref(
@@ -298,6 +397,36 @@ private fun ServicesScreen(
 							icon = R.drawable.ic_sync_alt,
 							shape = pos.shape,
 						)
+					}
+					item { pos ->
+						SwitchSettingsItem(
+							title = stringResource(R.string.auto_track_favourites),
+							subtitle = stringResource(R.string.auto_track_favourites_summary),
+							checked = autoTrack,
+							onCheckedChange = { autoTrack = it },
+							icon = R.drawable.ic_heart_outline,
+							shape = pos.shape,
+						)
+					}
+					item { pos ->
+						ActionSettingsItem(
+							title = stringResource(R.string.auto_track_untracked),
+							subtitle = autoTrackStatus,
+							icon = R.drawable.ic_sync_alt,
+							shape = pos.shape,
+							onClick = onTrackUntracked,
+						)
+					}
+					if (reviewCount > 0) {
+						item { pos ->
+							ActionSettingsItem(
+								title = stringResource(R.string.auto_track_review),
+								subtitle = pluralStringResource(R.plurals.auto_track_review_count, reviewCount, reviewCount),
+								icon = R.drawable.ic_search,
+								shape = pos.shape,
+								onClick = onOpenReview,
+							)
+						}
 					}
 				}
 				Spacer(Modifier.height(8.dp).fillMaxWidth())
