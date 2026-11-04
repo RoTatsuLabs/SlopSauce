@@ -34,6 +34,8 @@ import org.koitharu.kotatsu.core.util.ext.observeEvent
 import org.koitharu.kotatsu.core.util.ext.start
 import org.koitharu.kotatsu.core.util.ext.tryLaunch
 import org.koitharu.kotatsu.databinding.ActivityOverrideEditBinding
+import org.koitharu.kotatsu.parsers.model.ContentRating
+import org.koitharu.kotatsu.parsers.model.MangaState
 import org.koitharu.kotatsu.picker.ui.PageImagePickContract
 import org.koitharu.kotatsu.scrobbling.common.domain.model.ScrobblingInfo
 import org.koitharu.kotatsu.settings.compose.DropSauceTheme
@@ -57,6 +59,11 @@ class OverrideConfigActivity : BaseActivity<ActivityOverrideEditBinding>(), Acti
 	private val titleText = mutableStateOf<String?>(null)
 	private val descriptionText = mutableStateOf<String?>(null)
 	private val errorText = mutableStateOf<String?>(null)
+	private val genresText = mutableStateOf("")
+	private val authorsText = mutableStateOf("")
+	private val ratingText = mutableStateOf("")
+	private val stateValue = mutableStateOf<MangaState?>(null)
+	private val contentRatingValue = mutableStateOf<ContentRating?>(null)
 
 	private val pickCoverFileLauncher = registerForActivityResult(ActivityResultContracts.OpenDocument(), this)
 	private val pickPageLauncher = registerForActivityResult(PageImagePickContract(), this)
@@ -93,12 +100,22 @@ class OverrideConfigActivity : BaseActivity<ActivityOverrideEditBinding>(), Acti
 						originalDescription = remember(manga) {
 							manga.description?.parseAsHtml()?.toString()?.trim()
 						},
+						genres = genresText.value,
+						authors = authorsText.value,
+						ratingText = ratingText.value,
+						state = stateValue.value,
+						contentRating = contentRatingValue.value,
 						isLoading = isLoading,
 						error = errorText.value,
 						bottomInset = with(density) { bottomInset.intValue.toDp() },
 						imageLoader = coil,
 						onTitleChange = { titleText.value = it },
 						onDescriptionChange = { descriptionText.value = it },
+						onGenresChange = { genresText.value = it },
+						onAuthorsChange = { authorsText.value = it },
+						onRatingChange = { ratingText.value = it },
+						onStateChange = { stateValue.value = it },
+						onContentRatingChange = { contentRatingValue.value = it },
 						onCoverPick = ::onCoverPick,
 						onCoverReset = { viewModel.updateCover(null) },
 					)
@@ -108,8 +125,8 @@ class OverrideConfigActivity : BaseActivity<ActivityOverrideEditBinding>(), Acti
 							manga = manga,
 							trackers = trackers,
 							imageLoader = coil,
-							onImport = { tracker, fields ->
-								applyImport(tracker, fields)
+							onImport = { tracker, modes ->
+								applyImport(tracker, modes)
 								isImportSheetShown.value = false
 							},
 							onDismiss = { isImportSheetShown.value = false },
@@ -124,6 +141,11 @@ class OverrideConfigActivity : BaseActivity<ActivityOverrideEditBinding>(), Acti
 			if (titleText.value == null) {
 				titleText.value = override.title.orEmpty()
 				descriptionText.value = override.description.orEmpty()
+				genresText.value = override.tags?.joinToString(", ").orEmpty()
+				authorsText.value = override.authors?.joinToString(", ").orEmpty()
+				ratingText.value = override.rating?.let { "%.1f".format(it * 10f) }.orEmpty()
+				stateValue.value = override.state
+				contentRatingValue.value = override.contentRating
 			}
 		}
 		viewModel.onSaved.observeEvent(this) {
@@ -171,16 +193,80 @@ class OverrideConfigActivity : BaseActivity<ActivityOverrideEditBinding>(), Acti
 	}
 
 	/** Fills the editor with the tracker's values; saving them stays the user's call. */
-	private fun applyImport(tracker: ScrobblingInfo, fields: Set<ImportField>) {
-		if (ImportField.COVER in fields) {
-			viewModel.updateCover(tracker.coverUrl)
+	private fun applyImport(tracker: ScrobblingInfo, modes: Map<ImportField, ImportMode>) {
+		val manga = viewModel.data.value?.first
+		fun mode(field: ImportField) = modes[field]
+		mode(ImportField.COVER)?.let { viewModel.updateCover(tracker.coverUrl) }
+		mode(ImportField.TITLE)?.let { titleText.value = tracker.title }
+
+		// Description and alternative names share one text, so they are applied together.
+		var description = descriptionText.value.orEmpty()
+		val sourceDescription = manga?.description?.parseAsHtml()?.toString()?.trim().orEmpty()
+		val baseDescription = description.ifBlank { sourceDescription }
+		val imported = tracker.description?.toString().orEmpty()
+		mode(ImportField.DESCRIPTION)?.let {
+			description = when (it) {
+				ImportMode.REPLACE -> imported
+				ImportMode.APPEND -> if (baseDescription.isBlank()) imported else baseDescription + "\n\n" + imported
+				ImportMode.FILL -> if (baseDescription.isBlank()) imported else description
+			}
 		}
-		if (ImportField.TITLE in fields) {
-			titleText.value = tracker.title
+		if (mode(ImportField.ALT_NAMES) != null && tracker.altNames.isNotEmpty()) {
+			val base = description.ifBlank { sourceDescription }
+			val heading = getString(R.string.alt_names_heading)
+			val cut = base.indexOf(heading)
+			val text = (if (cut >= 0) base.substring(0, cut) else base).trimEnd()
+			description = (if (text.isEmpty()) "" else text + "\n\n") +
+				heading + "\n" + tracker.altNames.joinToString("\n")
 		}
-		if (ImportField.DESCRIPTION in fields) {
-			descriptionText.value = tracker.description?.toString().orEmpty()
+		descriptionText.value = description
+
+		mode(ImportField.GENRES)?.let {
+			genresText.value = mergeList(
+				current = genresText.value,
+				source = manga?.tags?.map { tag -> tag.title }.orEmpty(),
+				imported = tracker.genres,
+				mode = it,
+			)
 		}
+		mode(ImportField.AUTHORS)?.let {
+			authorsText.value = mergeList(
+				current = authorsText.value,
+				source = manga?.authors?.toList().orEmpty(),
+				imported = tracker.authors,
+				mode = it,
+			)
+		}
+		mode(ImportField.STATUS)?.let {
+			val value = tracker.asMangaState()
+			if (value != null && (it == ImportMode.REPLACE || (stateValue.value == null && manga?.state == null))) {
+				stateValue.value = value
+			}
+		}
+		mode(ImportField.CONTENT_RATING)?.let {
+			if (tracker.isAdult && (it == ImportMode.REPLACE || (contentRatingValue.value == null && manga?.contentRating == null))) {
+				contentRatingValue.value = ContentRating.ADULT
+			}
+		}
+		mode(ImportField.RATING)?.let {
+			val empty = ratingText.value.isBlank() && (manga?.rating ?: -1f) < 0f
+			if (tracker.score > 0f && (it == ImportMode.REPLACE || empty)) {
+				ratingText.value = "%.1f".format(tracker.score)
+			}
+		}
+	}
+
+	private fun parseList(text: String): List<String> =
+		text.split(',', '\n').map { it.trim() }.filter { it.isNotEmpty() }.distinctBy { it.lowercase() }
+
+	private fun mergeList(current: String, source: List<String>, imported: List<String>, mode: ImportMode): String {
+		val own = parseList(current).ifEmpty { source }
+		val result = when (mode) {
+			ImportMode.REPLACE -> imported
+			ImportMode.APPEND -> own + imported
+			ImportMode.FILL -> own.ifEmpty { imported }
+		}
+		return result.distinctBy { it.lowercase() }.joinToString(", ")
 	}
 
 	private fun save() {
@@ -188,6 +274,11 @@ class OverrideConfigActivity : BaseActivity<ActivityOverrideEditBinding>(), Acti
 		viewModel.save(
 			title = titleText.value?.trim(),
 			description = descriptionText.value?.trim(),
+			tags = parseList(genresText.value).takeIf { it.isNotEmpty() }?.toSet(),
+			authors = parseList(authorsText.value).takeIf { it.isNotEmpty() }?.toSet(),
+			state = stateValue.value,
+			contentRating = contentRatingValue.value,
+			rating = ratingText.value.trim().replace(',', '.').toFloatOrNull()?.coerceIn(0f, 10f)?.div(10f),
 		)
 	}
 

@@ -68,13 +68,20 @@ SlopSauce is a personal fork, built for my own use and shared as is. It takes no
 - Supports Kotatsu and Mihon backup restoration alongside google drive sync
 - Free and open-source under the GPLv3 license.
 
-## SlopSauce Exclusive
+<details>
+<summary><strong>SlopSauce Exclusive</strong></summary>
 
 - Secret space: a separate library, history, bookmarks and downloads behind a PIN or fingerprint. Hold Incognito in the ⋮ menu to open it. It locks when you leave the app and leaves nothing behind in the main app.
 - Telegram backup: send backups to your own Telegram chat with the built-in bot.
 - Backup contents: pick what goes into a backup, such as only your library. Restore reads what is inside, and periodic and Telegram backups each keep their own choice.
 - Download ahead: queue the next chapters while you read, with a count you set. It stays off in incognito mode.
 - Hide favourites: hide titles you already favourited from source lists, in Settings > Appearance.
+- Faster downloads: several pages download at once, with a limit per website. Pick how many pages and how many manga download together in Settings > Downloads.
+- Download manager: a queue you can reorder, live speed, time left, pause and resume for one or all, and a notification that shows the total.
+- Parallel page progress: the progress bar shows each page of the chapter being downloaded, with the ones in progress moving.
+- Tracker import: when editing a manga, import the cover, title, description, alternative names, genres, authors, status, content rating and score from a tracker. You choose per field whether to replace, append or fill if empty. Nothing changes until you save.
+
+</details>
 
 <details>
 <summary><strong>Features</strong></summary>

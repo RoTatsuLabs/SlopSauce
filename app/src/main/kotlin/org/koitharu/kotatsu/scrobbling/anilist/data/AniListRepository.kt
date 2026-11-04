@@ -22,6 +22,9 @@ import org.koitharu.kotatsu.scrobbling.common.data.ScrobblerStorage
 import org.koitharu.kotatsu.scrobbling.common.data.ScrobblingEntity
 import org.koitharu.kotatsu.scrobbling.common.domain.model.ScrobblerManga
 import org.koitharu.kotatsu.scrobbling.common.domain.model.ScrobblerMangaInfo
+import org.koitharu.kotatsu.scrobbling.common.domain.model.ScrobblerMangaStatus
+import org.koitharu.kotatsu.scrobbling.common.domain.model.cleanAltNames
+import org.koitharu.kotatsu.scrobbling.common.domain.model.stringList
 import org.koitharu.kotatsu.scrobbling.common.domain.model.ScrobblerMangaType
 import org.koitharu.kotatsu.scrobbling.common.domain.model.ScrobblerService
 import org.koitharu.kotatsu.scrobbling.common.domain.model.ScrobblerType
@@ -256,6 +259,9 @@ class AniListRepository @Inject constructor(
 				id
 				title {
 					userPreferred
+					romaji
+					english
+					native
 				}
 				coverImage {
 					large
@@ -263,6 +269,24 @@ class AniListRepository @Inject constructor(
 				description
 				siteUrl
 				chapters
+				genres
+				synonyms
+				status
+				startDate {
+					year
+				}
+				averageScore
+				isAdult
+				staff(perPage: 8) {
+					edges {
+						role
+						node {
+							name {
+								full
+							}
+						}
+					}
+				}
 			}
 			""",
 		)
@@ -304,14 +328,51 @@ class AniListRepository @Inject constructor(
 		)
 	}
 
-	private fun ScrobblerMangaInfo(json: JSONObject) = ScrobblerMangaInfo(
-		id = json.getLong("id"),
-		name = json.getJSONObject("title").getString("userPreferred"),
-		cover = json.getJSONObject("coverImage").getString("large"),
-		url = json.getString("siteUrl"),
-		descriptionHtml = json.getString("description"),
-		totalChapters = json.optInt("chapters"),
-	)
+	private fun ScrobblerMangaInfo(json: JSONObject): ScrobblerMangaInfo {
+		val title = json.getJSONObject("title")
+		val name = title.getString("userPreferred")
+		val authors = ArrayList<String>()
+		val edges = json.optJSONObject("staff")?.optJSONArray("edges")
+		if (edges != null) {
+			for (i in 0 until edges.length()) {
+				val edge = edges.optJSONObject(i) ?: continue
+				val role = edge.optString("role")
+				if (role.contains("Story", ignoreCase = true) || role.contains("Art", ignoreCase = true)) {
+					edge.optJSONObject("node")?.optJSONObject("name")?.getStringOrNull("full")?.let(authors::add)
+				}
+			}
+		}
+		return ScrobblerMangaInfo(
+			id = json.getLong("id"),
+			name = name,
+			cover = json.getJSONObject("coverImage").getString("large"),
+			url = json.getString("siteUrl"),
+			descriptionHtml = json.getString("description"),
+			totalChapters = json.optInt("chapters"),
+			genres = json.optJSONArray("genres").stringList(),
+			altNames = cleanAltNames(
+				name,
+				listOfNotNull(
+					title.getStringOrNull("romaji"),
+					title.getStringOrNull("english"),
+					title.getStringOrNull("native"),
+				),
+				json.optJSONArray("synonyms").stringList(),
+			),
+			authors = authors.distinct(),
+			status = when (json.optString("status")) {
+				"FINISHED" -> ScrobblerMangaStatus.FINISHED
+				"RELEASING" -> ScrobblerMangaStatus.ONGOING
+				"NOT_YET_RELEASED" -> ScrobblerMangaStatus.UPCOMING
+				"CANCELLED" -> ScrobblerMangaStatus.CANCELLED
+				"HIATUS" -> ScrobblerMangaStatus.PAUSED
+				else -> null
+			},
+			year = json.optJSONObject("startDate")?.optInt("year") ?: 0,
+			score = json.optDouble("averageScore", 0.0).toFloat() / 10f,
+			isAdult = json.optBoolean("isAdult", false),
+		)
+	}
 
 	@Suppress("FunctionName")
 	private fun AniListUser(json: JSONObject) = ScrobblerUser(

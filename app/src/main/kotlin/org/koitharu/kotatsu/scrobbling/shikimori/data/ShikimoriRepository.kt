@@ -21,6 +21,9 @@ import org.koitharu.kotatsu.scrobbling.common.data.ScrobblerStorage
 import org.koitharu.kotatsu.scrobbling.common.data.ScrobblingEntity
 import org.koitharu.kotatsu.scrobbling.common.domain.model.ScrobblerManga
 import org.koitharu.kotatsu.scrobbling.common.domain.model.ScrobblerMangaInfo
+import org.koitharu.kotatsu.scrobbling.common.domain.model.ScrobblerMangaStatus
+import org.koitharu.kotatsu.scrobbling.common.domain.model.cleanAltNames
+import org.koitharu.kotatsu.scrobbling.common.domain.model.stringList
 import org.koitharu.kotatsu.scrobbling.common.domain.model.ScrobblerMangaType
 import org.koitharu.kotatsu.scrobbling.common.domain.model.ScrobblerService
 import org.koitharu.kotatsu.scrobbling.common.domain.model.ScrobblerType
@@ -246,14 +249,37 @@ class ShikimoriRepository @Inject constructor(
 			|| json.getStringOrNull("russian")?.equals(sourceTitle, ignoreCase = true) == true
 	)
 
-	private fun ScrobblerMangaInfo(json: JSONObject) = ScrobblerMangaInfo(
-		id = json.getLong("id"),
-		name = json.getString("name"),
-		cover = json.getJSONObject("image").getString("preview").toAbsoluteUrl(DOMAIN),
-		url = json.getString("url").toAbsoluteUrl(DOMAIN),
-		descriptionHtml = json.getString("description_html"),
-		totalChapters = json.optInt("chapters"),
-	)
+	private fun ScrobblerMangaInfo(json: JSONObject): ScrobblerMangaInfo {
+		val name = json.getString("name")
+		val genres = json.optJSONArray("genres").stringList("name")
+		return ScrobblerMangaInfo(
+			id = json.getLong("id"),
+			name = name,
+			cover = json.getJSONObject("image").getString("preview").toAbsoluteUrl(DOMAIN),
+			url = json.getString("url").toAbsoluteUrl(DOMAIN),
+			descriptionHtml = json.getString("description_html"),
+			totalChapters = json.optInt("chapters"),
+			genres = genres,
+			altNames = cleanAltNames(
+				name,
+				json.optJSONArray("english").stringList(),
+				json.optJSONArray("synonyms").stringList(),
+				json.optJSONArray("japanese").stringList(),
+				listOfNotNull(json.getStringOrNull("russian")),
+			),
+			status = when (json.optString("status")) {
+				"anons" -> ScrobblerMangaStatus.UPCOMING
+				"ongoing" -> ScrobblerMangaStatus.ONGOING
+				"released" -> ScrobblerMangaStatus.FINISHED
+				"paused" -> ScrobblerMangaStatus.PAUSED
+				"discontinued" -> ScrobblerMangaStatus.CANCELLED
+				else -> null
+			},
+			year = json.optString("aired_on").take(4).toIntOrNull() ?: 0,
+			score = json.optString("score").toFloatOrNull() ?: 0f,
+			isAdult = genres.any { it.equals("Hentai", ignoreCase = true) },
+		)
+	}
 
 	@Suppress("FunctionName")
 	private fun ShikimoriUser(json: JSONObject) = ScrobblerUser(

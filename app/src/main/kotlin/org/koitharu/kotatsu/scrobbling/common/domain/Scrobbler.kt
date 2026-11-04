@@ -202,6 +202,13 @@ abstract class Scrobbler(
 			coverUrl = mangaInfo.cover,
 			description = mangaInfo.descriptionHtml.parseAsHtml().sanitize(),
 			externalUrl = mangaInfo.url,
+			genres = mangaInfo.genres,
+			altNames = mangaInfo.altNames,
+			authors = mangaInfo.authors,
+			mangaStatus = mangaInfo.status,
+			year = mangaInfo.year,
+			score = mangaInfo.score,
+			isAdult = mangaInfo.isAdult,
 		)
 	}
 }

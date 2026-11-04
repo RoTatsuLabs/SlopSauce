@@ -3,6 +3,7 @@ package org.koitharu.kotatsu.settings.override
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
@@ -22,6 +23,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -51,7 +53,10 @@ import coil3.request.crossfade
 import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.core.util.ext.mangaSourceExtra
 import org.koitharu.kotatsu.core.util.ext.stableMangaCoverKey
+import org.koitharu.kotatsu.core.model.titleResId
+import org.koitharu.kotatsu.parsers.model.ContentRating
 import org.koitharu.kotatsu.parsers.model.Manga
+import org.koitharu.kotatsu.parsers.model.MangaState
 import org.koitharu.kotatsu.parsers.util.ifNullOrEmpty
 
 /**
@@ -68,12 +73,22 @@ fun OverrideEditScreen(
 	title: String,
 	description: String,
 	originalDescription: String?,
+	genres: String,
+	authors: String,
+	ratingText: String,
+	state: MangaState?,
+	contentRating: ContentRating?,
 	isLoading: Boolean,
 	error: String?,
 	bottomInset: Dp,
 	imageLoader: ImageLoader,
 	onTitleChange: (String) -> Unit,
 	onDescriptionChange: (String) -> Unit,
+	onGenresChange: (String) -> Unit,
+	onAuthorsChange: (String) -> Unit,
+	onRatingChange: (String) -> Unit,
+	onStateChange: (MangaState?) -> Unit,
+	onContentRatingChange: (ContentRating?) -> Unit,
 	onCoverPick: (CoverSource) -> Unit,
 	onCoverReset: () -> Unit,
 ) {
@@ -121,6 +136,52 @@ fun OverrideEditScreen(
 			enabled = !isLoading,
 			singleLine = false,
 		)
+		Spacer(Modifier.height(24.dp))
+		SectionLabel(stringResource(R.string.override_details))
+		OverrideTextField(
+			value = genres,
+			onValueChange = onGenresChange,
+			label = stringResource(R.string.genres),
+			placeholder = manga.tags.joinToString(", ") { it.title }.ifEmpty { stringResource(R.string.override_genres_hint) },
+			enabled = !isLoading,
+			singleLine = false,
+		)
+		Spacer(Modifier.height(12.dp))
+		OverrideTextField(
+			value = authors,
+			onValueChange = onAuthorsChange,
+			label = stringResource(R.string.authors),
+			placeholder = manga.authors.joinToString(", ").ifEmpty { stringResource(R.string.override_genres_hint) },
+			enabled = !isLoading,
+			singleLine = false,
+		)
+		Spacer(Modifier.height(12.dp))
+		OverrideTextField(
+			value = ratingText,
+			onValueChange = onRatingChange,
+			label = stringResource(R.string.override_rating_label),
+			placeholder = manga.rating.takeIf { it >= 0f }?.let { "%.1f".format(it * 10f) },
+			enabled = !isLoading,
+			singleLine = true,
+		)
+		Spacer(Modifier.height(16.dp))
+		ChoiceRow(
+			label = stringResource(R.string.state),
+			options = listOf<MangaState?>(null) + MangaState.entries.filter { it != MangaState.RESTRICTED },
+			selected = state,
+			enabled = !isLoading,
+			labelOf = { it?.let { value -> stringResource(value.titleResId) } ?: stringResource(R.string.override_default) },
+			onSelect = onStateChange,
+		)
+		Spacer(Modifier.height(12.dp))
+		ChoiceRow(
+			label = stringResource(R.string.content_rating),
+			options = listOf<ContentRating?>(null) + ContentRating.entries,
+			selected = contentRating,
+			enabled = !isLoading,
+			labelOf = { it?.let { value -> stringResource(value.titleResId) } ?: stringResource(R.string.override_default) },
+			onSelect = onContentRatingChange,
+		)
 		Spacer(Modifier.height(12.dp))
 		HintRow(text = stringResource(R.string.manga_override_hint))
 		AnimatedVisibility(visible = error != null) {
@@ -129,6 +190,37 @@ fun OverrideEditScreen(
 				style = MaterialTheme.typography.bodyMedium,
 				color = MaterialTheme.colorScheme.error,
 				modifier = Modifier.padding(top = 12.dp, start = 12.dp, end = 12.dp),
+			)
+		}
+	}
+}
+
+/** A row of chips to pick one value; the first option (null) means "keep what the source says". */
+@Composable
+private fun <T> ChoiceRow(
+	label: String,
+	options: List<T?>,
+	selected: T?,
+	enabled: Boolean,
+	labelOf: @Composable (T?) -> String,
+	onSelect: (T?) -> Unit,
+) {
+	Text(
+		text = label,
+		style = MaterialTheme.typography.labelLarge,
+		color = MaterialTheme.colorScheme.onSurfaceVariant,
+		modifier = Modifier.padding(start = 12.dp, bottom = 6.dp),
+	)
+	Row(
+		modifier = Modifier.horizontalScroll(rememberScrollState()),
+		horizontalArrangement = Arrangement.spacedBy(8.dp),
+	) {
+		options.forEach { option ->
+			FilterChip(
+				selected = option == selected,
+				onClick = { onSelect(option) },
+				enabled = enabled,
+				label = { Text(labelOf(option)) },
 			)
 		}
 	}
