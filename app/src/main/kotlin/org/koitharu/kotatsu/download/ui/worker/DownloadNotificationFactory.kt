@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.drawable.Drawable
 import android.text.format.DateUtils
+import android.text.format.Formatter
 import androidx.core.app.NotificationChannelCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
@@ -211,7 +212,7 @@ class DownloadNotificationFactory @AssistedInject constructor(
 
 			else -> {
 				builder.setProgress(state.max, state.progress, false)
-				builder.setContentText(getProgressString(state.percent, state.eta, state.isStuck))
+				builder.setContentText(getInfoLine(state))
 				builder.setCategory(NotificationCompat.CATEGORY_PROGRESS)
 				builder.setStyle(null)
 				builder.setOngoing(true)
@@ -222,6 +223,40 @@ class DownloadNotificationFactory @AssistedInject constructor(
 		return builder.build()
 	}
 
+	/** "12% | 5.3 MB / ~44 MB | 574 kB/s | 16s", the same line the downloads screen shows. */
+	private fun getInfoLine(state: DownloadState): CharSequence? {
+		val parts = ArrayList<String>(4)
+		if (state.percent >= 0f) {
+			parts += context.getString(R.string.percent_string_pattern, (state.percent * 100).format())
+		}
+		if (state.downloadedBytes > 0L) {
+			parts += if (state.estimatedBytes > state.downloadedBytes) {
+				context.getString(
+					R.string.download_size_estimate,
+					Formatter.formatFileSize(context, state.downloadedBytes),
+					Formatter.formatFileSize(context, state.estimatedBytes),
+				)
+			} else {
+				Formatter.formatFileSize(context, state.downloadedBytes)
+			}
+		}
+		if (state.speed > 0L) {
+			parts += context.getString(R.string.download_speed_format, Formatter.formatFileSize(context, state.speed))
+		}
+		if (state.isStuck) {
+			parts += context.getString(R.string.stuck)
+		} else if (state.eta > 0L) {
+			val seconds = ((state.eta - System.currentTimeMillis()) / 1000L).coerceAtLeast(0L)
+			parts += when {
+				seconds < 60L -> "${seconds}s"
+				seconds < 3600L -> "${seconds / 60}m%02ds".format(seconds % 60)
+				else -> "${seconds / 3600}h%02dm".format(seconds % 3600 / 60)
+			}
+		}
+		return parts.takeIf { it.isNotEmpty() }?.joinToString(" | ")
+	}
+
+	@Suppress("unused")
 	private fun getProgressString(percent: Float, eta: Long, isStuck: Boolean): CharSequence? {
 		val percentString = if (percent >= 0f) {
 			context.getString(R.string.percent_string_pattern, (percent * 100).format())

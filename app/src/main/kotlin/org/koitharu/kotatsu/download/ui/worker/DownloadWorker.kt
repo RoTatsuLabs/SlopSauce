@@ -5,6 +5,7 @@ import android.app.NotificationManager
 import android.content.Context
 import android.content.pm.ServiceInfo
 import android.os.Build
+import android.os.SystemClock
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import androidx.hilt.work.HiltWorker
@@ -25,7 +26,10 @@ import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -97,6 +101,7 @@ import java.io.File
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicLong
 import javax.inject.Inject
 
 @HiltWorker
@@ -112,6 +117,8 @@ class DownloadWorker @AssistedInject constructor(
 	private val settings: AppSettings,
 	@LocalStorageChanges private val localStorageChanges: MutableSharedFlow<LocalManga?>,
 	private val sourceThrottler: DownloadSourceThrottler,
+	private val downloadSlots: DownloadSlots,
+	private val summaryNotifier: DownloadSummaryNotifier,
 	private val imageProxyInterceptor: ImageProxyInterceptor,
 	notificationFactoryFactory: DownloadNotificationFactory.Factory,
 ) : CoroutineWorker(appContext, params) {
@@ -126,6 +133,10 @@ class DownloadWorker @AssistedInject constructor(
 		get() = checkNotNull(lastPublishedState)
 
 	private val etaEstimator = RealtimeEtaEstimator()
+	private val downloadedBytes = AtomicLong(0)
+	private var speedAt = 0L
+	private var speedBytes = 0L
+	private var speedValue = 0L
 	private val notificationThrottler = Throttler(400)
 
 	override suspend fun doWork(): Result {
@@ -141,7 +152,16 @@ class DownloadWorker @AssistedInject constructor(
 				pausingHandle.pause()
 			}
 			withContext(pausingHandle) {
-				downloadMangaImpl(manga, task, downloadedIds)
+				downloadSlots.withSlot(
+					id = id,
+					limit = { settings.downloadMaxSimultaneous },
+					onWaiting = { publishState(currentState.copy(isIndeterminate = true, isQueued = true, eta = -1L)) },
+				) {
+					if (currentState.isQueued) {
+						publishState(currentState.copy(isQueued = false))
+					}
+					downloadMangaImpl(manga, task, downloadedIds)
+				}
 			}
 			// Finished, but with chapters that failed on their own: Retry fetches just those
 			if (currentState.error != null) {
@@ -170,6 +190,7 @@ class DownloadWorker @AssistedInject constructor(
 				).toWorkData(),
 			)
 		} finally {
+			summaryNotifier.remove(id)
 			notificationManager.cancel(id.hashCode())
 		}
 	}
@@ -228,14 +249,31 @@ class DownloadWorker @AssistedInject constructor(
 				val chapters = getChapters(mangaDetails, task)
 				var failedChapters = 0
 				var chapterError: Exception? = null
+				// The next chapter's page list is requested while the current one downloads, so the
+				// connections never sit idle waiting for it between chapters.
+				val prefetched = HashMap<Int, Deferred<List<MangaPage>?>>()
 				for ((chapterIndex, chapter) in chapters.withIndex()) {
 					checkIsPaused()
 					if (chaptersToSkip.remove(chapter.value.id)) {
+						prefetched.remove(chapterIndex)?.cancel()
 						publishState(currentState.copy(downloadedChapters = currentState.downloadedChapters + 1))
 						continue
 					}
 					try {
-						downloadChapter(output, destination, repo, mangaDetails, chapter, chapterIndex, chapters.size)
+						coroutineScope {
+							val next = (chapterIndex + 1 until chapters.size).firstOrNull {
+								chapters[it].value.id !in chaptersToSkip
+							}
+							if (next != null && next !in prefetched) {
+								prefetched[next] = async {
+									runCatchingCancellable { repo.getPages(mangaDetails, chapters[next].value) }.getOrNull()
+								}
+							}
+							downloadChapter(
+								output, destination, repo, mangaDetails, chapter, chapterIndex, chapters.size,
+								prefetched.remove(chapterIndex),
+							)
+						}
 					} catch (e: CancellationException) {
 						throw e
 					} catch (e: Exception) {
@@ -313,17 +351,20 @@ class DownloadWorker @AssistedInject constructor(
 		chapter: IndexedValue<MangaChapter>,
 		chapterIndex: Int,
 		chaptersCount: Int,
+		prefetchedPages: Deferred<List<MangaPage>?>? = null,
 	) {
-		val pages = runFailsafe {
+		val pages = prefetchedPages?.await() ?: runFailsafe {
 			repo.getPages(manga, chapter.value)
 		} ?: return
 		val pageCounter = AtomicInteger(0)
+		val pageStates = CharArray(pages.size) { PAGE_WAITING }
 		channelFlow {
-			val semaphore = Semaphore(MAX_PAGES_PARALLELISM)
+			val semaphore = Semaphore(settings.downloadConnections)
 			for ((pageIndex, page) in pages.withIndex()) {
 				checkIsPaused()
 				launch {
 					semaphore.withPermit {
+						pageStates[pageIndex] = PAGE_ACTIVE
 						runFailsafe {
 							val url = repo.getPageUrl(page)
 							val file = cache[url]
@@ -338,6 +379,7 @@ class DownloadWorker @AssistedInject constructor(
 								file.deleteAwait()
 							}
 						}
+						pageStates[pageIndex] = PAGE_DONE
 						send(pageIndex)
 					}
 				}
@@ -356,6 +398,7 @@ class DownloadWorker @AssistedInject constructor(
 					currentChapter = progress.currentChapter,
 					totalPages = progress.totalPages,
 					currentPage = progress.currentPage,
+					pageStates = summarizePages(pageStates),
 					isIndeterminate = false,
 					eta = etaEstimator.getEta(),
 					isStuck = etaEstimator.isStuck(),
@@ -367,6 +410,32 @@ class DownloadWorker @AssistedInject constructor(
 				localStorageChanges.emit(LocalMangaParser(output.rootFile).getManga(withDetails = false))
 			}.onFailure(Throwable::printStackTraceDebug)
 		}
+	}
+
+	/** Squeezes a long chapter into at most [MAX_PAGE_SEGMENTS] chars so it fits the work data. */
+	private fun summarizePages(states: CharArray): String {
+		if (states.size <= MAX_PAGE_SEGMENTS) return String(states)
+		val bucket = (states.size + MAX_PAGE_SEGMENTS - 1) / MAX_PAGE_SEGMENTS
+		val sb = StringBuilder()
+		for (start in states.indices step bucket) {
+			val end = minOf(start + bucket, states.size)
+			var done = 0
+			var active = false
+			for (i in start until end) {
+				when (states[i]) {
+					PAGE_DONE -> done++
+					PAGE_ACTIVE -> active = true
+				}
+			}
+			sb.append(
+				when {
+					done == end - start -> PAGE_DONE
+					active || done > 0 -> PAGE_ACTIVE
+					else -> PAGE_WAITING
+				},
+			)
+		}
+		return sb.toString()
 	}
 
 	private suspend fun <R> runFailsafe(
@@ -498,7 +567,7 @@ class DownloadWorker @AssistedInject constructor(
 						file?.delete()
 						throw e
 					}
-					checkNotNull(file)
+					checkNotNull(file).also { downloadedBytes.addAndGet(it.length()) }
 				}
 		}
 	}
@@ -518,7 +587,22 @@ class DownloadWorker @AssistedInject constructor(
 		},
 	)
 
-	private suspend fun publishState(state: DownloadState) {
+	private suspend fun publishState(newState: DownloadState) {
+		val now = SystemClock.elapsedRealtime()
+		if (speedAt == 0L) {
+			speedAt = now
+			speedBytes = downloadedBytes.get()
+		} else if (now - speedAt >= SPEED_WINDOW) {
+			val bytes = downloadedBytes.get()
+			val instant = (bytes - speedBytes) * 1000L / (now - speedAt)
+			speedValue = if (speedValue == 0L) instant else (speedValue + instant) / 2
+			speedAt = now
+			speedBytes = bytes
+		}
+		val state = newState.copy(
+			speed = if (newState.isParticularProgress) speedValue else 0L,
+			downloadedBytes = downloadedBytes.get(),
+		)
 		val previousState = currentState
 		lastPublishedState = state
 		if (previousState.isParticularProgress && state.isParticularProgress) {
@@ -538,6 +622,9 @@ class DownloadWorker @AssistedInject constructor(
 			}
 		} else if (notificationThrottler.throttle()) {
 			notificationManager.notify(id.hashCode(), notification)
+			if (!task.isSilent) {
+				summaryNotifier.update(id, state)
+			}
 		} else {
 			return
 		}
@@ -700,14 +787,16 @@ class DownloadWorker @AssistedInject constructor(
 			.build()
 	}
 
-	private companion object {
+	companion object {
 
-		const val MAX_FAILSAFE_ATTEMPTS = 2
-		// Mihon's default parallel-page limit is 5. Keeping extension downloads below that makes
-		// DropSauce observably slower even after removing the accidental global rate limiter.
-		const val MAX_PAGES_PARALLELISM = 5
-		const val DOWNLOAD_ERROR_DELAY = 2_000L
-		const val MAX_RETRY_DELAY = 7_200_000L // 2 hours
+		private const val MAX_FAILSAFE_ATTEMPTS = 2
+		private const val MAX_PAGE_SEGMENTS = 120
+		private const val PAGE_WAITING = '0'
+		private const val PAGE_ACTIVE = '1'
+		private const val PAGE_DONE = '2'
+		private const val SPEED_WINDOW = 1_000L
+		private const val DOWNLOAD_ERROR_DELAY = 2_000L
+		private const val MAX_RETRY_DELAY = 7_200_000L // 2 hours
 		const val TAG = "download"
 	}
 }

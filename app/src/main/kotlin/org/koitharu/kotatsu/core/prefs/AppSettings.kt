@@ -942,6 +942,14 @@ class AppSettings @Inject constructor(@ApplicationContext context: Context) {
 		get() = prefs.getEnumValue(KEY_DOWNLOADS_METERED_NETWORK, TriStateOption.ASK)
 		set(value) = prefs.edit { putEnumValue(KEY_DOWNLOADS_METERED_NETWORK, value) }
 
+	/** Pages fetched at once per download and requests in flight per source. */
+	val downloadConnections: Int
+		get() = prefs.getInt(KEY_DOWNLOADS_CONNECTIONS, 5).coerceIn(1, 10)
+
+	/** How many downloads run at the same time; the rest wait in the queue. */
+	val downloadMaxSimultaneous: Int
+		get() = prefs.getInt(KEY_DOWNLOADS_SIMULTANEOUS, 3).coerceIn(1, 5)
+
 	val isNextChapterAutoDownloadEnabled: Boolean
 		get() = prefs.getBoolean(KEY_DOWNLOADS_NEXT_CHAPTER, false)
 
@@ -1545,6 +1553,8 @@ class AppSettings @Inject constructor(@ApplicationContext context: Context) {
 		const val KEY_SUGGESTIONS_NOTIFICATIONS = "suggestions_notifications"
 		const val KEY_DOWNLOADS_METERED_NETWORK = "downloads_metered_network"
 		const val KEY_DOWNLOADS_FORMAT = "downloads_format"
+		const val KEY_DOWNLOADS_CONNECTIONS = "downloads_connections"
+		const val KEY_DOWNLOADS_SIMULTANEOUS = "downloads_simultaneous"
 		const val KEY_DOWNLOADS_NEXT_CHAPTER = "downloads_next_chapter"
 		const val KEY_DOWNLOADS_NEXT_CHAPTER_WIFI_ONLY = "downloads_next_chapter_wifi_only"
 		const val KEY_DOWNLOADS_NEXT_CHAPTER_COUNT = "downloads_next_chapter_count"
