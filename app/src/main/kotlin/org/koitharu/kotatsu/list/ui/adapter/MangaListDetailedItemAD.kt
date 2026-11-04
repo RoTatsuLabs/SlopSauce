@@ -2,6 +2,7 @@ package org.koitharu.kotatsu.list.ui.adapter
 
 import androidx.core.view.isVisible
 import com.hannesdorfmann.adapterdelegates4.dsl.adapterDelegateViewBinding
+import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.core.model.getTitle
 import org.koitharu.kotatsu.core.ui.list.AdapterDelegateClickListenerAdapter
 import org.koitharu.kotatsu.core.ui.list.OnListItemClickListener
@@ -29,7 +30,9 @@ fun mangaListDetailedItemAD(
 
 	bind { payloads ->
 		binding.textViewTitle.text = item.title
-		binding.textViewSource.text = item.source.getTitle(context)
+		binding.textViewSource.text = item.favouriteElsewhere?.let {
+			context.getString(R.string.source_and_favourite_elsewhere, item.source.getTitle(context), it)
+		} ?: item.source.getTitle(context)
 		binding.imageViewFavicon.setImageAsync(item.source)
 		binding.textViewAuthor.textAndVisible = item.manga.authors.joinToString(", ")
 		binding.corners.progressView.setProgress(

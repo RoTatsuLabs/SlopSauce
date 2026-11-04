@@ -84,6 +84,7 @@ class ListConfigBottomSheet : BaseAdaptiveSheet<SheetListModeBinding>() {
 			mutableIntStateOf(GridColumns.columnsFor(resources, gridWidth, viewModel.gridSize / 100f))
 		}
 		var isGroupingEnabled by remember { mutableStateOf(viewModel.isGroupingEnabled) }
+		var isHideFavourites by remember { mutableStateOf(viewModel.isHideFavourites) }
 		val isGroupingAvailable = viewModel.isGroupingAvailable
 		val isGridMode = mode == ListMode.GRID || mode == ListMode.COVER_ONLY
 
@@ -152,6 +153,18 @@ class ListConfigBottomSheet : BaseAdaptiveSheet<SheetListModeBinding>() {
 						modifier = Modifier.padding(horizontal = SheetContentPadding),
 					)
 				}
+			}
+
+			if (viewModel.isHideFavouritesSupported) {
+				SheetSwitchRow(
+					icon = painterResource(R.drawable.ic_heart),
+					title = stringResource(R.string.hide_favourites),
+					checked = isHideFavourites,
+					onCheckedChange = {
+						isHideFavourites = it
+						viewModel.isHideFavourites = it
+					},
+				)
 			}
 
 			if (viewModel.isGroupingSupported) {

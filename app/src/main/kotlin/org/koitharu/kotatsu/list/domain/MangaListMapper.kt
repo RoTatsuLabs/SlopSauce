@@ -15,6 +15,9 @@ import org.koitharu.kotatsu.core.prefs.AppSettings
 import org.koitharu.kotatsu.core.prefs.ListMode
 import org.koitharu.kotatsu.core.ui.model.MangaOverride
 import org.koitharu.kotatsu.core.ui.widgets.ChipsView
+import org.koitharu.kotatsu.core.model.MangaSource
+import org.koitharu.kotatsu.core.model.getTitle
+import org.koitharu.kotatsu.favourites.domain.FavouriteTitleIndex
 import org.koitharu.kotatsu.favourites.domain.FavouritesRepository
 import org.koitharu.kotatsu.history.data.HistoryRepository
 import org.koitharu.kotatsu.list.ui.model.MangaCompactListModel
@@ -31,11 +34,12 @@ import javax.inject.Inject
 
 @Reusable
 class MangaListMapper @Inject constructor(
-	@ApplicationContext context: Context,
+	@ApplicationContext private val context: Context,
 	private val settings: AppSettings,
 	private val trackingRepository: TrackingRepository,
 	private val historyRepository: HistoryRepository,
 	private val favouritesRepository: FavouritesRepository,
+	private val favouriteTitles: FavouriteTitleIndex,
 	private val localMangaIndex: LocalMangaIndex,
 	private val dataRepository: MangaDataRepository,
 	private val db: MangaDatabase,
@@ -64,8 +68,9 @@ class MangaListMapper @Inject constructor(
 	) {
 		val options = getOptions(flags)
 		val overrides = dataRepository.getOverrides()
+		val sameTitles = loadSameTitles(options)
 		manga.mapTo(destination) {
-			toListModelImpl(it, mode, options, overrides[it.id])
+			toListModelImpl(it, mode, options, overrides[it.id], sameTitles)
 		}
 	}
 
@@ -78,6 +83,7 @@ class MangaListMapper @Inject constructor(
 		mode = mode,
 		options = getOptions(flags),
 		override = dataRepository.getOverride(manga.id),
+		sameTitles = loadSameTitles(getOptions(flags)),
 	)
 
 	suspend fun toFeedItem(logItem: TrackingLogItem): FeedItem {
@@ -133,6 +139,7 @@ class MangaListMapper @Inject constructor(
 		manga: Manga,
 		@Options options: Int,
 		override: MangaOverride?,
+		sameTitles: FavouriteTitleIndex.Snapshot,
 	) = MangaDetailedListModel(
 		subtitle = manga.altTitles.firstOrNull(),
 		manga = manga,
@@ -142,6 +149,7 @@ class MangaListMapper @Inject constructor(
 		isFavorite = isFavorite(manga.id, options),
 		isSaved = isSaved(manga.id, options),
 		tags = mapTags(manga.tags),
+		favouriteElsewhere = favouriteElsewhere(manga, sameTitles),
 	)
 
 	private suspend fun toGridModel(
@@ -149,6 +157,7 @@ class MangaListMapper @Inject constructor(
 		@Options options: Int,
 		override: MangaOverride?,
 		isTitleHidden: Boolean,
+		sameTitles: FavouriteTitleIndex.Snapshot,
 	) = MangaGridModel(
 		manga = manga,
 		override = override,
@@ -159,6 +168,7 @@ class MangaListMapper @Inject constructor(
 		isTitleHidden = isTitleHidden,
 		isTitleOverCover = settings.isTitleOverCover,
 		isGridSpacingIncreased = settings.isGridSpacingIncreased,
+		favouriteElsewhere = favouriteElsewhere(manga, sameTitles),
 	)
 
 	private suspend fun toListModelImpl(
@@ -166,11 +176,23 @@ class MangaListMapper @Inject constructor(
 		mode: ListMode,
 		@Options options: Int,
 		override: MangaOverride?,
+		sameTitles: FavouriteTitleIndex.Snapshot,
 	): MangaListModel = when (mode) {
 		ListMode.LIST -> toCompactListModel(manga, options, override)
-		ListMode.DETAILED_LIST -> toDetailedListModel(manga, options, override)
-		ListMode.GRID -> toGridModel(manga, options, override, false)
-		ListMode.COVER_ONLY -> toGridModel(manga, options, override, true)
+		ListMode.DETAILED_LIST -> toDetailedListModel(manga, options, override, sameTitles)
+		ListMode.GRID -> toGridModel(manga, options, override, false, sameTitles)
+		ListMode.COVER_ONLY -> toGridModel(manga, options, override, true, sameTitles)
+	}
+
+	private suspend fun loadSameTitles(@Options options: Int): FavouriteTitleIndex.Snapshot {
+		return if (options.isBadgeEnabled(FAVORITE)) favouriteTitles.load() else FavouriteTitleIndex.EMPTY
+	}
+
+	/** The source a same-titled favourite lives in, shown when this very entry is not a favourite. */
+	private suspend fun favouriteElsewhere(manga: Manga, sameTitles: FavouriteTitleIndex.Snapshot): String? {
+		if (sameTitles.isEmpty) return null
+		val found = sameTitles.find(manga.id, manga.title, manga.altTitles) ?: return null
+		return MangaSource(found.sourceName).getTitle(context)
 	}
 
 	private suspend fun getCounter(mangaId: Long, @Options options: Int): Int {

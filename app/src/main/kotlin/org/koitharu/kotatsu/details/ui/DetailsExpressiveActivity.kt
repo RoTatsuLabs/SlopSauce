@@ -177,6 +177,7 @@ class DetailsExpressiveActivity :
 				val scrob by viewModel.scrobblingInfo.collectAsState()
 				val related by viewModel.relatedManga.collectAsState()
 				val localSize by viewModel.localSize.collectAsState()
+				val favouriteElsewhere by viewModel.favouriteElsewhere.collectAsState()
 				val srcTitle by viewModel.cachedSourceTitle.collectAsState()
 				val coverUrl by viewModel.coverUrl.collectAsState()
 				val coverRefreshes by viewModel.coverRefreshes.collectAsState()
@@ -197,6 +198,7 @@ class DetailsExpressiveActivity :
 					scrobblings = scrob,
 					related = related,
 					localSize = localSize,
+					favouriteElsewhere = favouriteElsewhere,
 					sourceTitle = srcTitle,
 					imageLoader = coil,
 					coverUrl = coverUrl,

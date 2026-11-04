@@ -79,6 +79,7 @@ fun DetailsExpressiveScreen(
 	scrobblings: List<ScrobblingInfo>,
 	related: List<MangaListModel>,
 	localSize: Long,
+	favouriteElsewhere: String?,
 	sourceTitle: String?,
 	imageLoader: ImageLoader,
 	coverUrl: String?,
@@ -188,6 +189,10 @@ fun DetailsExpressiveScreen(
 					onMore = { actions.onRelatedMore(manga) },
 					onItemClick = actions.onRelatedClick,
 				)
+			}
+
+			if (favouriteElsewhere != null) {
+				FavouriteElsewhereRow(sourceTitle = favouriteElsewhere)
 			}
 
 			if (localSize > 0L) {

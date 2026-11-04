@@ -35,6 +35,16 @@ class ListConfigViewModel @Inject constructor(
 			}
 		}
 
+	/** Only the source lists can leave favourites out. */
+	val isHideFavouritesSupported: Boolean
+		get() = section == ListConfigSection.General
+
+	var isHideFavourites: Boolean
+		get() = settings.isHideFavouritesInBrowse
+		set(value) {
+			settings.isHideFavouritesInBrowse = value
+		}
+
 	var gridSize: Int
 		get() = settings.gridSize
 		set(value) {

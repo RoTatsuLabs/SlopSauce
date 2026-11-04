@@ -711,6 +711,9 @@
     <string name="frequency_once_per_month">Once per month</string>
     <string name="periodic_backups_enable">Enable periodic backups</string>
     <string name="backups_output_directory">Backups output directory</string>
+    <string name="in_favourites_from">In favorites · %s</string>
+    <string name="source_and_favourite_elsewhere">%1$s · in favorites from %2$s</string>
+    <string name="favourite_elsewhere_banner">Already in your favorites from %s</string>
     <string name="hide_favourites">Hide favourites</string>
     <string name="hide_favourites_summary">Leave titles you already favourited out of source lists</string>
     <string name="backup_contents">Backup contents</string>

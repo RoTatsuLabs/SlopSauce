@@ -152,6 +152,12 @@ abstract class FavouritesDao : MangaQueryBuilder.ConditionCallback {
 	@Query("SELECT DISTINCT manga_id FROM favourites WHERE deleted_at = 0")
 	abstract fun observeMangaIds(): Flow<List<Long>>
 
+	@Query(
+		"SELECT manga.manga_id AS id, manga.title AS title, manga.alt_title AS alt_titles, manga.source AS source " +
+			"FROM manga WHERE manga.manga_id IN (SELECT manga_id FROM favourites WHERE deleted_at = 0)",
+	)
+	abstract suspend fun findTitles(): List<FavouriteTitle>
+
 	@Query("SELECT * FROM favourites WHERE manga_id = :mangaId AND deleted_at = 0")
 	abstract suspend fun findAllRaw(mangaId: Long): List<FavouriteEntity>
 

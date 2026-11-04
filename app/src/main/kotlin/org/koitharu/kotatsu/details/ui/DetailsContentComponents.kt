@@ -518,6 +518,27 @@ internal fun RelatedSection(
 
 private val RELATED_EDGE_INSET = 8.dp
 
+/** Tells that a title with the same name is already favourited from another source. */
+@Composable
+internal fun FavouriteElsewhereRow(sourceTitle: String) {
+	SectionCard {
+		Row(verticalAlignment = Alignment.CenterVertically) {
+			Icon(
+				painter = painterResource(R.drawable.ic_heart),
+				contentDescription = null,
+				tint = MaterialTheme.colorScheme.tertiary,
+				modifier = Modifier.size(20.dp),
+			)
+			Spacer(Modifier.width(12.dp))
+			Text(
+				text = stringResource(R.string.favourite_elsewhere_banner, sourceTitle),
+				style = MaterialTheme.typography.bodyMedium,
+				color = MaterialTheme.colorScheme.onSurface,
+			)
+		}
+	}
+}
+
 @Composable
 internal fun LocalSizeRow(size: Long, manga: Manga, onClick: (Manga) -> Unit) {
 	val ctx = LocalContext.current

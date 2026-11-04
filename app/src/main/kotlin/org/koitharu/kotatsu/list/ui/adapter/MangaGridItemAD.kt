@@ -4,6 +4,7 @@ import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.view.View
 import android.view.ViewGroup
+import android.widget.FrameLayout
 import androidx.core.graphics.ColorUtils
 import androidx.core.view.isVisible
 import androidx.core.view.updateLayoutParams
@@ -40,6 +41,9 @@ fun mangaGridItemAD(
 	sizeResolver.attachToView(itemView, binding.textViewTitleOverlay, binding.corners.progressView, binding.corners.iconsView)
 
 	val gridMargin = context.resources.getDimensionPixelOffset(R.dimen.grid_spacing_outer)
+	val density = context.resources.displayMetrics.density
+	val overlayBadgeMargin = (56 * density).toInt()
+	val plainBadgeMargin = (8 * density).toInt()
 	val gridMarginIncreased = context.resources.getDimensionPixelOffset(R.dimen.grid_spacing_outer_large)
 	// Title scrim: a dark shade of the theme accent, always tall enough for two lines of title (so
 	// every card looks the same), eased out towards the top so it has no visible starting edge,
@@ -75,6 +79,14 @@ fun mangaGridItemAD(
 		binding.corners.progressView.setProgress(item.progress, PAYLOAD_PROGRESS_CHANGED in payloads)
 		binding.corners.imageViewPin.isVisible = item.isPinned
 		binding.corners.iconsView.setMangaBadges(item.isSaved, item.isFavorite)
+		binding.textViewFavouriteElsewhere.apply {
+			isVisible = item.favouriteElsewhere != null
+			text = item.favouriteElsewhere?.let { context.getString(R.string.in_favourites_from, it) }
+			// Sits above the overlaid title so the two never cover each other.
+			updateLayoutParams<FrameLayout.LayoutParams> {
+				bottomMargin = if (isTitleOverCover) overlayBadgeMargin else plainBadgeMargin
+			}
+		}
 		// Load at a stable size derived from the grid cell width (not the transient measured view
 		// size), so covers in the ViewPager2-hosted grids stay sharp after rotation/settling.
 		val coverWidth = sizeResolver.cellWidth - coverMargin * 2

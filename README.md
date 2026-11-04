@@ -80,6 +80,7 @@ SlopSauce is a personal fork, built for my own use and shared as is. It takes no
 - Download manager: a queue you can reorder, live speed, time left, pause and resume for one or all, and a notification that shows the total.
 - Parallel page progress: the progress bar shows each page of the chapter being downloaded, with the ones in progress moving.
 - Tracker import: when editing a manga, import the cover, title, description, alternative names, genres, authors, status, content rating and score from a tracker. You choose per field whether to replace, append or fill if empty. Nothing changes until you save.
+- Same-title favourites: a title you already favourited from another source gets a badge on its cover in source lists and a note on its details page. Hide favourites is also in the list display options.
 
 </details>
 

@@ -54,6 +54,25 @@
 			android:textAppearance="@style/TextAppearance.Kotatsu.GridTitle.Overlay"
 			tools:text="@tools:sample/lorem" />
 
+		<TextView
+			android:id="@+id/textView_favourite_elsewhere"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:layout_gravity="bottom|start"
+			android:layout_marginStart="8dp"
+			android:layout_marginEnd="8dp"
+			android:layout_marginBottom="8dp"
+			android:background="@drawable/bg_favourite_elsewhere"
+			android:ellipsize="end"
+			android:maxLines="1"
+			android:paddingHorizontal="6dp"
+			android:paddingVertical="2dp"
+			android:textColor="?attr/colorOnTertiaryContainer"
+			android:textSize="10sp"
+			android:visibility="gone"
+			tools:text="In favorites · Shinigami"
+			tools:visibility="visible" />
+
 		<include
 			android:id="@+id/corners"
 			layout="@layout/layout_cover_corners"

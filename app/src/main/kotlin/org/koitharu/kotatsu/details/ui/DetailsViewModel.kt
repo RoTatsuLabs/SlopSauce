@@ -28,6 +28,9 @@ import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.bookmarks.domain.BookmarksRepository
 import androidx.core.net.toUri
 import org.koitharu.kotatsu.core.model.LocalMangaSource
+import org.koitharu.kotatsu.core.model.MangaSource
+import org.koitharu.kotatsu.core.model.getTitle
+import org.koitharu.kotatsu.favourites.domain.FavouriteTitleIndex
 import org.koitharu.kotatsu.core.model.getPreferredBranch
 import org.koitharu.kotatsu.local.data.isEpubFile
 import java.io.File
@@ -96,6 +99,7 @@ class DetailsViewModel @Inject constructor(
 	private val coil: ImageLoader,
 	@ApplicationContext private val context: Context,
 	private val shortcutManager: AppShortcutManager,
+	private val favouriteTitles: FavouriteTitleIndex,
 ) : ChaptersPagesViewModel(
 	settings = settings,
 	interactor = interactor,
@@ -129,6 +133,19 @@ class DetailsViewModel @Inject constructor(
 	val favouriteCategories = interactor.observeFavourite(mangaId)
 		.withErrorHandling()
 		.stateIn(viewModelScope + Dispatchers.Default, SharingStarted.Eagerly, emptySet())
+
+	/** Source name of a same-titled favourite when this entry itself is not a favourite. */
+	val favouriteElsewhere: StateFlow<String?> = combine(mangaDetails, favouriteCategories) { details, categories ->
+		details to categories.isNotEmpty()
+	}.mapLatest { (details, isFavourite) ->
+		if (details == null || isFavourite) {
+			null
+		} else {
+			val manga = details.toManga()
+			favouriteTitles.load().find(manga.id, manga.title, manga.altTitles)
+				?.let { MangaSource(it.sourceName).getTitle(context) }
+		}
+	}.stateIn(viewModelScope + Dispatchers.Default, SharingStarted.Eagerly, null)
 
 	val isStatsAvailable = statsRepository.observeHasStats(mangaId)
 		.withErrorHandling()
