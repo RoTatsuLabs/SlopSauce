@@ -1,36 +1,25 @@
 package org.koitharu.kotatsu.download.ui.list
 
 import android.os.Bundle
-import android.view.Menu
-import android.view.MenuInflater
-import android.view.MenuItem
 import android.view.View
 import androidx.activity.viewModels
-import androidx.appcompat.view.ActionMode
-import androidx.core.graphics.Insets
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.core.view.WindowInsetsCompat
-import androidx.core.view.updatePadding
 import coil3.ImageLoader
 import dagger.hilt.android.AndroidEntryPoint
-import org.koitharu.kotatsu.R
-import org.koitharu.kotatsu.core.util.ext.roundTopCorners
 import org.koitharu.kotatsu.core.nav.router
 import org.koitharu.kotatsu.core.ui.BaseActivity
-import org.koitharu.kotatsu.core.ui.list.ListSelectionController
-import org.koitharu.kotatsu.core.ui.list.RecyclerScrollKeeper
-import org.koitharu.kotatsu.core.ui.util.MenuInvalidator
 import org.koitharu.kotatsu.core.ui.util.ReversibleActionObserver
-import org.koitharu.kotatsu.core.util.ext.observe
 import org.koitharu.kotatsu.core.util.ext.observeEvent
 import org.koitharu.kotatsu.databinding.ActivityDownloadsBinding
 import org.koitharu.kotatsu.download.ui.worker.DownloadWorker
-import org.koitharu.kotatsu.list.ui.adapter.TypedListSpacingDecoration
+import org.koitharu.kotatsu.settings.compose.DropSauceTheme
 import javax.inject.Inject
 
 @AndroidEntryPoint
-class DownloadsActivity : BaseActivity<ActivityDownloadsBinding>(),
-	DownloadItemListener,
-	ListSelectionController.Callback {
+class DownloadsActivity : BaseActivity<ActivityDownloadsBinding>() {
 
 	@Inject
 	lateinit var coil: ImageLoader
@@ -39,166 +28,53 @@ class DownloadsActivity : BaseActivity<ActivityDownloadsBinding>(),
 	lateinit var scheduler: DownloadWorker.Scheduler
 
 	private val viewModel by viewModels<DownloadsViewModel>()
-	private lateinit var selectionController: ListSelectionController
 
 	override fun onCreate(savedInstanceState: Bundle?) {
 		super.onCreate(savedInstanceState)
 		setContentView(ActivityDownloadsBinding.inflate(layoutInflater))
-		setDisplayHomeAsUp(isEnabled = true, showUpAsClose = false)
-		val downloadsAdapter = DownloadsAdapter(this, this)
-		val decoration = TypedListSpacingDecoration(this, false)
-		selectionController = ListSelectionController(
-			appCompatDelegate = delegate,
-			decoration = DownloadsSelectionDecoration(this),
-			registryOwner = this,
-			callback = this,
+		val callbacks = DownloadsCallbacks(
+			onBack = ::finish,
+			onOpen = { item -> item.manga?.let { router.openDetails(it) } },
+			onExpand = viewModel::expandCollapse,
+			onPause = { scheduler.pause(it.id) },
+			onResume = { scheduler.resume(it.id) },
+			onRetry = { viewModel.retry(it.id) },
+			onCancel = { viewModel.cancel(it.id) },
+			onSkip = { scheduler.skip(it.id) },
+			onSkipAll = { scheduler.skipAll(it.id) },
+			onPauseSelected = viewModel::pause,
+			onResumeSelected = viewModel::resume,
+			onCancelSelected = viewModel::cancel,
+			onRemoveSelected = viewModel::remove,
+			onMoveTop = viewModel::moveToTop,
+			onMoveEnd = viewModel::moveToEnd,
+			onPauseAll = viewModel::pauseAll,
+			onResumeAll = viewModel::resumeAll,
+			onCancelAll = viewModel::cancelAll,
+			onRemoveCompleted = viewModel::removeCompleted,
+			onSettings = { router.openDownloadsSetting() },
 		)
-		with(viewBinding.recyclerView) {
-			roundTopCorners(
-				radius = resources.getDimension(R.dimen.tile_corner),
-				extraInset = resources.getDimensionPixelOffset(R.dimen.list_spacing_normal),
-			)
-			setHasFixedSize(true)
-			addItemDecoration(decoration)
-			adapter = downloadsAdapter
-			selectionController.attachToRecyclerView(this)
-			RecyclerScrollKeeper(this).attach()
-		}
-		addMenuProvider(DownloadsMenuProvider(this, viewModel))
-		viewModel.items.observe(this, downloadsAdapter)
-		viewModel.onActionDone.observeEvent(this, ReversibleActionObserver(viewBinding.recyclerView))
-		val menuInvalidator = MenuInvalidator(this)
-		viewModel.hasActiveWorks.observe(this, menuInvalidator)
-		viewModel.hasPausedWorks.observe(this, menuInvalidator)
-		viewModel.hasCancellableWorks.observe(this, menuInvalidator)
-	}
-
-	override fun onApplyWindowInsets(v: View, insets: WindowInsetsCompat): WindowInsetsCompat {
-		val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-		viewBinding.recyclerView.updatePadding(
-			left = bars.left,
-			right = bars.right,
-			bottom = bars.bottom,
+		viewBinding.composeView.setViewCompositionStrategy(
+			ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed,
 		)
-		viewBinding.appbar.updatePadding(
-			left = bars.left,
-			right = bars.right,
-			top = bars.top,
-		)
-		return WindowInsetsCompat.Builder(insets)
-			.setInsets(WindowInsetsCompat.Type.systemBars(), Insets.NONE)
-			.build()
-	}
-
-	override fun onItemClick(item: DownloadItemModel, view: View) {
-		if (selectionController.onItemClick(view, item.id.mostSignificantBits)) {
-			return
+		viewBinding.composeView.setContent {
+			DropSauceTheme {
+				val models by viewModel.models.collectAsState()
+				val hasActive by viewModel.hasActiveWorks.collectAsState()
+				val hasPaused by viewModel.hasPausedWorks.collectAsState()
+				val hasCancellable by viewModel.hasCancellableWorks.collectAsState()
+				DownloadsScreen(
+					models = models,
+					imageLoader = coil,
+					hasActive = hasActive,
+					hasPaused = hasPaused,
+					hasCancellable = hasCancellable,
+					callbacks = callbacks,
+				)
+			}
 		}
-		router.openDetails(item.manga ?: return)
+		viewModel.onActionDone.observeEvent(this, ReversibleActionObserver(viewBinding.composeView))
 	}
 
-	override fun onItemLongClick(item: DownloadItemModel, view: View): Boolean {
-		return selectionController.onItemLongClick(view, item.id.mostSignificantBits)
-	}
-
-	override fun onItemContextClick(item: DownloadItemModel, view: View): Boolean {
-		return selectionController.onItemContextClick(view, item.id.mostSignificantBits)
-	}
-
-	override fun onExpandClick(item: DownloadItemModel, view: View) {
-		if (!selectionController.onItemClick(view, item.id.mostSignificantBits)) {
-			viewModel.expandCollapse(item)
-		}
-	}
-
-	override fun onCancelClick(item: DownloadItemModel) {
-		viewModel.cancel(item.id)
-	}
-
-	override fun onPauseClick(item: DownloadItemModel) {
-		scheduler.pause(item.id)
-	}
-
-	override fun onResumeClick(item: DownloadItemModel) {
-		scheduler.resume(item.id)
-	}
-
-	override fun onRetryClick(item: DownloadItemModel) {
-		viewModel.retry(item.id)
-	}
-
-	override fun onSkipClick(item: DownloadItemModel) {
-		scheduler.skip(item.id)
-	}
-
-	override fun onSkipAllClick(item: DownloadItemModel) {
-		scheduler.skipAll(item.id)
-	}
-
-	override fun onSelectionChanged(controller: ListSelectionController, count: Int) {
-		viewBinding.recyclerView.invalidateItemDecorations()
-	}
-
-	override fun onCreateActionMode(
-		controller: ListSelectionController,
-		menuInflater: MenuInflater,
-		menu: Menu
-	): Boolean {
-		menuInflater.inflate(R.menu.mode_downloads, menu)
-		return true
-	}
-
-	override fun onActionItemClicked(controller: ListSelectionController, mode: ActionMode?, item: MenuItem): Boolean {
-		return when (item.itemId) {
-			R.id.action_resume -> {
-				viewModel.resume(controller.snapshot())
-				mode?.finish()
-				true
-			}
-
-			R.id.action_pause -> {
-				viewModel.pause(controller.snapshot())
-				mode?.finish()
-				true
-			}
-
-			R.id.action_cancel -> {
-				viewModel.cancel(controller.snapshot())
-				mode?.finish()
-				true
-			}
-
-			R.id.action_remove -> {
-				viewModel.remove(controller.snapshot())
-				mode?.finish()
-				true
-			}
-
-			R.id.action_select_all -> {
-				controller.addAll(viewModel.allIds())
-				true
-			}
-
-			else -> false
-		}
-	}
-
-	override fun onPrepareActionMode(controller: ListSelectionController, mode: ActionMode?, menu: Menu): Boolean {
-		val snapshot = viewModel.snapshot(controller.peekCheckedIds())
-		var canPause = true
-		var canResume = true
-		var canCancel = true
-		var canRemove = true
-		for (item in snapshot) {
-			canPause = canPause and item.canPause
-			canResume = canResume and item.canResume
-			canCancel = canCancel and !item.workState.isFinished
-			canRemove = canRemove and item.workState.isFinished
-		}
-		menu.findItem(R.id.action_pause)?.isVisible = canPause
-		menu.findItem(R.id.action_resume)?.isVisible = canResume
-		menu.findItem(R.id.action_cancel)?.isVisible = canCancel
-		menu.findItem(R.id.action_remove)?.isVisible = canRemove
-		return super.onPrepareActionMode(controller, mode, menu)
-	}
+	override fun onApplyWindowInsets(v: View, insets: WindowInsetsCompat): WindowInsetsCompat = insets
 }

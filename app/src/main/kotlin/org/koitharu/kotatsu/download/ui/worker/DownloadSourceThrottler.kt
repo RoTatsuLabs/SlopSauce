@@ -7,6 +7,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
+import org.koitharu.kotatsu.core.prefs.AppSettings
 import org.koitharu.kotatsu.core.prefs.SourceSettings
 import org.koitharu.kotatsu.parsers.model.MangaSource
 import javax.inject.Inject
@@ -14,7 +15,7 @@ import javax.inject.Singleton
 
 /**
  * Keeps every running download polite to the site it reads from: at most
- * [MAX_CONCURRENT_REQUESTS_PER_SOURCE] requests in flight per source across the whole app, plus the
+ * the configured number of requests in flight per source across the whole app, plus the
  * optional per-source slowdown.
  *
  * The per-chapter page parallelism inside a download is unaware of other downloads, so without a
@@ -24,10 +25,11 @@ import javax.inject.Singleton
 @Singleton
 class DownloadSourceThrottler @Inject constructor(
 	@ApplicationContext private val context: Context,
+	private val appSettings: AppSettings,
 ) {
 
 	private val nextSlot = MutableObjectLongMap<MangaSource>()
-	private val semaphores = HashMap<MangaSource, Semaphore>()
+	private val semaphores = HashMap<MangaSource, Pair<Int, Semaphore>>()
 	private val settingsMap = HashMap<MangaSource, SourceSettings>()
 
 	/**
@@ -38,8 +40,15 @@ class DownloadSourceThrottler @Inject constructor(
 
 	/** Runs [block] as one request against [source], waiting for a free slot first. */
 	suspend fun <T> withRequestPermit(source: MangaSource, block: suspend () -> T): T {
+		val limit = appSettings.downloadConnections
 		val semaphore = synchronized(semaphores) {
-			semaphores.getOrPut(source) { Semaphore(MAX_CONCURRENT_REQUESTS_PER_SOURCE) }
+			// Rebuilt when the limit setting changes; requests already running keep their old permit
+			val current = semaphores[source]
+			if (current != null && current.first == limit) {
+				current.second
+			} else {
+				Semaphore(limit).also { semaphores[source] = limit to it }
+			}
 		}
 		return semaphore.withPermit {
 			awaitSlot(source)
@@ -68,7 +77,6 @@ class DownloadSourceThrottler @Inject constructor(
 
 	private companion object {
 
-		const val MAX_CONCURRENT_REQUESTS_PER_SOURCE = 5
 		const val REQUEST_INTERVAL = 1_600L
 	}
 }
