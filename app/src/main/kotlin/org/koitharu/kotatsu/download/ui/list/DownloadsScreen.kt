@@ -4,7 +4,6 @@ import android.text.format.Formatter
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
@@ -59,7 +58,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -269,6 +267,13 @@ fun DownloadsScreen(
 								if (selected.isNotEmpty()) {
 									selected = if (id in selected) selected - id else selected + id
 								} else {
+									callbacks.onExpand(item)
+								}
+							},
+							onOpenManga = {
+								if (selected.isNotEmpty()) {
+									selected = if (id in selected) selected - id else selected + id
+								} else {
 									callbacks.onOpen(item)
 								}
 							},
@@ -428,6 +433,7 @@ private fun DownloadRow(
 	shape: RoundedCornerShape,
 	callbacks: DownloadsCallbacks,
 	onClick: () -> Unit,
+	onOpenManga: () -> Unit,
 	onLongClick: () -> Unit,
 	modifier: Modifier = Modifier,
 ) {
@@ -443,7 +449,8 @@ private fun DownloadRow(
 	val chapters by item.chapters.collectAsState()
 	val hasChapters = !chapters.isNullOrEmpty()
 	val hasError = item.error != null
-	val hasActions = !item.isFinished || hasChapters
+	val hasActions = !item.isFinished
+	val openManga = Modifier.combinedClickable(onClick = onOpenManga, onLongClick = onLongClick)
 	Surface(
 		modifier = modifier
 			.fillMaxWidth()
@@ -469,7 +476,8 @@ private fun DownloadRow(
 						contentScale = ContentScale.Crop,
 						modifier = Modifier
 							.size(ROW_COVER_WIDTH, ROW_COVER_HEIGHT)
-							.clip(RoundedCornerShape(16.dp)),
+							.clip(RoundedCornerShape(16.dp))
+							.then(openManga),
 					)
 				} ?: Spacer(Modifier.size(ROW_COVER_WIDTH, ROW_COVER_HEIGHT))
 				Spacer(Modifier.width(16.dp))
@@ -479,6 +487,7 @@ private fun DownloadRow(
 						style = MaterialTheme.typography.titleMedium,
 						maxLines = 2,
 						overflow = TextOverflow.Ellipsis,
+						modifier = openManga,
 					)
 					Spacer(Modifier.height(4.dp))
 					Text(
@@ -505,16 +514,6 @@ private fun DownloadRow(
 			}
 			if (hasActions) {
 				Row(verticalAlignment = Alignment.CenterVertically) {
-					if (hasChapters) {
-						val rotation by animateFloatAsState(if (item.isExpanded) 180f else 0f, label = "chevron")
-						IconButton(onClick = { callbacks.onExpand(item) }) {
-							Icon(
-								painterResource(R.drawable.ic_expand_more),
-								contentDescription = null,
-								modifier = Modifier.rotate(rotation),
-							)
-						}
-					}
 					Spacer(Modifier.weight(1f))
 					if (item.isPaused && hasError) {
 						TextButton(onClick = { callbacks.onSkip(item) }) { Text(stringResource(R.string.skip)) }
