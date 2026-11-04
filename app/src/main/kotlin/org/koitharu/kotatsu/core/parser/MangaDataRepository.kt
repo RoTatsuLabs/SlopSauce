@@ -35,6 +35,7 @@ import org.koitharu.kotatsu.core.ui.model.MangaOverride
 import org.koitharu.kotatsu.core.util.ext.toFileOrNull
 import org.koitharu.kotatsu.parsers.model.Manga
 import org.koitharu.kotatsu.parsers.model.MangaSource
+import org.koitharu.kotatsu.parsers.model.MangaState
 import org.koitharu.kotatsu.parsers.model.MangaTag
 import org.koitharu.kotatsu.parsers.util.nullIfEmpty
 import org.koitharu.kotatsu.reader.domain.ReaderColorFilter
@@ -138,6 +139,10 @@ class MangaDataRepository @Inject constructor(
 					descriptionOverride = normalizedOverride?.description?.nullIfEmpty(),
 					coverUrlOverride = normalizedOverride?.coverUrl?.nullIfEmpty(),
 					contentRatingOverride = normalizedOverride?.contentRating?.name,
+					tagsOverride = normalizedOverride?.tags?.let { Json.encodeToString(stringListSerializer, it.toList()) },
+					authorsOverride = normalizedOverride?.authors?.let { Json.encodeToString(stringListSerializer, it.toList()) },
+					stateOverride = normalizedOverride?.state?.name,
+					ratingOverride = normalizedOverride?.rating,
 				),
 			)
 			normalizedOverride
@@ -249,7 +254,8 @@ class MangaDataRepository @Inject constructor(
 		detailsFetched: Boolean = false,
 	) {
 		val mangaDao = db.getMangaDao()
-		val existing = mangaDao.find(manga.id)?.manga
+		val existingFull = mangaDao.find(manga.id)
+		val existing = existingFull?.manga
 		if (!replaceExisting && existing != null) {
 			return
 		}
@@ -263,11 +269,26 @@ class MangaDataRepository @Inject constructor(
 			null
 		}
 		val sourceManga = manga.withoutAppliedOverride(existing, override)
-		val tags = sourceManga.tags.toEntities()
+		// Tags, authors, state and rating overrides are not stripped one by one like the title: when the
+		// manga still carries the overridden value, the stored source value is kept instead.
+		val overriddenTags = override?.tags != null && existingFull != null &&
+			manga.tags.mapTo(HashSet()) { it.title } == override.tags
+		val tags = if (overriddenTags) existingFull!!.tags else sourceManga.tags.toEntities()
 		db.getTagsDao().upsert(tags)
-		val entity = sourceManga.toEntity().copy(
+		var entity = sourceManga.toEntity().copy(
 			detailsUpdatedAt = if (detailsFetched) System.currentTimeMillis() else existing?.detailsUpdatedAt ?: 0L,
 		)
+		if (existing != null && override != null) {
+			if (override.authors != null && manga.authors == override.authors) {
+				entity = entity.copy(authors = existing.authors)
+			}
+			if (override.state != null && manga.state == override.state) {
+				entity = entity.copy(state = existing.state)
+			}
+			if (override.rating != null && manga.rating == override.rating) {
+				entity = entity.copy(rating = existing.rating)
+			}
+		}
 		mangaDao.upsert(entity, tags)
 		if (!sourceManga.isLocal) {
 			sourceManga.chapters?.let { chapters ->
@@ -313,12 +334,20 @@ class MangaDataRepository @Inject constructor(
 			description = description?.trim()?.nullIfEmpty()?.takeUnless { it == source.description },
 			coverUrl = coverUrl?.nullIfEmpty()?.takeUnless { it == source.coverUrl || it == source.largeCoverUrl },
 			contentRating = contentRating?.takeUnless { it == ContentRating(source.contentRating) },
+			tags = tags?.takeUnless { it.isEmpty() },
+			authors = authors?.takeUnless { it.isEmpty() },
+			state = state?.takeUnless { it.name == source.state },
+			rating = rating?.takeIf { it >= 0f },
 		)
 		return if (
 			normalized.title.isNullOrEmpty() &&
 			normalized.description.isNullOrEmpty() &&
 			normalized.coverUrl.isNullOrEmpty() &&
-			normalized.contentRating == null
+			normalized.contentRating == null &&
+			normalized.tags == null &&
+			normalized.authors == null &&
+			normalized.state == null &&
+			normalized.rating == null
 		) {
 			null
 		} else {
@@ -342,7 +371,9 @@ class MangaDataRepository @Inject constructor(
 
 	private fun MangaPrefsEntity.getOverrideOrNull(): MangaOverride? {
 		return if (titleOverride.isNullOrEmpty() && coverUrlOverride.isNullOrEmpty() &&
-			descriptionOverride.isNullOrEmpty() && contentRatingOverride.isNullOrEmpty()
+			descriptionOverride.isNullOrEmpty() && contentRatingOverride.isNullOrEmpty() &&
+			tagsOverride.isNullOrEmpty() && authorsOverride.isNullOrEmpty() && stateOverride.isNullOrEmpty() &&
+			ratingOverride == null
 		) {
 			null
 		} else {
@@ -351,9 +382,17 @@ class MangaDataRepository @Inject constructor(
 				title = titleOverride?.nullIfEmpty(),
 				description = descriptionOverride?.nullIfEmpty(),
 				contentRating = ContentRating(contentRatingOverride),
+				tags = tagsOverride?.let { decodeStringSet(it) },
+				authors = authorsOverride?.let { decodeStringSet(it) },
+				state = stateOverride?.let { name -> MangaState.entries.find { it.name == name } },
+				rating = ratingOverride,
 			)
 		}
 	}
+
+	private fun decodeStringSet(json: String): Set<String>? = runCatching {
+		Json.decodeFromString(stringListSerializer, json).toCollection(LinkedHashSet())
+	}.getOrNull()?.takeUnless { it.isEmpty() }
 
 	private fun newEntity(mangaId: Long) = MangaPrefsEntity(
 		mangaId = mangaId,
@@ -372,3 +411,4 @@ class MangaDataRepository @Inject constructor(
 }
 
 private val scanlatorsSerializer = ListSerializer(String.serializer().nullable)
+private val stringListSerializer = ListSerializer(String.serializer())

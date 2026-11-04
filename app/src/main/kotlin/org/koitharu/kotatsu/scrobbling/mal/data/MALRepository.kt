@@ -19,6 +19,9 @@ import org.koitharu.kotatsu.scrobbling.common.data.ScrobblerStorage
 import org.koitharu.kotatsu.scrobbling.common.data.ScrobblingEntity
 import org.koitharu.kotatsu.scrobbling.common.domain.model.ScrobblerManga
 import org.koitharu.kotatsu.scrobbling.common.domain.model.ScrobblerMangaInfo
+import org.koitharu.kotatsu.scrobbling.common.domain.model.ScrobblerMangaStatus
+import org.koitharu.kotatsu.scrobbling.common.domain.model.cleanAltNames
+import org.koitharu.kotatsu.scrobbling.common.domain.model.stringList
 import org.koitharu.kotatsu.scrobbling.common.domain.model.ScrobblerMangaType
 import org.koitharu.kotatsu.scrobbling.common.domain.model.ScrobblerService
 import org.koitharu.kotatsu.scrobbling.common.domain.model.ScrobblerType
@@ -122,7 +125,10 @@ class MALRepository @Inject constructor(
 		val url = BASE_API_URL.toHttpUrl().newBuilder()
 			.addPathSegment("manga")
 			.addPathSegment(id.toString())
-			.addQueryParameter("fields", "synopsis,num_chapters")
+			.addQueryParameter(
+				"fields",
+				"synopsis,num_chapters,genres,alternative_titles,authors{first_name,last_name},status,start_date,mean,nsfw",
+			)
 			.build()
 		val request = Request.Builder().url(url)
 		val response = okHttp.newCall(request.build()).await().parseJson()
@@ -256,14 +262,48 @@ class MALRepository @Inject constructor(
 		)
 	}
 
-	private fun ScrobblerMangaInfo(json: JSONObject) = ScrobblerMangaInfo(
-		id = json.getLong("id"),
-		name = json.getString("title"),
-		cover = json.optJSONObject("main_picture")?.getStringOrNull("large").orEmpty(),
-		url = "$BASE_WEB_URL/manga/${json.getLong("id")}",
-		descriptionHtml = json.getStringOrNull("synopsis").orEmpty(),
-		totalChapters = json.optInt("num_chapters"),
-	)
+	private fun ScrobblerMangaInfo(json: JSONObject): ScrobblerMangaInfo {
+		val name = json.getString("title")
+		val alt = json.optJSONObject("alternative_titles")
+		val authors = ArrayList<String>()
+		val authorArray = json.optJSONArray("authors")
+		if (authorArray != null) {
+			for (i in 0 until authorArray.length()) {
+				val node = authorArray.optJSONObject(i)?.optJSONObject("node") ?: continue
+				val full = listOfNotNull(node.getStringOrNull("first_name"), node.getStringOrNull("last_name"))
+					.joinToString(" ").trim()
+				if (full.isNotEmpty()) {
+					authors.add(full)
+				}
+			}
+		}
+		return ScrobblerMangaInfo(
+			id = json.getLong("id"),
+			name = name,
+			cover = json.optJSONObject("main_picture")?.getStringOrNull("large").orEmpty(),
+			url = "$BASE_WEB_URL/manga/${json.getLong("id")}",
+			descriptionHtml = json.getStringOrNull("synopsis").orEmpty(),
+			totalChapters = json.optInt("num_chapters"),
+			genres = json.optJSONArray("genres").stringList("name"),
+			altNames = cleanAltNames(
+				name,
+				listOfNotNull(alt?.getStringOrNull("en"), alt?.getStringOrNull("ja")),
+				alt?.optJSONArray("synonyms").stringList(),
+			),
+			authors = authors.distinct(),
+			status = when (json.optString("status")) {
+				"finished" -> ScrobblerMangaStatus.FINISHED
+				"currently_publishing" -> ScrobblerMangaStatus.ONGOING
+				"not_yet_published" -> ScrobblerMangaStatus.UPCOMING
+				"on_hiatus" -> ScrobblerMangaStatus.PAUSED
+				"discontinued" -> ScrobblerMangaStatus.CANCELLED
+				else -> null
+			},
+			year = json.optString("start_date").take(4).toIntOrNull() ?: 0,
+			score = json.optDouble("mean", 0.0).toFloat(),
+			isAdult = json.optString("nsfw") == "black",
+		)
+	}
 
 	@Suppress("FunctionName")
 	private fun MALUser(json: JSONObject) = ScrobblerUser(

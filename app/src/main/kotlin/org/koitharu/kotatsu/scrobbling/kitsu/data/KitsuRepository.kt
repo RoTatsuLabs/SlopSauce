@@ -23,6 +23,9 @@ import org.koitharu.kotatsu.scrobbling.common.data.ScrobblerStorage
 import org.koitharu.kotatsu.scrobbling.common.data.ScrobblingEntity
 import org.koitharu.kotatsu.scrobbling.common.domain.model.ScrobblerManga
 import org.koitharu.kotatsu.scrobbling.common.domain.model.ScrobblerMangaInfo
+import org.koitharu.kotatsu.scrobbling.common.domain.model.ScrobblerMangaStatus
+import org.koitharu.kotatsu.scrobbling.common.domain.model.cleanAltNames
+import org.koitharu.kotatsu.scrobbling.common.domain.model.stringList
 import org.koitharu.kotatsu.scrobbling.common.domain.model.ScrobblerMangaType
 import org.koitharu.kotatsu.scrobbling.common.domain.model.ScrobblerService
 import org.koitharu.kotatsu.scrobbling.common.domain.model.ScrobblerUser
@@ -125,16 +128,48 @@ class KitsuRepository(
 	override suspend fun getMangaInfo(id: Long): ScrobblerMangaInfo {
 		val request = Request.Builder()
 			.get()
-			.url("$BASE_WEB_URL/api/edge/manga/$id")
-		val data = okHttp.newCall(request.build()).await().parseJson().ensureSuccess().getJSONObject("data")
+			.url("$BASE_WEB_URL/api/edge/manga/$id?include=genres")
+		val root = okHttp.newCall(request.build()).await().parseJson().ensureSuccess()
+		val data = root.getJSONObject("data")
 		val attrs = data.getJSONObject("attributes")
+		val name = attrs.getString("canonicalTitle")
+		val genres = ArrayList<String>()
+		val included = root.optJSONArray("included")
+		if (included != null) {
+			for (i in 0 until included.length()) {
+				val item = included.optJSONObject(i) ?: continue
+				if (item.optString("type") == "genres") {
+					item.optJSONObject("attributes")?.getStringOrNull("name")?.let(genres::add)
+				}
+			}
+		}
+		val titles = attrs.optJSONObject("titles")
 		return ScrobblerMangaInfo(
 			id = data.getAsLong("id"),
-			name = attrs.getString("canonicalTitle"),
+			name = name,
 			cover = attrs.getJSONObject("posterImage").getString("medium"),
 			url = "$BASE_WEB_URL/manga/${attrs.getString("slug")}",
 			descriptionHtml = attrs.getString("description").replace("\\n", "<br>"),
 			totalChapters = attrs.optInt("chapterCount"),
+			genres = genres,
+			altNames = cleanAltNames(
+				name,
+				listOfNotNull(
+					titles?.getStringOrNull("en"),
+					titles?.getStringOrNull("en_jp"),
+					titles?.getStringOrNull("ja_jp"),
+				),
+				attrs.optJSONArray("abbreviatedTitles").stringList(),
+			),
+			status = when (attrs.optString("status")) {
+				"finished" -> ScrobblerMangaStatus.FINISHED
+				"current" -> ScrobblerMangaStatus.ONGOING
+				"tba", "unreleased", "upcoming" -> ScrobblerMangaStatus.UPCOMING
+				else -> null
+			},
+			year = attrs.optString("startDate").take(4).toIntOrNull() ?: 0,
+			score = (attrs.optString("averageRating").toFloatOrNull() ?: 0f) / 10f,
+			isAdult = attrs.optString("ageRating") == "R18" || attrs.optBoolean("nsfw", false),
 		)
 	}
 

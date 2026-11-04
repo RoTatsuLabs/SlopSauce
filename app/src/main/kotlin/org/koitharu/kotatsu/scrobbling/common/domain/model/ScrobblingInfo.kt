@@ -16,6 +16,13 @@ data class ScrobblingInfo(
 	val coverUrl: String,
 	val description: CharSequence?,
 	val externalUrl: String,
+	val genres: List<String> = emptyList(),
+	val altNames: List<String> = emptyList(),
+	val authors: List<String> = emptyList(),
+	val mangaStatus: ScrobblerMangaStatus? = null,
+	val year: Int = 0,
+	val score: Float = 0f,
+	val isAdult: Boolean = false,
 ) : ListModel {
 
 	override fun areItemsTheSame(other: ListModel): Boolean {

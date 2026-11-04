@@ -21,6 +21,9 @@ import org.koitharu.kotatsu.scrobbling.common.data.ScrobblerStorage
 import org.koitharu.kotatsu.scrobbling.common.data.ScrobblingEntity
 import org.koitharu.kotatsu.scrobbling.common.domain.model.ScrobblerManga
 import org.koitharu.kotatsu.scrobbling.common.domain.model.ScrobblerMangaInfo
+import org.koitharu.kotatsu.scrobbling.common.domain.model.ScrobblerMangaStatus
+import org.koitharu.kotatsu.scrobbling.common.domain.model.cleanAltNames
+import org.koitharu.kotatsu.scrobbling.common.domain.model.stringList
 import org.koitharu.kotatsu.scrobbling.common.domain.model.ScrobblerMangaType
 import org.koitharu.kotatsu.scrobbling.common.domain.model.ScrobblerService
 import org.koitharu.kotatsu.scrobbling.common.domain.model.ScrobblerType
@@ -135,13 +138,50 @@ class MangaBakaRepository @Inject constructor(
 	override suspend fun getMangaInfo(id: Long): ScrobblerMangaInfo {
 		val request = Request.Builder().url("$BASE_API_URL/series/$id").get()
 		val json = okHttp.newCall(request.build()).await().parseJson().getJSONObject("data")
+		val name = json.title()
+		val secondary = json.optJSONObject("secondary_titles")
+		val secondaryTitles = ArrayList<String>()
+		if (secondary != null) {
+			for (key in secondary.keys()) {
+				val value = secondary.opt(key)
+				if (value is org.json.JSONArray) {
+					for (i in 0 until value.length()) {
+						val item = value.opt(i)
+						when (item) {
+							is String -> secondaryTitles.add(item)
+							is JSONObject -> item.getStringOrNull("title")?.let(secondaryTitles::add)
+						}
+					}
+				} else if (value is String) {
+					secondaryTitles.add(value)
+				}
+			}
+		}
 		return ScrobblerMangaInfo(
 			id = json.getLong("id"),
-			name = json.title(),
+			name = name,
 			cover = json.coverUrl().orEmpty(),
 			url = "$BASE_WEB_URL/${json.getLong("id")}",
 			descriptionHtml = json.getStringOrNull("description").orEmpty(),
 			totalChapters = json.optInt("total_chapters"),
+			genres = json.optJSONArray("genres").stringList(),
+			altNames = cleanAltNames(
+				name,
+				listOfNotNull(json.getStringOrNull("native_title"), json.getStringOrNull("romanized_title")),
+				secondaryTitles,
+			),
+			authors = (json.optJSONArray("authors").stringList() + json.optJSONArray("artists").stringList()).distinct(),
+			status = when (json.optString("status")) {
+				"completed" -> ScrobblerMangaStatus.FINISHED
+				"releasing" -> ScrobblerMangaStatus.ONGOING
+				"upcoming" -> ScrobblerMangaStatus.UPCOMING
+				"hiatus" -> ScrobblerMangaStatus.PAUSED
+				"cancelled" -> ScrobblerMangaStatus.CANCELLED
+				else -> null
+			},
+			year = json.optInt("year"),
+			score = json.optDouble("rating", 0.0).toFloat(),
+			isAdult = json.optString("content_rating").let { it == "pornographic" || it == "erotica" },
 		)
 	}
 

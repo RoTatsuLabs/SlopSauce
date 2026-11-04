@@ -35,4 +35,10 @@ data class MangaPrefsEntity(
 	@ColumnInfo(name = "merge_scanlators", defaultValue = "0") val mergeScanlators: Boolean = false,
 	/** JSON array of the merged branch names (null = unnamed branch), for a partial merge. */
 	@ColumnInfo(name = "merged_scanlators") val mergedScanlators: String? = null,
+	/** JSON array of tag names that replace the source tags. */
+	@ColumnInfo(name = "tags_override") val tagsOverride: String? = null,
+	/** JSON array of author names that replace the source authors. */
+	@ColumnInfo(name = "authors_override") val authorsOverride: String? = null,
+	@ColumnInfo(name = "state_override") val stateOverride: String? = null,
+	@ColumnInfo(name = "rating_override") val ratingOverride: Float? = null,
 )

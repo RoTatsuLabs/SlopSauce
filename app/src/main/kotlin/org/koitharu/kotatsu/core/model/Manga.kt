@@ -19,6 +19,7 @@ import org.koitharu.kotatsu.parsers.model.Manga
 import org.koitharu.kotatsu.parsers.model.MangaChapter
 import org.koitharu.kotatsu.parsers.model.MangaListFilter
 import org.koitharu.kotatsu.parsers.model.MangaState
+import org.koitharu.kotatsu.parsers.model.MangaTag
 import org.koitharu.kotatsu.parsers.util.findById
 import org.koitharu.kotatsu.parsers.util.ifNullOrEmpty
 import org.koitharu.kotatsu.parsers.util.mapToSet
@@ -246,6 +247,12 @@ fun Manga.withOverride(override: MangaOverride?) = if (override != null) {
 		coverUrl = override.coverUrl.ifNullOrEmpty { coverUrl },
 		largeCoverUrl = override.coverUrl.ifNullOrEmpty { largeCoverUrl },
 		contentRating = override.contentRating ?: contentRating,
+		tags = override.tags?.let { names ->
+			names.mapTo(LinkedHashSet()) { MangaTag(title = it, key = it.lowercase(), source = source) }
+		} ?: tags,
+		authors = override.authors ?: authors,
+		state = override.state ?: state,
+		rating = override.rating ?: rating,
 	)
 } else {
 	this

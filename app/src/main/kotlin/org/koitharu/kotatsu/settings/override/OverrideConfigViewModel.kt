@@ -32,7 +32,9 @@ import org.koitharu.kotatsu.core.util.ext.require
 import org.koitharu.kotatsu.core.util.ext.toFileOrNull
 import org.koitharu.kotatsu.core.util.ext.toMimeTypeOrNull
 import org.koitharu.kotatsu.core.util.ext.toUriOrNull
+import org.koitharu.kotatsu.parsers.model.ContentRating
 import org.koitharu.kotatsu.parsers.model.Manga
+import org.koitharu.kotatsu.parsers.model.MangaState
 import org.koitharu.kotatsu.scrobbling.common.domain.Scrobbler
 import org.koitharu.kotatsu.scrobbling.common.domain.model.ScrobblingInfo
 import org.koitharu.kotatsu.parsers.util.md5
@@ -75,7 +77,15 @@ class OverrideConfigViewModel @Inject constructor(
 		}
 	}
 
-	fun save(title: String?, description: String?) {
+	fun save(
+		title: String?,
+		description: String?,
+		tags: Set<String>?,
+		authors: Set<String>?,
+		state: MangaState?,
+		contentRating: ContentRating?,
+		rating: Float?,
+	) {
 		launchLoadingJob(Dispatchers.Default) {
 			val (sourceManga, draftOverride) = checkNotNull(data.value)
 			val previousCover = dataRepository.getOverride(sourceManga.id)?.coverUrl
@@ -84,6 +94,11 @@ class OverrideConfigViewModel @Inject constructor(
 					title = title,
 					description = description,
 					coverUrl = it.coverUrl?.cachedFile(),
+					tags = tags,
+					authors = authors,
+					state = state,
+					contentRating = contentRating,
+					rating = rating,
 				)
 			}
 			val savedOverride = dataRepository.setOverride(sourceManga, override)
