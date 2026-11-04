@@ -183,7 +183,7 @@ fun TrackerImportSheet(
 					Text(
 						text = stringResource(
 							R.string.import_unavailable,
-							missing.joinToString(", ") { stringResource(it.titleResId) },
+							missing.joinToString(", ") { context.getString(it.titleResId) },
 						),
 						style = MaterialTheme.typography.bodySmall,
 						color = MaterialTheme.colorScheme.onSurfaceVariant,
