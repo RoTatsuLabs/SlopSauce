@@ -37,9 +37,6 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.LargeFlexibleTopAppBar
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.Scaffold
@@ -53,7 +50,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -101,12 +97,6 @@ class DownloadsCallbacks(
 	val onSettings: () -> Unit,
 )
 
-private enum class DownloadsTab(val titleRes: Int) {
-	ALL(R.string.download_tab_all),
-	ACTIVE(R.string.download_tab_downloading),
-	FINISHED(R.string.download_tab_finished),
-}
-
 private val ROW_COVER_WIDTH = 60.dp
 private val ROW_COVER_HEIGHT = 86.dp
 
@@ -120,7 +110,6 @@ fun DownloadsScreen(
 	hasCancellable: Boolean,
 	callbacks: DownloadsCallbacks,
 ) {
-	var tab by rememberSaveable { mutableStateOf(DownloadsTab.ALL) }
 	var selected by remember { mutableStateOf(emptySet<Long>()) }
 	var menuOpen by remember { mutableStateOf(false) }
 	var confirmCancelAll by remember { mutableStateOf(false) }
@@ -136,12 +125,7 @@ fun DownloadsScreen(
 	BackHandler(enabled = selected.isNotEmpty()) { selected = emptySet() }
 
 	val active = all.filter { !it.isFinished }
-	val finished = all.filter { it.isFinished }
-	val visible = when (tab) {
-		DownloadsTab.ALL -> all
-		DownloadsTab.ACTIVE -> active
-		DownloadsTab.FINISHED -> finished
-	}
+	val visible = all
 	val selectedItems = all.filter { it.id.mostSignificantBits in selected }
 	val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
@@ -212,25 +196,6 @@ fun DownloadsScreen(
 		},
 	) { padding ->
 		Column(Modifier.padding(padding).fillMaxSize()) {
-			SingleChoiceSegmentedButtonRow(
-				modifier = Modifier
-					.fillMaxWidth()
-					.padding(horizontal = 16.dp, vertical = 8.dp),
-			) {
-				DownloadsTab.entries.forEachIndexed { index, entry ->
-					val count = when (entry) {
-						DownloadsTab.ALL -> all.size
-						DownloadsTab.ACTIVE -> active.size
-						DownloadsTab.FINISHED -> finished.size
-					}
-					SegmentedButton(
-						selected = tab == entry,
-						onClick = { tab = entry },
-						shape = SegmentedButtonDefaults.itemShape(index, DownloadsTab.entries.size),
-						label = { Text("${stringResource(entry.titleRes)} $count", maxLines = 1) },
-					)
-				}
-			}
 			when {
 				models == null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
 					CircularProgressIndicator()
@@ -249,7 +214,7 @@ fun DownloadsScreen(
 					contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 24.dp),
 					verticalArrangement = Arrangement.spacedBy(3.dp),
 				) {
-					if (tab != DownloadsTab.FINISHED && active.isNotEmpty()) {
+					if (active.isNotEmpty()) {
 						item(key = "summary") {
 							SummaryBar(active)
 							Spacer(Modifier.height(8.dp))
