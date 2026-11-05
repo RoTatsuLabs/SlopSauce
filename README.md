@@ -56,7 +56,7 @@ SlopSauce is a personal fork, built for my own use and shared as is. It takes no
 </p>
 
 <p align="center">
-  <sub>Favorites | Details | Manga/Webtoon Reader | Novel Reader | Extensions | Settings</sub>
+  <sub>Favorites | Feed | Settings | Source Browsing | Details | Chapters | Manga Reader | Webtoon Reader | Novel Reader</sub>
 </p>
 
 ## Highlights

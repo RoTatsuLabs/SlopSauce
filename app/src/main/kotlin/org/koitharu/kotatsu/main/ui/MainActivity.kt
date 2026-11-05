@@ -15,6 +15,7 @@ import org.koitharu.kotatsu.core.ui.menu.MenuPopup
 import org.koitharu.kotatsu.secret.SecretGate
 import org.koitharu.kotatsu.secret.SecretSpace
 import androidx.core.graphics.Insets
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.MenuProvider
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
@@ -57,7 +58,6 @@ import org.koitharu.kotatsu.browser.AdListUpdateService
 import org.koitharu.kotatsu.core.exceptions.resolve.SnackbarErrorObserver
 import org.koitharu.kotatsu.core.nav.router
 import org.koitharu.kotatsu.core.prefs.AppSettings
-import org.koitharu.kotatsu.core.ui.dialog.buildAlertDialog
 import org.koitharu.kotatsu.core.prefs.NavItem
 import org.koitharu.kotatsu.core.ui.BaseActivity
 import org.koitharu.kotatsu.core.ui.util.FadingAppbarMediator
@@ -125,11 +125,25 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), AppBarOwner, BottomNav
 		get() = viewBinding.buttonCheckpoint.root
 
 	override fun onCreate(savedInstanceState: Bundle?) {
+		val splash = installSplashScreen()
 		super.onCreate(savedInstanceState)
+		// Older versions always draw the manifest's splash theme
+		val splashTheme = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+			settings.colorScheme.splashThemeResId.also {
+				// Colours the splash of the next launch; the system stores it, so keep the binder call off the main thread
+				lifecycleScope.launch(Dispatchers.Default) { splashScreen.setSplashScreenTheme(it) }
+			}
+		} else {
+			R.style.Theme_Kotatsu_Splash
+		}
 		if (!settings.isOnboardingCompleted) {
 			startActivity(Intent(this, OnboardingActivity::class.java))
 			finish()
 			return
+		}
+		// Before Android 12 the library would replay it on every recreation; later the system only calls it after a real splash
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S || savedInstanceState == null) {
+			splash.setOnExitAnimationListener(SplashExit(this, splashTheme)::play)
 		}
 		setContentView(ActivityMainBinding.inflate(layoutInflater))
 		setSupportActionBar(viewBinding.searchBar)
@@ -238,9 +252,13 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), AppBarOwner, BottomNav
 		navigationDelegate.syncSelectedItem()
 	}
 
-	override fun onFragmentChanged(fragment: Fragment, fromUser: Boolean) {
+	override fun onFragmentChanged(
+		fragment: Fragment,
+		fromUser: Boolean,
+		transition: MainNavigationDelegate.TabTransition,
+	) {
 		adjustFabVisibility(topFragment = fragment)
-		adjustAppbar(topFragment = fragment)
+		adjustAppbar(topFragment = fragment, transition = transition)
 		if (fromUser) {
 			actionModeDelegate.finishActionMode()
 			viewBinding.appbar.setExpanded(true)
@@ -452,15 +470,15 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), AppBarOwner, BottomNav
 	// The appbar keeps fitsSystemWindows=false on every tab: the WindowInsetHolder child provides the
 	// status bar clearance. Toggling fitsSystemWindows per-tab (as Favourites used to) left AppBarLayout
 	// with a stale pinned-inset region and scroll range after switching, randomly locking it expanded.
-	private fun adjustAppbar(topFragment: Fragment) {
+	private fun adjustAppbar(topFragment: Fragment, transition: MainNavigationDelegate.TabTransition) {
 		if (topFragment is FavouritesContainerFragment) {
 			fadingAppbarMediator.bind()
-			topFragment.attachTabsToAppBar()
+			topFragment.showTabsInAppBar(transition)
 		} else {
 			fadingAppbarMediator.unbind()
 			val favourites = supportFragmentManager
 				.findFragmentByTag(FavouritesContainerFragment::class.java.name)
-			(favourites as? FavouritesContainerFragment)?.detachTabsFromAppBar()
+			(favourites as? FavouritesContainerFragment)?.hideTabsFromAppBar(transition)
 		}
 	}
 

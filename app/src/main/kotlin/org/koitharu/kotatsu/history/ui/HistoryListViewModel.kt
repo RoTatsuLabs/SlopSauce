@@ -145,16 +145,20 @@ class HistoryListViewModel @Inject constructor(
 		}
 	}
 
-	fun markAsRead(items: Set<Manga>) {
+	fun markAsRead(items: Set<Manga>, isRead: Boolean) {
 		launchLoadingJob(Dispatchers.Default) {
-			markAsReadUseCase(items)
+			markAsReadUseCase(items, isRead)
 		}
 	}
 
 	fun requestMoreItems() {
-		if (isPaginationReady.compareAndSet(true, false)) {
+		if (limit.value != Int.MAX_VALUE && isPaginationReady.compareAndSet(true, false)) {
 			limit.value += PAGE_SIZE
 		}
+	}
+
+	override fun requestAllItems() {
+		limit.value = Int.MAX_VALUE
 	}
 
 	private fun observeHistory() = combine(

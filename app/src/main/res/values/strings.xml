@@ -3,6 +3,7 @@
     <string name="app_name" translatable="false">SlopSauce</string>
     <string name="local_storage">Local storage</string>
     <string name="favourites">Favorites</string>
+    <string name="favorite">Favorite</string>
     <string name="history">History</string>
     <string name="error_occurred">An error occurred</string>
     <string name="network_error">Network error</string>
@@ -438,7 +439,10 @@
     <string name="no_extension_store_found">No store found</string>
     <string name="no_extension_store_found_summary">Tap the edit icon to add an extension store.</string>
     <string name="add_repo">Add store index</string>
-    <string name="add_repo_hint">Add store index url (index.min.json or index.pb)</string>
+    <string name="show_whole_page">Show whole page</string>
+    <string name="split_page_again">Split page again</string>
+    <string name="add_repo_hint">Store index url</string>
+    <string name="add_repo_message">Paste the store\'s index.min.json or index.pb link</string>
     <string name="change_repo">Change store index</string>
     <string name="remove_repo">Remove store index</string>
     <string name="no_bookmarks_yet">No bookmarks yet</string>
@@ -446,7 +450,6 @@
     <string name="bookmarks_removed">Bookmarks removed</string>
     <string name="no_external_source_installed">No external source found</string>
     <string name="manage_manga_extensions_from_settings_icon">Install manga or novel extensions from the manage option to start reading</string>
-    <string name="back_home_hint">Lift to go home, slide off to cancel</string>
     <string name="explore_tab_order">Show first</string>
     <string name="store_kind_manga">Manga</string>
     <string name="store_kind_novel">Novels</string>
@@ -609,7 +612,7 @@
     <string name="downloads_paused">Downloads have been paused</string>
     <string name="downloads_removed">Downloads have been removed</string>
     <string name="downloads_cancelled">Downloads have been cancelled</string>
-    <string name="suggestions_enable_prompt">Do you want to receive personalized manga suggestions?</string>
+    <string name="suggestions_enable_prompt">Get personalized manga suggestions based on what you read. Everything is analyzed on this device and never sent anywhere.</string>
     <string name="web_view_unavailable">WebView not available: check if WebView provider is installed</string>
     <string name="clear_network_cache">Clear network cache</string>
     <string name="type">Type</string>
@@ -681,7 +684,7 @@
     <string name="downloads_only">Downloads only</string>
     <string name="sort_chapters_by_name">Sort by name</string>
     <string name="sort_chapters_by_date">Sort by date</string>
-    <string name="sort_chapters_by_source">Sort by source</string>
+    <string name="sort_chapters_by_source">Default</string>
     <string name="insert_search_query">Insert into search</string>
     <string name="extensions_default_sort">Default browse order</string>
     <string name="extensions_default_sort_summary">Applies to every installed extension</string>
@@ -812,7 +815,9 @@
     <string name="rating_suggestive">Suggestive</string>
     <string name="rating_adult">Adult</string>
     <string name="default_tab">Default tab</string>
-    <string name="mark_as_completed">Mark as completed</string>
+    <string name="mark_as">Mark as</string>
+    <string name="mark_as_unread">Mark as unread</string>
+    <string name="mark_as_unread_prompt">Reset the reading progress of the selected manga to 0%?</string>
     <string name="mark_as_completed_prompt">Mark selected manga as completely read?\n\nWarning: current reading progress will be lost.</string>
     <string name="category_hidden_done">This category was hidden from the main screen and is accessible through Menu -> Manage categories</string>
     <string name="remaining_time_pattern" translatable="false">%1$s %2$s</string>
@@ -1105,6 +1110,7 @@
     <string name="user_manual">User manual</string>
     <string name="error_image_format">Unsupported image format: %s</string>
     <string name="error_not_image">Invalid format: expected image but got %s</string>
+    <string name="start">Start</string>
     <string name="start_download">Start download</string>
     <string name="save_manga">Save manga</string>
     <string name="genre">Genre</string>
@@ -1215,7 +1221,8 @@
     <string name="clear_browser_data">Clear browser data</string>
     <string name="clear_browser_data_summary">Clear browser data such as cache and cookies. Warning: Authorization in manga sources may become invalid</string>
     <string name="no_write_permission_to_file">Does not have permission to write a file</string>
-    <string name="exclude_nsfw_from_suggestions_summary">Adult manga will not be shown in suggestions. This option may work inaccurate with some sources</string>
+    <string name="exclude_nsfw_from_suggestions_summary">Suggestions only come from manga extensions rated safe</string>
+    <string name="exclude_nsfw_from_suggestions_unavailable">Install a manga extension rated safe to use this</string>
     <string name="exclude_novels_from_suggestions_summary">Sources categorized as novels will not be used for suggestions</string>
     <string name="error_non_file_uri">The selected path cannot be used because it does not denote a file or directory</string>
     <string name="manga_override_hint">These changes will affect how manga is displayed throughout the app. Discord Rich Presence can only show a custom cover set via an image URL; picked images fall back to the source cover.</string>

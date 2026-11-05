@@ -155,9 +155,10 @@ class ReaderViewModel @Inject constructor(
 
     /** Temp file of the current page, ready to be handed to a share intent. */
     val onPageReadyToShare = MutableEventFlow<File>()
-    val onLoadingError = MutableEventFlow<Throwable>()
+    /** States, not events: a popup still waiting for an answer comes back after the screen is rebuilt. */
+    val loadingError = MutableStateFlow<Throwable?>(null)
+    val isAskingIncognito = MutableStateFlow(false)
     val onShowToast = MutableEventFlow<Int>()
-    val onAskNsfwIncognito = MutableEventFlow<Unit>()
     val uiState = MutableStateFlow<ReaderUiState?>(null)
 
     val isIncognitoMode = MutableStateFlow(savedStateHandle.get<Boolean>(ReaderIntent.EXTRA_INCOGNITO))
@@ -166,6 +167,9 @@ class ReaderViewModel @Inject constructor(
     // used when the user just looks into a chapter away from their current position.
     /** Novels: the dock's highlight button armed - the next tapped sentence becomes a highlight. */
     val isHighlightPicking = MutableStateFlow(false)
+
+    /** The current page's split: null when it isn't a split wide page, true while it's shown whole. */
+    val pageSpread = MutableStateFlow<Boolean?>(null)
 
     val isPeekMode = MutableStateFlow(savedStateHandle.get<Boolean>(ReaderIntent.EXTRA_PEEK) == true)
 
@@ -543,6 +547,7 @@ class ReaderViewModel @Inject constructor(
     }
 
     fun setIncognitoMode(value: Boolean, dontAskAgain: Boolean) {
+        isAskingIncognito.value = false
         isIncognitoMode.value = value
         if (dontAskAgain) {
             settings.incognitoModeForNsfw = if (value) TriStateOption.ENABLED else TriStateOption.DISABLED
@@ -550,7 +555,7 @@ class ReaderViewModel @Inject constructor(
     }
 
     private fun loadImpl() {
-        loadingJob = launchLoadingJob(Dispatchers.Default + EventExceptionHandler(onLoadingError)) {
+        loadingJob = launchLoadingJob(Dispatchers.Default + EventExceptionHandler { loadingError.value = it }) {
             var exception: Exception? = null
             var loadedDetails: MangaDetails? = null
             var isChapterEmpty = false
@@ -618,7 +623,7 @@ class ReaderViewModel @Inject constructor(
                 }
                 // loadedManga is only null when the details flow emitted nothing, which it never does
                 // without throwing; the generic "An error occurred" covers that
-                val loadingError = exception ?: loadedManga?.let { details ->
+                loadingError.value = exception ?: loadedManga?.let { details ->
                     val reason = when {
                         isChapterEmpty -> EmptyMangaReason.NO_PAGES
                         !details.isLoaded -> EmptyMangaReason.LOADING_ERROR
@@ -628,7 +633,6 @@ class ReaderViewModel @Inject constructor(
                     }
                     EmptyMangaException(reason, details.toManga(), null)
                 } ?: IllegalStateException()
-                onLoadingError.call(loadingError)
             } else exception?.let { e ->
                 // manga has been loaded but error occurred
                 errorEvent.call(e)
@@ -902,7 +906,7 @@ class ReaderViewModel @Inject constructor(
                     when (it) {
                         TriStateOption.ENABLED -> isIncognitoMode.value = true
                         TriStateOption.ASK -> {
-                            onAskNsfwIncognito.call(Unit)
+                            isAskingIncognito.value = true
                             return@collect
                         }
 
