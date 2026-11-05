@@ -94,12 +94,12 @@ class AutoTrackWorker @AssistedInject constructor(
 
 	override suspend fun getForegroundInfo(): ForegroundInfo = createForegroundInfo(0, 0)
 
-	private fun saveSummary(tracked: Int, review: Int, failed: Int, total: Int) {
+	private suspend fun saveSummary(tracked: Int, review: Int, failed: Int, total: Int) {
 		val previous = store.lastSummary
 		// A pass continued after a stop adds to the figures of the one it continues
 		store.lastSummary = AutoTrackStore.Summary(
 			tracked = tracked + (previous?.takeIf { isContinuation }?.tracked ?: 0),
-			needsReview = store.reviewItems().size,
+			needsReview = autoTracker.pendingReview().size,
 			failed = failed,
 			total = total + (previous?.takeIf { isContinuation }?.total ?: 0),
 		)

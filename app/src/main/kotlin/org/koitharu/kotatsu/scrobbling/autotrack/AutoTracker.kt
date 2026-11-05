@@ -11,6 +11,7 @@ import org.koitharu.kotatsu.parsers.model.Manga
 import org.koitharu.kotatsu.scrobbling.common.domain.Scrobbler
 import org.koitharu.kotatsu.scrobbling.common.domain.model.ScrobblerManga
 import org.koitharu.kotatsu.scrobbling.common.domain.model.ScrobblerMangaType
+import org.koitharu.kotatsu.scrobbling.common.domain.model.ScrobblerService
 import org.koitharu.kotatsu.scrobbling.common.domain.model.ScrobblingStatus
 import javax.inject.Inject
 
@@ -53,6 +54,29 @@ class AutoTracker @Inject constructor(
 				} else if (!store.isReview(id, service)) {
 					result.add(Pending(id, scrobbler))
 				}
+			}
+		}
+		return result
+	}
+
+	/**
+	 * The titles still waiting for a manual pick. Ones that were linked by hand since, or are no
+	 * longer favourites, are dropped from the list here, so it always shows only what is really left.
+	 */
+	suspend fun pendingReview(): List<Pair<Long, ScrobblerService>> {
+		val items = store.reviewItems()
+		if (items.isEmpty()) return emptyList()
+		val favourites = db.getFavouritesDao().findMangaIds().toHashSet()
+		val tracked = HashMap<Int, Set<Long>>()
+		val result = ArrayList<Pair<Long, ScrobblerService>>(items.size)
+		for ((mangaId, serviceId) in items) {
+			val service = ScrobblerService.entries.firstOrNull { it.id == serviceId }
+			if (service == null) continue
+			val linked = tracked.getOrPut(serviceId) { db.getScrobblingDao().findMangaIds(serviceId).toHashSet() }
+			if (mangaId in linked || mangaId !in favourites) {
+				store.removeReview(mangaId, service)
+			} else {
+				result.add(mangaId to service)
 			}
 		}
 		return result

@@ -128,8 +128,12 @@ class ServicesSettingsFragment : BaseComposeSettingsFragment(R.string.services) 
 
 	override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
 		super.onViewCreated(view, savedInstanceState)
+		// Picking an entry by hand (or un-favouriting) changes the review list while this screen stays open
+		database.invalidationTracker.createFlow("scrobblings", "favourites").observe(viewLifecycleOwner) {
+			reviewCount.value = autoTracker.pendingReview().size
+		}
 		autoTrackScheduler.observe().observe(viewLifecycleOwner) { progress ->
-			reviewCount.value = autoTrackStore.reviewItems().size
+			reviewCount.value = autoTracker.pendingReview().size
 			autoTrackStatus.value = when {
 				progress == null -> autoTrackStore.lastSummary?.let {
 					getString(R.string.auto_track_summary, it.tracked, it.needsReview, it.failed)
@@ -144,7 +148,9 @@ class ServicesSettingsFragment : BaseComposeSettingsFragment(R.string.services) 
 	override fun onResume() {
 		super.onResume()
 		refreshScrobblers()
-		reviewCount.value = autoTrackStore.reviewItems().size
+		viewLifecycleOwner.lifecycleScope.launch {
+			reviewCount.value = withContext(Dispatchers.Default) { autoTracker.pendingReview().size }
+		}
 	}
 
 	private fun confirmTrackUntracked() {
@@ -176,8 +182,7 @@ class ServicesSettingsFragment : BaseComposeSettingsFragment(R.string.services) 
 		val context = context ?: return
 		viewLifecycleOwner.lifecycleScope.launch {
 			val items = withContext(Dispatchers.Default) {
-				autoTrackStore.reviewItems().mapNotNull { (mangaId, serviceId) ->
-					val service = ScrobblerService.entries.firstOrNull { it.id == serviceId } ?: return@mapNotNull null
+				autoTracker.pendingReview().mapNotNull { (mangaId, service) ->
 					val manga = database.getMangaDao().find(mangaId)?.toManga() ?: return@mapNotNull null
 					Triple(manga, service, "${manga.title} · ${context.getString(service.titleResId)}")
 				}
