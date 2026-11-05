@@ -17,6 +17,8 @@ import androidx.core.view.isVisible
 import androidx.core.view.setMargins
 import androidx.core.view.updateLayoutParams
 import androidx.lifecycle.LifecycleOwner
+import com.davemorrissey.labs.subscaleview.ImageViewState
+import com.davemorrissey.labs.subscaleview.OnAnimationEventListener
 import com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView
 import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.core.exceptions.resolve.ExceptionResolver
@@ -33,6 +35,7 @@ import org.koitharu.kotatsu.reader.ui.pager.vm.PageViewModel
 
 private const val STANDARD_ZOOM_DURATION = 500
 private const val FILL_ZOOM_DURATION = 250
+private const val SPREAD_ZOOM_DURATION = 350L
 
 open class PageHolder(
 	owner: LifecycleOwner,
@@ -57,6 +60,124 @@ open class PageHolder(
 
 	/** Wide pages aren't split where pages already sit side by side. */
 	protected open val isSplitSupported = true
+
+	/** The split page the reader's spread button shows whole; it goes back to its half once left. */
+	private var wholePage: ReaderPage? = null
+
+	/** Toggling a split page reloads it: it opens at [spreadStart] and, with [isZoomingToRest], glides to its zoom. */
+	private var spreadStart: ImageViewState? = null
+	private var isZoomingToRest = false
+
+	/** Already gliding back into the half; repeated "page left" calls leave it running. */
+	private var isReturningToHalf = false
+
+	/** Reloading between the half and the whole page; taps meanwhile wait in [pendingWhole]. */
+	private var isSwapping = false
+	private var pendingWhole: Boolean? = null
+
+	/** For the reader's spread button: null when this isn't a split page, true while it's (going to be) whole. */
+	val spreadState: Boolean?
+		get() = when {
+			pendingWhole != null -> pendingWhole
+			isReturningToHalf -> false
+			wholePage != null && wholePage == boundData -> true
+			viewModel.isSplit || isSwapping -> false
+			else -> null
+		}
+
+	/** Zooms between the half and the whole page like a double tap instead of jumping. */
+	fun showWhole(isWhole: Boolean) {
+		val data = boundData ?: return
+		if (isReturningToHalf) {
+			// Tapped again while gliding into the half: glide back out to the whole page instead.
+			if (isWhole) {
+				isReturningToHalf = false
+				isZoomingToRest = true
+				onReady()
+			}
+			return
+		}
+		if (isSwapping) {
+			pendingWhole = isWhole
+			return
+		}
+		pendingWhole = null
+		val target = if (isWhole) data else null
+		if (wholePage == target) return
+		val ssiv = binding.ssiv
+		val center = ssiv.getCenter()
+		if (!ssiv.isReady || center == null) {
+			wholePage = target
+			bind(data)
+			return
+		}
+		if (isWhole) {
+			// Open the whole page exactly where the half was, then zoom out from there.
+			val offset = if (viewModel.splitSide == PageViewModel.SplitSide.RIGHT) ssiv.sWidth else 0
+			spreadStart = ImageViewState(ssiv.scale, center.x + offset, center.y, ssiv.orientation)
+			isZoomingToRest = true
+			wholePage = target
+			swap(data)
+			return
+		}
+		// Zoom into the half first, then swap back to it at the same spot.
+		val leftWidth = ssiv.sWidth / 2
+		val isRight = splitSideIgnoringWhole(data) == PageViewModel.SplitSide.RIGHT
+		val halfWidth = if (isRight) ssiv.sWidth - leftWidth else leftWidth
+		val scale = minOf(ssiv.width / halfWidth.toFloat(), ssiv.height / ssiv.sHeight.toFloat())
+		val halfCenterX = (if (isRight) leftWidth else 0) + halfWidth / 2f
+		isReturningToHalf = true
+		val swapToHalf = {
+			isReturningToHalf = false
+			if (wholePage == data && boundData == data) {
+				spreadStart = ImageViewState(scale, halfWidth / 2f, ssiv.sHeight / 2f, ssiv.orientation)
+				wholePage = null
+				swap(data)
+			}
+		}
+		ssiv.animateScaleAndCenter(scale, PointF(halfCenterX, ssiv.sHeight / 2f))
+			?.withDuration(SPREAD_ZOOM_DURATION)
+			?.withInterpolator(DecelerateInterpolator())
+			?.withOnAnimationEventListener(object : OnAnimationEventListener {
+				override fun onComplete() = swapToHalf()
+				override fun onInterruptedByUser() = swapToHalf()
+				override fun onInterruptedByNewAnim() {
+					isReturningToHalf = false
+				}
+			})
+			?.start() ?: swapToHalf()
+	}
+
+	private fun swap(data: ReaderPage) {
+		isSwapping = true
+		holdFrame()
+		bind(data)
+	}
+
+	override fun takeInitialViewState(): ImageViewState? = spreadStart.also { spreadStart = null }
+
+	/** Sets this page's resting zoom, or glides there when it was just toggled between half and whole. */
+	protected fun SubsamplingScaleImageView.restAt(scale: Float, center: PointF) {
+		releaseFrame()
+		if (!isZoomingToRest) {
+			setScaleAndCenter(scale, center)
+		} else {
+			isZoomingToRest = false
+			animateScaleAndCenter(scale, center)
+				?.withDuration(SPREAD_ZOOM_DURATION)
+				?.withInterpolator(DecelerateInterpolator())
+				?.start()
+		}
+		isSwapping = false
+		// A tap that came during the reload carries on from here, once this frame is laid out.
+		if (pendingWhole == null) return
+		val data = boundData
+		post {
+			val pending = pendingWhole ?: return@post
+			pendingWhole = null
+			if (boundData == data) showWhole(pending)
+		}
+	}
 
 	init {
 		ViewCompat.setOnApplyWindowInsetsListener(binding.root, this)
@@ -98,7 +219,10 @@ open class PageHolder(
 		else -> SubsamplingScaleImageView.ORIENTATION_90
 	}
 
-	override fun splitSide(data: ReaderPage): PageViewModel.SplitSide? = when {
+	override fun splitSide(data: ReaderPage): PageViewModel.SplitSide? =
+		if (data == wholePage) null else splitSideIgnoringWhole(data)
+
+	private fun splitSideIgnoringWhole(data: ReaderPage): PageViewModel.SplitSide? = when {
 		!isSplitSupported || !settings.isSplitWideEnabled -> null
 		data.isSecondHalf != isFirstHalfRight -> PageViewModel.SplitSide.RIGHT
 		else -> PageViewModel.SplitSide.LEFT
@@ -130,13 +254,13 @@ open class PageHolder(
 		when (settings.zoomMode) {
 			ZoomMode.FIT_CENTER -> {
 				binding.ssiv.minimumScaleType = SubsamplingScaleImageView.SCALE_TYPE_CENTER_INSIDE
-				binding.ssiv.resetScaleAndCenter()
+				binding.ssiv.restAt(binding.ssiv.minScale, PointF(binding.ssiv.sWidth / 2f, binding.ssiv.sHeight / 2f))
 			}
 
 			ZoomMode.FIT_HEIGHT -> {
 				binding.ssiv.minimumScaleType = SubsamplingScaleImageView.SCALE_TYPE_CUSTOM
 				binding.ssiv.minScale = binding.ssiv.height / binding.ssiv.shownHeight.toFloat()
-				binding.ssiv.setScaleAndCenter(
+				binding.ssiv.restAt(
 					binding.ssiv.minScale,
 					PointF(0f, binding.ssiv.shownHeight / 2f),
 				)
@@ -145,7 +269,7 @@ open class PageHolder(
 			ZoomMode.FIT_WIDTH -> {
 				binding.ssiv.minimumScaleType = SubsamplingScaleImageView.SCALE_TYPE_CUSTOM
 				binding.ssiv.minScale = binding.ssiv.width / binding.ssiv.shownWidth.toFloat()
-				binding.ssiv.setScaleAndCenter(
+				binding.ssiv.restAt(
 					binding.ssiv.minScale,
 					PointF(binding.ssiv.shownWidth / 2f, 0f),
 				)
@@ -153,7 +277,7 @@ open class PageHolder(
 
 			ZoomMode.KEEP_START -> {
 				binding.ssiv.minimumScaleType = SubsamplingScaleImageView.SCALE_TYPE_CENTER_INSIDE
-				binding.ssiv.setScaleAndCenter(
+				binding.ssiv.restAt(
 					binding.ssiv.maxScale,
 					PointF(0f, 0f),
 				)
@@ -165,9 +289,21 @@ open class PageHolder(
 	/** Once a wide page shows its first half, the pager gets an extra item for the second one. */
 	protected fun notifySplit() {
 		val page = boundData ?: return
+		val adapter = bindingAdapter as? BaseReaderAdapter<*> ?: return
 		if (viewModel.isSplit && !page.isSecondHalf) {
-			(bindingAdapter as? BaseReaderAdapter<*>)?.onPageSplit(page)
+			adapter.onPageSplit(page)
 		}
+		adapter.onPageShown?.invoke()
+	}
+
+	override fun onRecycled() {
+		wholePage = null
+		spreadStart = null
+		isZoomingToRest = false
+		isReturningToHalf = false
+		isSwapping = false
+		pendingWhole = null
+		super.onRecycled()
 	}
 
 	override fun onZoomIn() {

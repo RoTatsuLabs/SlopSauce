@@ -13,7 +13,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.core.model.getPreferredBranch
 import org.koitharu.kotatsu.core.model.parcelable.ParcelableManga
+import org.koitharu.kotatsu.core.model.withMergedBranches
+import org.koitharu.kotatsu.core.model.withSortedChapters
 import org.koitharu.kotatsu.core.nav.AppRouter
+import org.koitharu.kotatsu.core.parser.MangaDataRepository
 import org.koitharu.kotatsu.core.parser.MangaRepository
 import org.koitharu.kotatsu.core.prefs.AppSettings
 import org.koitharu.kotatsu.core.prefs.DownloadFormat
@@ -44,6 +47,7 @@ class DownloadDialogViewModel @Inject constructor(
 	private val mangaRepositoryFactory: MangaRepository.Factory,
 	private val historyRepository: HistoryRepository,
 	private val settings: AppSettings,
+	private val mangaDataRepository: MangaDataRepository,
 ) : BaseViewModel() {
 
 	val manga = savedStateHandle.require<Array<ParcelableManga>>(AppRouter.KEY_MANGA).map {
@@ -91,9 +95,11 @@ class DownloadDialogViewModel @Inject constructor(
 		allowMetered: Boolean,
 	) {
 		launchLoadingJob(Dispatchers.Default) {
-			val tasks = mangaDetails.get().map { m ->
+			val tasks = mangaDetails.get().map { source ->
+				val m = source.inChapterListOrder()
 				val chapters = checkNotNull(m.chapters) { "Manga \"${m.title}\" cannot be loaded" }
-				m to DownloadTask(
+				// The scheduler caches this manga's chapters, so it gets the source's own list.
+				source to DownloadTask(
 					mangaId = m.id,
 					isPaused = !startNow,
 					isSilent = false,
@@ -139,7 +145,7 @@ class DownloadDialogViewModel @Inject constructor(
 	)
 
 	private suspend fun loadAvailableOptions() {
-		val details = mangaDetails.get()
+		val details = mangaDetails.get().map { it.inChapterListOrder() }
 		var totalChapters = 0
 		val branches = ArrayMap<String?, Int>()
 		var maxChapters = 0
@@ -236,6 +242,11 @@ class DownloadDialogViewModel @Inject constructor(
 	}.onFailure { e ->
 		e.printStackTraceDebug()
 	}.getOrDefault(this)
+
+	/** Same chapter list as the details screen, so the options follow merged scanlators and chapter order. */
+	private suspend fun Manga.inChapterListOrder(): Manga =
+		withMergedBranches(mangaDataRepository.getScanlatorMerge(id))
+			.withSortedChapters(settings.getChaptersSortOrder(id))
 
 	private fun <T> MutableMap<T, Int>.increment(key: T) {
 		put(key, getOrDefault(key, 0) + 1)

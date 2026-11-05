@@ -133,9 +133,9 @@ class FavouritesListViewModel @Inject constructor(
 		settings.closeTip(TIP_UI_SCALING)
 	}
 
-	fun markAsRead(items: Set<Manga>) {
+	fun markAsRead(items: Set<Manga>, isRead: Boolean) {
 		launchLoadingJob(Dispatchers.Default) {
-			markAsReadUseCase(items)
+			markAsReadUseCase(items, isRead)
 			onRefresh()
 		}
 	}
@@ -155,9 +155,13 @@ class FavouritesListViewModel @Inject constructor(
 	}
 
 	fun requestMoreItems() {
-		if (isPaginationReady.compareAndSet(true, false)) {
+		if (limit.value != Int.MAX_VALUE && isPaginationReady.compareAndSet(true, false)) {
 			limit.value += PAGE_SIZE
 		}
+	}
+
+	override fun requestAllItems() {
+		limit.value = Int.MAX_VALUE
 	}
 
 	private suspend fun List<Manga>.mapList(

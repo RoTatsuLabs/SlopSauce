@@ -7,11 +7,11 @@ import android.view.MenuItem
 import android.view.View
 import androidx.appcompat.view.ActionMode
 import androidx.fragment.app.viewModels
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import dagger.hilt.android.AndroidEntryPoint
 import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.core.nav.AppRouter
 import org.koitharu.kotatsu.core.nav.router
+import org.koitharu.kotatsu.core.ui.dialog.showConfirmDialog
 import org.koitharu.kotatsu.core.ui.list.ListSelectionController
 import org.koitharu.kotatsu.core.util.ext.withArgs
 import org.koitharu.kotatsu.databinding.FragmentListBinding
@@ -87,16 +87,19 @@ class FavouritesListFragment : MangaListFragment() {
 				true
 			}
 
-			R.id.action_mark_current -> {
+			R.id.action_mark_read, R.id.action_mark_unread -> {
+				val isRead = item.itemId == R.id.action_mark_read
 				val itemsSnapshot = selectedItems
-				MaterialAlertDialogBuilder(context ?: return false)
-					.setTitle(item.title)
-					.setMessage(R.string.mark_as_completed_prompt)
-					.setNegativeButton(android.R.string.cancel, null)
-					.setPositiveButton(android.R.string.ok) { _, _ ->
-						viewModel.markAsRead(itemsSnapshot)
-						mode?.finish()
-					}.show()
+				val ctx = context ?: return false
+				showConfirmDialog(
+					context = ctx,
+					icon = if (isRead) R.drawable.ic_eye_check else R.drawable.ic_mark_unread,
+					title = ctx.getString(if (isRead) R.string.mark_as_read else R.string.mark_as_unread),
+					message = ctx.getString(if (isRead) R.string.mark_as_completed_prompt else R.string.mark_as_unread_prompt),
+				) {
+					viewModel.markAsRead(itemsSnapshot, isRead)
+					mode?.finish()
+				}
 				true
 			}
 

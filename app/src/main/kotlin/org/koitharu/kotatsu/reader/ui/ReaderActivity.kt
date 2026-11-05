@@ -66,8 +66,9 @@ import org.koitharu.kotatsu.core.prefs.AppSettings
 import org.koitharu.kotatsu.core.prefs.ReaderMode
 import org.koitharu.kotatsu.core.prefs.observeAsFlow
 import org.koitharu.kotatsu.core.ui.BaseFullscreenActivity
-import org.koitharu.kotatsu.core.ui.dialog.setCheckbox
 import org.koitharu.kotatsu.core.ui.util.MenuInvalidator
+import org.koitharu.kotatsu.core.ui.util.magnifyWhilePressed
+import org.koitharu.kotatsu.core.ui.util.setScaledVisible
 import org.koitharu.kotatsu.core.ui.widgets.ZoomControl
 import org.koitharu.kotatsu.core.util.IdlingDetector
 import org.koitharu.kotatsu.core.util.ShareHelper
@@ -77,9 +78,11 @@ import org.koitharu.kotatsu.core.util.ext.getThemeColor
 import org.koitharu.kotatsu.core.util.ext.getThemeDimensionPixelOffset
 import org.koitharu.kotatsu.core.util.ext.hasGlobalPoint
 import org.koitharu.kotatsu.core.util.ext.isAnimationsEnabled
+import org.koitharu.kotatsu.core.util.ext.measureHeight
 import org.koitharu.kotatsu.core.util.ext.observe
 import org.koitharu.kotatsu.core.util.ext.observeEvent
 import org.koitharu.kotatsu.core.util.ext.postDelayed
+import org.koitharu.kotatsu.core.util.ext.setContentDescriptionAndTooltip
 import org.koitharu.kotatsu.core.util.ext.toUriOrNull
 import org.koitharu.kotatsu.core.util.ext.zipWithPrevious
 import org.koitharu.kotatsu.databinding.ActivityReaderBinding
@@ -171,6 +174,8 @@ class ReaderActivity :
         viewBinding.zoomControl.listener = this
         viewBinding.actionsView.listener = this
         viewBinding.buttonTimerFab?.setOnClickListener(this)
+        viewBinding.spreadControl.root.setOnClickListener { readerManager.currentReader?.toggleWholeSpread() }
+        viewBinding.spreadControl.root.magnifyWhilePressed()
         idlingDetector.bindToLifecycle(this)
         screenOrientationHelper.applySettings()
         viewModel.isBookmarkAdded.observe(this) { viewBinding.actionsView.isBookmarkAdded = it }
@@ -199,21 +204,20 @@ class ReaderActivity :
             }
         }
 
-        viewModel.onLoadingError.observeEvent(
-            this,
-            DialogErrorObserver(
-                host = viewBinding.container,
-                fragment = null,
-                resolver = exceptionResolver,
-                onResolved = { isResolved ->
-                    if (isResolved) {
-                        viewModel.reload()
-                    } else if (viewModel.content.value.pages.isEmpty()) {
-                        dispatchNavigateUp()
-                    }
-                },
-            ),
+        val loadingErrorObserver = DialogErrorObserver(
+            host = viewBinding.container,
+            fragment = null,
+            resolver = exceptionResolver,
+            onResolved = { isResolved ->
+                viewModel.loadingError.value = null
+                if (isResolved) {
+                    viewModel.reload()
+                } else if (viewModel.content.value.pages.isEmpty()) {
+                    dispatchNavigateUp()
+                }
+            },
         )
+        viewModel.loadingError.observe(this) { if (it != null) loadingErrorObserver.emit(it) }
         viewModel.onError.observeEvent(
             this,
             SnackbarErrorObserver(
@@ -239,7 +243,7 @@ class ReaderActivity :
         viewModel.isKeepScreenOnEnabled.observe(this, this::setKeepScreenOn)
         viewModel.isInfoBarEnabled.observe(this, ::onReaderBarChanged)
         viewModel.isBookmarkAdded.observe(this, MenuInvalidator(this))
-        viewModel.onAskNsfwIncognito.observeEvent(this) { askForIncognitoMode() }
+        viewModel.isAskingIncognito.observe(this) { if (it) askForIncognitoMode() }
         viewModel.onShowToast.observeEvent(this) { msgId ->
             Snackbar.make(viewBinding.container, msgId, Snackbar.LENGTH_SHORT)
                 .setAnchorView(viewBinding.toolbarDocked)
@@ -250,7 +254,16 @@ class ReaderActivity :
         }
         viewModel.isZoomControlsEnabled.observe(this) {
             viewBinding.zoomControl.isVisible = it
+            // The spread button shares the corner: it goes above the zoom buttons.
+            viewBinding.spreadControl.root.updateLayoutParams<ViewGroup.MarginLayoutParams> {
+                bottomMargin = resources.getDimensionPixelOffset(R.dimen.reader_corner_margin) + if (it) {
+                    viewBinding.zoomControl.measureHeight() + resources.getDimensionPixelOffset(R.dimen.margin_small)
+                } else {
+                    0
+                }
+            }
         }
+        viewModel.pageSpread.observe(this, ::onPageSpreadChanged)
         addMenuProvider(
             ReaderMenuProvider(
                 onOpenMenu = ::openMenu,
@@ -406,6 +419,16 @@ class ReaderActivity :
                 onScrollTimerClick(isLongClick = false)
             }
         }
+    }
+
+    /** [isWhole] is null when the current page isn't a split wide page. */
+    private fun onPageSpreadChanged(isWhole: Boolean?) {
+        val button = viewBinding.spreadControl.root
+        button.setScaledVisible(isWhole != null)
+        // Shrinking away keeps the icon it had.
+        if (isWhole == null) return
+        button.setIconResource(if (isWhole == true) R.drawable.ic_spread_split else R.drawable.ic_spread_whole)
+        button.setContentDescriptionAndTooltip(if (isWhole == true) R.string.split_page_again else R.string.show_whole_page)
     }
 
     private fun onInitReader(mode: ReaderMode?) {
@@ -900,7 +923,12 @@ class ReaderActivity :
         // Tablet layouts anchor the panel to the top app bar, so there is nothing to dodge.
         if (viewBinding.toolbarDocked == null) return
         // The floating button rides along: with the dock up it would otherwise sit behind it.
-        val panels = listOfNotNull<View>(viewBinding.timerControl, viewBinding.ttsControl, viewBinding.buttonTimerFab)
+        val panels = listOfNotNull<View>(
+            viewBinding.timerControl,
+            viewBinding.ttsControl,
+            viewBinding.buttonTimerFab,
+            viewBinding.spreadControl.root,
+        )
         // Hiding the system bars makes insets settle over several frames, and every one of those
         // callbacks lands here. Without this guard they snap translationY straight to the target
         // mid-flight, so the panel appears to jump while the toolbar is still sliding.

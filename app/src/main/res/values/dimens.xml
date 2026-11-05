@@ -15,6 +15,11 @@
 	<dimen name="list_spacing_large">12dp</dimen>
 	<!-- Navigation -->
 	<dimen name="nav_bar_height_compact">0dp</dimen>
+	<!-- How far tab content slides in / out when switching bottom nav tabs. -->
+	<dimen name="nav_tab_slide_distance">24dp</dimen>
+	<dimen name="nav_tab_slide_distance_negative">-24dp</dimen>
+	<dimen name="nav_tab_exit_distance">18dp</dimen>
+	<dimen name="nav_tab_exit_distance_negative">-18dp</dimen>
 
 	<dimen name="grid_spacing">8dp</dimen>
 	<dimen name="list_spacing">8dp</dimen>
@@ -35,8 +40,6 @@
 	<dimen name="small_grid_width">92dp</dimen>
 	<dimen name="list_footer_height_outer">48dp</dimen>
 	<dimen name="extension_action_button_size">40dp</dimen>
-	<dimen name="extension_action_button_group_width">124dp</dimen>
-	<dimen name="extension_update_all_button_height">40dp</dimen>
 	<dimen name="screen_padding">16dp</dimen>
 	<dimen name="selection_stroke_width">2dp</dimen>
 	<dimen name="list_selector_corner">12dp</dimen>
@@ -53,7 +56,10 @@
 	<dimen name="top_bar_action_segment_inner_corner">8dp</dimen>
 	<!-- Start margin (16) + button (46) + 16 gap, so the title keeps the same rhythm as the edges. -->
 	<dimen name="top_bar_title_inset_with_navigation">78dp</dimen>
-	<dimen name="explore_grid_width">135dp</dimen>
+	<!-- Five per row on every phone width -->
+	<dimen name="explore_grid_width">84dp</dimen>
+	<dimen name="explore_grid_spacing">2dp</dimen>
+	<dimen name="reader_corner_margin">16dp</dimen>
 	<dimen name="chapter_grid_width">80dp</dimen>
 	<dimen name="side_card_offset">8dp</dimen>
 	<!-- Side sheets host the same forms as the bottom sheets (segmented pickers, chip rows, sliders),
@@ -102,8 +108,6 @@
 	     padding, so the field spans exactly the same outer edges as the bar it expanded out of. -->
 	<dimen name="search_bar_margin_horizontal">4dp</dimen>
 	<dimen name="search_bar_min_height">64dp</dimen>
-
-	<dimen name="onboarding_icon_size">72dp</dimen>
 
 	<dimen name="reader_scroll_delta_min">200dp</dimen>
 	<dimen name="reader_docked_toolbar_padding_vertical">2dp</dimen>

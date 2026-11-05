@@ -70,7 +70,21 @@ abstract class BasePagerReaderFragment : BaseReaderFragment<FragmentReaderPagerB
 			MihonSwipeSettler(this) {
 				viewModel.pageAnimation.value == ReaderAnimation.MIHON && isAnimationEnabled()
 			}.attach()
-			doOnPageChanged { if (!isRestoringPosition) notifyPageChanged(it) }
+			doOnPageChanged {
+				if (!isRestoringPosition) notifyPageChanged(it)
+				zoomLeftPagesToHalf(it)
+				// A swipe picks its target before it settles; splitting then would put the other half in
+				// that target slot, so the swipe lands on it. Jumps without a swipe are already idle.
+				if (scrollState == ViewPager2.SCROLL_STATE_IDLE) splitLeftPage(it)
+				updateSpread()
+			}
+			registerOnPageChangeCallback(
+				object : ViewPager2.OnPageChangeCallback() {
+					override fun onPageScrollStateChanged(state: Int) {
+						if (state == ViewPager2.SCROLL_STATE_IDLE) splitLeftPage(currentItem)
+					}
+				},
+			)
 			setOnGenericMotionListener(this@BasePagerReaderFragment)
 			if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
 				recyclerView?.defaultFocusHighlightEnabled = false
@@ -81,6 +95,7 @@ abstract class BasePagerReaderFragment : BaseReaderFragment<FragmentReaderPagerB
 			}
 			adapter = readerAdapter
 		}
+		readerAdapter?.onPageShown = ::updateSpread
 
 		viewModel.pageAnimation.observe(viewLifecycleOwner) {
 			val transformer = when (it) {
@@ -105,6 +120,7 @@ abstract class BasePagerReaderFragment : BaseReaderFragment<FragmentReaderPagerB
 	override fun onDestroyView() {
 		mihonScroller?.cancel()
 		mihonScroller = null
+		viewModel.pageSpread.value = null
 		pagerLifecycleDispatcher = null
 		requireViewBinding().pager.adapter = null
 		super.onDestroyView()
@@ -116,6 +132,39 @@ abstract class BasePagerReaderFragment : BaseReaderFragment<FragmentReaderPagerB
 
 	override fun onZoomOut() {
 		(viewBinding?.pager?.findCurrentViewHolder() as? PageHolder)?.onZoomOut()
+	}
+
+	override fun toggleWholeSpread() {
+		val holder = viewBinding?.pager?.findCurrentViewHolder() as? PageHolder ?: return
+		holder.showWhole(holder.spreadState == false)
+		// Shown whole, its two halves become one pager item until the page is left.
+		readerAdapter?.setWholePage(holder.boundData?.takeIf { holder.spreadState == true })
+		updateSpread()
+	}
+
+	/**
+	 * Leaving a page shown whole zooms it back into its half during the slide, the same way the button does.
+	 * Pages are compared, not positions: merging the halves shifts positions and re-selects the same page.
+	 */
+	private fun zoomLeftPagesToHalf(position: Int) {
+		val page = readerAdapter?.getItemOrNull(position)?.copy(isSecondHalf = false)
+		val list = viewBinding?.pager?.recyclerView ?: return
+		for (child in list.children) {
+			val holder = list.getChildViewHolder(child) as? PageHolder ?: continue
+			if (holder.boundData?.copy(isSecondHalf = false) != page) holder.showWhole(false)
+		}
+	}
+
+	/** Once settled on a different page, the page shown whole gets its other half back in the pager. */
+	private fun splitLeftPage(position: Int) {
+		val adapter = readerAdapter ?: return
+		val page = adapter.getItemOrNull(position)?.copy(isSecondHalf = false)
+		if (adapter.wholePage?.copy(isSecondHalf = false) != page) adapter.setWholePage(null)
+	}
+
+	/** Publishes the current page's spread state for the reader's button. */
+	private fun updateSpread() {
+		viewModel.pageSpread.value = (viewBinding?.pager?.findCurrentViewHolder() as? PageHolder)?.spreadState
 	}
 
 	override fun onGenericMotion(v: View?, event: MotionEvent): Boolean {
