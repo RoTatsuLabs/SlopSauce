@@ -47,7 +47,7 @@ SlopSauce is a personal fork, built for my own use and shared as is. It takes no
   <img src="assets/main_favorites-preview.webp" alt="SlopSauce favorites screen" width="31%" />
   <img src="assets/feed-preview.webp" alt="SlopSauce feed screen" width="31%" />
   <img src="assets/settings-preview.webp" alt="SlopSauce settings screen" width="31%" />
-  <img src="assets/extension_page-preview.webp" alt="SlopSauce extensions screen" width="31%" />
+  <img src="assets/extension_page-preview.webp" alt="SlopSauce source browsing screen" width="31%" />
   <img src="assets/manga_details_page-preview.webp" alt="SlopSauce details screen" width="31%" />
   <img src="assets/chapters_list-preview.webp" alt="SlopSauce chapter list" width="31%" />
   <img src="assets/paged_reading_ui-preview.webp" alt="SlopSauce manga reading screen" width="31%" />
