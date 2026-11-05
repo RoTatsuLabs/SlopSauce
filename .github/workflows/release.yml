@@ -1,185 +1,230 @@
 name: Build and Release
 
+# Builds the signed release APKs (one per ABI plus a universal one) and publishes them as a GitHub Release.
+# Release notes come from CHANGELOGS.md: the [<version>] section, or [Unreleased] when the version is not
+# written down yet. Unless the release stays a draft, [Unreleased] is then moved under the version.
 on:
   workflow_dispatch:
     inputs:
       version_name:
-        description: 'New version name (e.g. 1.2.3) — release tag will be created as v<version>'
+        description: 'Version (X.Y.Z). The release tag is created as v<version>'
         required: true
         type: string
+      release_type:
+        description: 'How to publish the GitHub Release'
+        required: true
+        type: choice
+        default: draft
+        options:
+          - draft
+          - prerelease
+          - release
+
+permissions:
+  contents: write
 
 concurrency:
   group: release-workflow
   cancel-in-progress: false
 
+env:
+  APP_NAME: SlopSauce
+  CHANGELOG: CHANGELOGS.md
+
 jobs:
-  build:
+  release:
+    name: Build and publish release
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
+    timeout-minutes: 60
     env:
-      # Optional: test the future runtime now
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      VERSION_NAME: ${{ inputs.version_name }}
+      RELEASE_TYPE: ${{ inputs.release_type }}
     steps:
-    - name: Validate version_name input
-      run: |
-        VERSION_NAME="${{ inputs.version_name }}"
+      - name: Validate version
+        run: |
+          [[ "$VERSION_NAME" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::version must look like X.Y.Z, got: $VERSION_NAME"; exit 1; }
+          echo "Release tag will be v${VERSION_NAME}"
 
-        # Reject branch-like names that must never be used as tags
-        RESERVED_NAMES="main master develop dev release"
-        for reserved in $RESERVED_NAMES; do
-          if [ "$VERSION_NAME" = "$reserved" ]; then
-            echo "::error::version_name '${VERSION_NAME}' is a reserved branch name and cannot be used as a version/tag."
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Check the tag is free
+        run: |
+          TAG="v${VERSION_NAME}"
+          if git ls-remote --exit-code --tags origin "refs/tags/${TAG}" > /dev/null 2>&1; then
+            echo "::error::Tag ${TAG} already exists."
             exit 1
           fi
-        done
-
-        # Require the version to match a semver-like pattern (no leading 'v'; release tag will be v<version>)
-        if ! echo "$VERSION_NAME" | grep -qE '^[0-9]+(\.[0-9]+)*(-[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?$'; then
-          echo "::error::version_name '${VERSION_NAME}' is invalid. Use a semver-like format such as '1.2.3' or '1.2.3-beta.1'. The release tag will be created as v${VERSION_NAME}."
-          exit 1
-        fi
-
-        echo "version_name '${VERSION_NAME}' is valid. Release tag will be: v${VERSION_NAME}"
-
-    - name: Checkout code
-      uses: actions/checkout@v5
-      with:
-        fetch-depth: 0
-
-    - name: Set up JDK
-      uses: actions/setup-java@v5
-      with:
-        distribution: 'temurin'
-        java-version: '17'
-        cache: 'gradle'
-
-    - name: Grant execute permission for gradlew
-      run: chmod +x gradlew
-
-    - name: Decode keystore
-      env:
-        KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
-      run: |
-        if [ -n "$KEYSTORE_BASE64" ]; then
-          echo "$KEYSTORE_BASE64" | base64 -d > release.keystore
-        else
-          echo "No keystore secret found, creating debug keystore"
-          keytool -genkey -v -keystore release.keystore -alias release \
-            -keyalg RSA -keysize 2048 -validity 10000 \
-            -storepass password -keypass password \
-            -dname "CN=Debug, OU=Debug, O=Debug, L=Debug, S=Debug, C=US"
-        fi
-
-    - name: Update versionName and increment versionCode
-      run: |
-        VERSION_NAME="${{ inputs.version_name }}"
-        BUILD_GRADLE="app/build.gradle"
-
-        sed -i -E "s/(versionName = ')[^']*(')/\1${VERSION_NAME}\2/" "$BUILD_GRADLE"
-        CURRENT_CODE=$(grep -E "versionCode = [0-9]+" "$BUILD_GRADLE" | head -n1 | sed -E "s/.*= ([0-9]+)/\1/")
-        NEXT_CODE=$((CURRENT_CODE + 1))
-        sed -i -E "s/versionCode = [0-9]+/versionCode = ${NEXT_CODE}/" "$BUILD_GRADLE"
-
-    - name: Build Release APK
-      env:
-        TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-      run: |
-        ./gradlew assembleRelease --no-daemon --stacktrace \
-          -PRELEASE_STORE_FILE=../release.keystore \
-          -PRELEASE_STORE_PASSWORD="${{ secrets.RELEASE_STORE_PASSWORD || 'password' }}" \
-          -PRELEASE_KEY_ALIAS="${{ secrets.RELEASE_KEY_ALIAS || 'release' }}" \
-          -PRELEASE_KEY_PASSWORD="${{ secrets.RELEASE_KEY_PASSWORD || 'password' }}"
-
-    - name: Commit version updates
-      id: version_commit
-      run: |
-        BRANCH_NAME="${{ github.ref_name }}"
-
-        if git diff --quiet -- app/build.gradle; then
-          echo "No version changes to commit"
-          echo "commit_sha=${{ github.sha }}" >> "$GITHUB_OUTPUT"
-          exit 0
-        fi
-
-        git config user.name "github-actions[bot]"
-        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-        git add app/build.gradle
-        git commit -m "chore(release): set versionName ${{ inputs.version_name }} and bump versionCode"
-
-        # Use refs/heads/ explicitly to avoid ambiguity with any tag that shares the branch name
-        for attempt in 1 2 3; do
-          if git push origin "HEAD:refs/heads/$BRANCH_NAME"; then
-            break
-          fi
-          if [ "$attempt" -eq 3 ]; then
-            echo "Failed to push version commit after 3 attempts"
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            echo "::error::A release for ${TAG} already exists."
             exit 1
           fi
-          git pull --rebase origin "refs/heads/$BRANCH_NAME"
-          sleep 2
-        done
 
-        echo "commit_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      - name: Find the previous release
+        id: previous
+        run: |
+          prev="$(gh release list --exclude-drafts --limit 1 --json tagName --jq '.[0].tagName // ""')"
+          count=""
+          if [ -n "$prev" ]; then
+            git rev-parse -q --verify "refs/tags/${prev}^{commit}" > /dev/null \
+              || { echo "::error::Previous release tag $prev is not in the checkout."; exit 1; }
+            count="$(git rev-list --count "${prev}..HEAD")"
+            if [ "$count" = 0 ]; then
+              echo "::error::No commits since $prev. Nothing to release."
+              exit 1
+            fi
+          fi
+          echo "tag=$prev" >> "$GITHUB_OUTPUT"
+          echo "count=$count" >> "$GITHUB_OUTPUT"
 
-    - name: Generate Changelog
-      id: changelog
-      run: |
-        CURRENT_SHA="${{ steps.version_commit.outputs.commit_sha }}"
+      # The app's Gradle daemon requires JDK 25 (gradle/gradle-daemon-jvm.properties).
+      - name: Set up JDK 25
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: gradle
 
-        # The new tag does not exist yet, so this resolves to the previous release tag
-        PREVIOUS_TAG=$(git describe --tags --abbrev=0 --match 'v*' "$CURRENT_SHA" 2>/dev/null || true)
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
 
-        if [ -n "$PREVIOUS_TAG" ]; then
-          RANGE="$PREVIOUS_TAG..$CURRENT_SHA"
-        else
-          RANGE="$CURRENT_SHA"
-        fi
+      - name: Prepare signing
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+        run: |
+          : "${KEYSTORE_BASE64:?KEYSTORE_BASE64 secret is empty}" "${STORE_PASSWORD:?RELEASE_STORE_PASSWORD secret is empty}" "${KEY_ALIAS:?RELEASE_KEY_ALIAS secret is empty}"
+          umask 077
+          printf '%s' "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.keystore" \
+            || { echo "::error::KEYSTORE_BASE64 is not valid base64."; exit 1; }
+          keytool -list -keystore "$RUNNER_TEMP/release.keystore" -storepass:env STORE_PASSWORD -alias "$KEY_ALIAS" > /dev/null 2>&1 \
+            || { echo "::error::The keystore did not open with the given alias and password."; exit 1; }
 
-        CHANGELOG=$(git log --pretty=format:"- %s" --no-merges -n 50 --invert-grep --grep='^chore(release): set versionName ' $RANGE)
+      - name: Update versionName and increment versionCode
+        run: |
+          BUILD_GRADLE="app/build.gradle"
+          sed -i -E "s/(versionName = ')[^']*(')/\1${VERSION_NAME}\2/" "$BUILD_GRADLE"
+          CURRENT_CODE=$(grep -E "versionCode = [0-9]+" "$BUILD_GRADLE" | head -n1 | sed -E "s/.*= ([0-9]+)/\1/")
+          sed -i -E "s/versionCode = [0-9]+/versionCode = $((CURRENT_CODE + 1))/" "$BUILD_GRADLE"
+          grep -qF "versionName = '${VERSION_NAME}'" "$BUILD_GRADLE" || { echo "::error::versionName was not updated."; exit 1; }
 
-        if [ -z "$CHANGELOG" ]; then
-          CHANGELOG="- No changes since ${PREVIOUS_TAG:-the last release}"
-        fi
+      - name: Build release APKs
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+        run: |
+          ./gradlew assembleRelease --no-daemon --stacktrace \
+            -PRELEASE_STORE_FILE="$RUNNER_TEMP/release.keystore" \
+            -PRELEASE_STORE_PASSWORD="$STORE_PASSWORD" \
+            -PRELEASE_KEY_ALIAS="$KEY_ALIAS" \
+            -PRELEASE_KEY_PASSWORD="$KEY_PASSWORD"
 
-        echo "changelog<<EOF" >> $GITHUB_OUTPUT
-        echo "$CHANGELOG" >> $GITHUB_OUTPUT
-        echo "EOF" >> $GITHUB_OUTPUT
+      - name: Collect APKs
+        run: |
+          mkdir -p dist
+          shopt -s nullglob
+          for ABI in arm64-v8a armeabi-v7a x86_64 x86 universal; do
+            FILES=(app/build/outputs/apk/release/*-"${ABI}"-*.apk)
+            if [ ${#FILES[@]} -ne 1 ]; then
+              echo "::error::Expected exactly one ${ABI} APK under app/build/outputs/apk/release, found ${#FILES[@]}"
+              exit 1
+            fi
+            cp "${FILES[0]}" "dist/${APP_NAME}-v${VERSION_NAME}-${ABI}.apk"
+          done
 
-    - name: Collect Release APKs
-      run: |
-        mkdir -p release
-        shopt -s nullglob
-        for ABI in arm64-v8a armeabi-v7a x86_64 x86 universal; do
-          FILES=(app/build/outputs/apk/release/*-"${ABI}"-*.apk)
-          if [ ${#FILES[@]} -ne 1 ]; then
-            echo "::error::Expected exactly one ${ABI} APK under app/build/outputs/apk/release, found ${#FILES[@]}"
+      # Uses the [<version>] changelog section, or [Unreleased] when the version is not written down yet.
+      - name: Build release notes
+        env:
+          SOURCE_SHA: ${{ github.sha }}
+          PREV_TAG: ${{ steps.previous.outputs.tag }}
+          COMMIT_COUNT: ${{ steps.previous.outputs.count }}
+        run: |
+          python3 .github/scripts/release-notes.py \
+            --changelog "$CHANGELOG" \
+            --app "$APP_NAME" --version "$VERSION_NAME" --apk-version "$VERSION_NAME" \
+            --repo "$GITHUB_REPOSITORY" --tag "v$VERSION_NAME" --source-sha "$SOURCE_SHA" \
+            --prev-tag "$PREV_TAG" --commit-count "$COMMIT_COUNT" \
+            --notes-out "$RUNNER_TEMP/notes.md" \
+            --changelog-out "$RUNNER_TEMP/changelog.md"
+
+      - name: Write checksums
+        working-directory: dist
+        run: sha256sum *.apk > manifest.sha256
+
+      # Once the release is out, the [Unreleased] entries move under the version and [Unreleased] starts
+      # empty again. A draft is not released yet, so it leaves the changelog alone.
+      - name: Commit version and changelog
+        id: version_commit
+        run: |
+          BRANCH_NAME="${{ github.ref_name }}"
+          if [ "$RELEASE_TYPE" != draft ]; then
+            python3 .github/scripts/roll-changelog.py --changelog "$CHANGELOG" --version "$VERSION_NAME"
+          fi
+
+          if git diff --quiet -- app/build.gradle "$CHANGELOG"; then
+            echo "commit_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/build.gradle "$CHANGELOG"
+          git commit -m "chore(release): set versionName ${VERSION_NAME} and bump versionCode"
+
+          # Use refs/heads/ explicitly to avoid ambiguity with any tag that shares the branch name
+          for attempt in 1 2 3; do
+            if git push origin "HEAD:refs/heads/$BRANCH_NAME"; then
+              break
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              echo "::error::Failed to push the version commit after 3 attempts"
+              exit 1
+            fi
+            git pull --rebase origin "refs/heads/$BRANCH_NAME"
+            sleep 2
+          done
+          echo "commit_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      # The release is created as a draft, its assets are checked, then it is published
+      # unless release_type is draft. A failed run leaves the draft in place for inspection.
+      - name: Create release
+        env:
+          TARGET_SHA: ${{ steps.version_commit.outputs.commit_sha }}
+        run: |
+          TAG="v${VERSION_NAME}"
+          flags=(--draft)
+          if [ "$RELEASE_TYPE" = prerelease ]; then
+            flags+=(--prerelease)
+          fi
+
+          gh release create "$TAG" --target "$TARGET_SHA" --title "$APP_NAME $VERSION_NAME" \
+            --notes-file "$RUNNER_TEMP/notes.md" "${flags[@]}" dist/*.apk dist/manifest.sha256
+
+          uploaded="$(gh release view "$TAG" --json assets --jq '.assets[] | select(.state == "uploaded") | .name' | sort)"
+          expected="$(cd dist && ls | sort)"
+          if [ "$uploaded" != "$expected" ]; then
+            echo "::error::Uploaded assets do not match. Expected: $(tr '\n' ' ' <<< "$expected") Got: $(tr '\n' ' ' <<< "$uploaded"). The draft was left in place."
             exit 1
           fi
-          cp "${FILES[0]}" "release/SlopSauce-v${{ inputs.version_name }}-${ABI}.apk"
-        done
 
-    - name: Create Release
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: |
-        TAG="v${{ inputs.version_name }}"
-        NOTES_FILE="release_notes.md"
+          if [ "$RELEASE_TYPE" != draft ]; then
+            gh release edit "$TAG" --draft=false
+          fi
 
-        cat > "$NOTES_FILE" <<'EOF'
-        ### Changelog
-        ${{ steps.changelog.outputs.changelog }}
+          {
+            echo "### $APP_NAME $VERSION_NAME"
+            echo "- Type: $RELEASE_TYPE"
+            echo "- Source commit: \`$TARGET_SHA\`"
+            echo "- Release: $(gh release view "$TAG" --json url --jq .url)"
+          } >> "$GITHUB_STEP_SUMMARY"
 
-        ### Installation Instructions
-        1. Download and install the apk file for your device first: `arm64-v8a` for most phones, `armeabi-v7a` for older 32-bit phones, `x86_64`/`x86` for emulators and Chromebooks, or `universal` if you are unsure
-        2. Go to the Explore menu > Manage and click the pen icon to add an extension repo
-        3. Install and use the extensions, read, add items to the favorites and ENJOY!
-
-        If this is your first time using the app, I recommend uninstalling any extension you find when opening the app for the first time and then installing latest extensions from your preferred repository.
-        EOF
-
-        gh release create "$TAG" release/*.apk \
-          --title "$TAG" \
-          --target "${{ steps.version_commit.outputs.commit_sha }}" \
-          --notes-file "$NOTES_FILE"
+      - name: Remove signing keystore
+        if: always()
+        run: rm -f "$RUNNER_TEMP/release.keystore"
