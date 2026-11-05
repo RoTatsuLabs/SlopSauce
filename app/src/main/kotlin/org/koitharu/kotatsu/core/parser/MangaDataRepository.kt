@@ -273,7 +273,7 @@ class MangaDataRepository @Inject constructor(
 		// manga still carries the overridden value, the stored source value is kept instead.
 		val overriddenTags = override?.tags != null && existingFull != null &&
 			manga.tags.mapTo(HashSet()) { it.title } == override.tags
-		val tags = if (overriddenTags) existingFull!!.tags else sourceManga.tags.toEntities()
+		val tags = if (overriddenTags) existingFull.tags else sourceManga.tags.toEntities()
 		db.getTagsDao().upsert(tags)
 		var entity = sourceManga.toEntity().copy(
 			detailsUpdatedAt = if (detailsFetched) System.currentTimeMillis() else existing?.detailsUpdatedAt ?: 0L,

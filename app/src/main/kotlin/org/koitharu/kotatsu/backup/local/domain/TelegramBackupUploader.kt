@@ -46,7 +46,7 @@ class TelegramBackupUploader @Inject constructor(
 		client.newCall(request).execute().use { response ->
 			if (!response.isSuccessful) {
 				val description = runCatching {
-					JSONObject(response.body?.string().orEmpty()).optString("description")
+					JSONObject(response.body.string().orEmpty()).optString("description")
 				}.getOrNull()
 				throw IOException("Telegram: ${description?.takeIf { it.isNotEmpty() } ?: "HTTP ${response.code}"}")
 			}
@@ -63,7 +63,7 @@ class TelegramBackupUploader @Inject constructor(
 			.url("https://api.telegram.org/bot$token/getUpdates?offset=-100&allowed_updates=%5B%22message%22%5D")
 			.build()
 		client.newCall(request).execute().use { response ->
-			val json = JSONObject(response.body?.string().orEmpty())
+			val json = JSONObject(response.body.string().orEmpty())
 			if (!json.optBoolean("ok")) {
 				throw IOException("Telegram: ${json.optString("description").ifEmpty { "HTTP ${response.code}" }}")
 			}
