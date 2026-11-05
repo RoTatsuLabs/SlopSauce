@@ -1321,6 +1321,11 @@ class AppSettings @Inject constructor(@ApplicationContext context: Context) {
 		?.takeIf { it.isNotEmpty() }
 		?: BackupSection.selectable.toSet()
 
+	/** Tracks every manga added to favourites on the trackers the user is signed in to. */
+	var isAutoTrackFavourites: Boolean
+		get() = prefs.getBoolean(KEY_AUTO_TRACK_FAVOURITES, false)
+		set(value) = prefs.edit { putBoolean(KEY_AUTO_TRACK_FAVOURITES, value) }
+
 	/** Hides favourited manga from source browse lists. */
 	var isHideFavouritesInBrowse: Boolean
 		get() = prefs.getBoolean(KEY_HIDE_FAVOURITES_IN_BROWSE, false)
@@ -1755,6 +1760,7 @@ class AppSettings @Inject constructor(@ApplicationContext context: Context) {
 		const val KEY_BACKUP_PERIODICAL_COUNT = "backup_periodic_count"
 		const val KEY_BACKUP_SECTIONS = "backup_sections"
 		const val KEY_HIDE_FAVOURITES_IN_BROWSE = "hide_favourites_in_browse"
+		const val KEY_AUTO_TRACK_FAVOURITES = "auto_track_favourites"
 		const val KEY_BACKUP_TELEGRAM_SECTIONS = "backup_telegram_sections"
 		const val KEY_BACKUP_TELEGRAM_ENABLED = "backup_telegram"
 		const val KEY_BACKUP_TELEGRAM_CHAT_ID = "backup_telegram_chat_id"

@@ -33,12 +33,16 @@ import org.koitharu.kotatsu.parsers.model.MangaSource
 import org.koitharu.kotatsu.parsers.util.levenshteinDistance
 import org.koitharu.kotatsu.search.domain.SearchKind
 import javax.inject.Inject
+import javax.inject.Provider
+import org.koitharu.kotatsu.secret.SecretSpace
+import org.koitharu.kotatsu.scrobbling.autotrack.AutoTrackWorker
 
 @Reusable
 class FavouritesRepository @Inject constructor(
 	private val db: MangaDatabase,
 	private val localObserver: LocalFavoritesObserver,
 	private val settings: AppSettings,
+	private val autoTrackScheduler: Provider<AutoTrackWorker.Scheduler>,
 ) {
 
 	suspend fun getAllManga(): List<Manga> {
@@ -308,6 +312,9 @@ class FavouritesRepository @Inject constructor(
 				)
 				db.getFavouritesDao().insert(entity)
 			}
+		}
+		if (settings.isAutoTrackFavourites && !SecretSpace.isActive) {
+			autoTrackScheduler.get().start()
 		}
 	}
 

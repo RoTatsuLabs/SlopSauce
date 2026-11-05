@@ -37,6 +37,8 @@ object SecretSpace {
 	private const val KEY_SEEDED = "ss_seeded"
 	private val SEED_SKIP = setOf(
 		AppSettings.KEY_HIDE_FAVOURITES_IN_BROWSE,
+		// Nothing from the secret space may be sent to an outside tracker
+		AppSettings.KEY_AUTO_TRACK_FAVOURITES,
 		AppSettings.KEY_BACKUP_SECTIONS,
 	)
 
