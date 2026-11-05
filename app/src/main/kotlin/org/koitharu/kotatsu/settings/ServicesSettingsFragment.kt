@@ -43,6 +43,8 @@ import org.koitharu.kotatsu.scrobbling.autotrack.AutoTrackStore
 import org.koitharu.kotatsu.scrobbling.autotrack.AutoTrackWorker
 import org.koitharu.kotatsu.scrobbling.autotrack.AutoTracker
 import org.koitharu.kotatsu.core.prefs.AppSettings
+import org.koitharu.kotatsu.core.ui.dialog.DialogAction
+import org.koitharu.kotatsu.core.ui.dialog.showActionChoiceDialog
 import org.koitharu.kotatsu.core.ui.dialog.showConfirmDialog
 import org.koitharu.kotatsu.core.util.ext.getDisplayMessage
 import org.koitharu.kotatsu.core.util.ext.printStackTraceDebug
@@ -162,18 +164,17 @@ class ServicesSettingsFragment : BaseComposeSettingsFragment(R.string.services) 
 			when {
 				active.isEmpty() -> Snackbar.make(requireView(), R.string.auto_track_no_trackers, Snackbar.LENGTH_LONG).show()
 				titles == 0 -> Snackbar.make(requireView(), R.string.auto_track_nothing, Snackbar.LENGTH_LONG).show()
-				else -> buildAlertDialog(context, isCentered = true) {
-					setTitle(R.string.auto_track_untracked)
-					setMessage(
-						context.getString(
-							R.string.auto_track_confirm,
-							titles,
-							active.joinToString { context.getString(it.scrobblerService.titleResId) },
-						),
-					)
-					setPositiveButton(R.string.auto_track_start) { _, _ -> autoTrackScheduler.start() }
-					setNegativeButton(android.R.string.cancel, null)
-				}.show()
+				else -> showConfirmDialog(
+					context = context,
+					icon = R.drawable.ic_sync,
+					title = context.getString(R.string.auto_track_untracked),
+					message = context.getString(
+						R.string.auto_track_confirm,
+						titles,
+						active.joinToString { context.getString(it.scrobblerService.titleResId) },
+					),
+					confirmLabel = context.getString(R.string.auto_track_start),
+				) { autoTrackScheduler.start() }
 			}
 		}
 	}
@@ -192,14 +193,14 @@ class ServicesSettingsFragment : BaseComposeSettingsFragment(R.string.services) 
 				reviewCount.value = 0
 				return@launch
 			}
-			buildAlertDialog(context, isCentered = true) {
-				setTitle(R.string.auto_track_review)
-				setItems(items.map { it.third }.toTypedArray()) { _, which ->
-					val (manga, service, _) = items[which]
-					router.showScrobblingSelectorSheet(manga, service)
-				}
-				setNegativeButton(android.R.string.cancel, null)
-			}.show()
+			showActionChoiceDialog(
+				context = context,
+				icon = R.drawable.ic_sync_problem,
+				title = context.getString(R.string.auto_track_review),
+				actions = items.map { (manga, service, label) ->
+					DialogAction(label = label) { router.showScrobblingSelectorSheet(manga, service) }
+				},
+			)
 		}
 	}
 
