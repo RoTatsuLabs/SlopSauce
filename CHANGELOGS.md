@@ -4,6 +4,10 @@ All notable changes to SlopSauce are listed here, newest version first. Entries 
 
 ## [Unreleased]
 
+### Fixes
+
+- Tracker import no longer shows raw Markdown in descriptions.
+
 ## [1.1.2] - 2026-11-05
 
 TL;DR: Faster downloads, auto-track and import for trackers, a secret space, Telegram backups and Discord presence through the Discord SDK.
