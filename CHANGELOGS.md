@@ -7,7 +7,7 @@ All notable changes to SlopSauce are listed here, newest version first. Entries 
 ### Fixes
 
 - Tracker import no longer shows raw Markdown in descriptions.
-- Auto-track links a title when the tracker finds only one match.
+- Auto-track matches more titles: it compares every name, searches alternative titles and skips entries of another kind.
 
 ## [1.1.2] - 2026-11-05
 

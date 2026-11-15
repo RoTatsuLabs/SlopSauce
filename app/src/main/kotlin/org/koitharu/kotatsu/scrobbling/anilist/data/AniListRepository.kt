@@ -132,6 +132,15 @@ class AniListRepository @Inject constructor(
 					title {
 						userPreferred
 						native
+						romaji
+						english
+					}
+					synonyms
+					countryOfOrigin
+					format
+					genres
+					tags {
+						name
 					}
 					coverImage {
 						medium
@@ -317,6 +326,22 @@ class AniListRepository @Inject constructor(
 			altName = title.getStringOrNull("native"),
 			cover = json.getJSONObject("coverImage").getString("medium"),
 			url = json.getString("siteUrl"),
+			names = buildList {
+				listOf("romaji", "english").forEach { key -> title.getStringOrNull(key)?.let { add(it) } }
+				json.optJSONArray("synonyms")?.let { arr ->
+					for (i in 0 until arr.length()) arr.optString(i).takeIf { it.isNotBlank() }?.let { add(it) }
+				}
+			},
+			country = json.getStringOrNull("countryOfOrigin"),
+			format = json.getStringOrNull("format"),
+			labels = buildList {
+				json.optJSONArray("genres")?.let { arr ->
+					for (i in 0 until arr.length()) arr.optString(i).takeIf { it.isNotBlank() }?.let { add(it) }
+				}
+				json.optJSONArray("tags")?.let { arr ->
+					for (i in 0 until arr.length()) arr.optJSONObject(i)?.getStringOrNull("name")?.let { add(it) }
+				}
+			},
 			isBestMatch = sourceTitle.let {
 				title.keys().forEach { key ->
 					if (title.getStringOrNull(key)?.equals(it, ignoreCase = true) == true) {

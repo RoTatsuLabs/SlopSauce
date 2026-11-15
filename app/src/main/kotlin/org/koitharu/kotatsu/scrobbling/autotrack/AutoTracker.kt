@@ -4,7 +4,6 @@ import dagger.Reusable
 import org.koitharu.kotatsu.core.db.MangaDatabase
 import org.koitharu.kotatsu.core.db.entity.toManga
 import org.koitharu.kotatsu.core.model.isNovelSource
-import org.koitharu.kotatsu.favourites.domain.FavouriteTitleIndex
 import org.koitharu.kotatsu.history.data.HistoryRepository
 import org.koitharu.kotatsu.list.domain.ReadingProgress
 import org.koitharu.kotatsu.parsers.model.Manga
@@ -88,8 +87,16 @@ class AutoTracker @Inject constructor(
 		val manga = db.getMangaDao().find(pending.mangaId)?.toManga() ?: return Outcome.SKIPPED
 		limiter.awaitBackground(service)
 		val type = if (manga.source.isNovelSource) ScrobblerMangaType.NOVEL else ScrobblerMangaType.MANGA
-		val found = scrobbler.findManga(manga.title, 0, type)
-		val match = pickMatch(manga, found) ?: return Outcome.NEEDS_REVIEW
+		// The title first; the alternative titles only when it found nothing clear, to spare requests
+		val found = LinkedHashMap<Long, ScrobblerManga>()
+		var match: ScrobblerManga? = null
+		for ((index, query) in (listOf(manga.title) + TitleMatch.extraQueries(manga)).withIndex()) {
+			if (index > 0) limiter.awaitBackground(service)
+			scrobbler.findManga(query, 0, type).forEach { found.putIfAbsent(it.id, it) }
+			match = TitleMatch.pick(manga, found.values.toList())
+			if (match != null) break
+		}
+		if (match == null) return Outcome.NEEDS_REVIEW
 		val history = historyRepository.getOne(manga)
 		limiter.awaitBackground(service)
 		val canPushProgress = scrobbler.linkManga(
@@ -107,29 +114,5 @@ class AutoTracker @Inject constructor(
 			scrobbler.scrobble(manga, history.chapterId)
 		}
 		return Outcome.TRACKED
-	}
-
-	/**
-	 * The one tracker entry whose name equals the title (or one of its alternative names) once case
-	 * and symbols are ignored. Several equal candidates are only accepted when exactly one of them is
-	 * the tracker's own best match. When no name is equal, a search that returned only one entry is
-	 * accepted as well.
-	 */
-	private fun pickMatch(manga: Manga, candidates: List<ScrobblerManga>): ScrobblerManga? {
-		val names = (sequenceOf(manga.title) + manga.altTitles.asSequence())
-			.mapNotNull { FavouriteTitleIndex.normalize(it) }
-			.toSet()
-		if (names.isEmpty()) return null
-		val equal = candidates.filter { c ->
-			FavouriteTitleIndex.normalize(c.name) in names ||
-				c.altName?.let { FavouriteTitleIndex.normalize(it) } in names
-		}
-		return when {
-			equal.size == 1 -> equal.first()
-			equal.size > 1 -> equal.singleOrNull { it.isBestMatch }
-			// The tracker searches its synonyms too, so a lone result is the title it matched on.
-			candidates.size == 1 -> candidates.first()
-			else -> null
-		}
 	}
 }
