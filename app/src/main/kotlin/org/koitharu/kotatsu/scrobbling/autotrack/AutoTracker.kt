@@ -112,7 +112,8 @@ class AutoTracker @Inject constructor(
 	/**
 	 * The one tracker entry whose name equals the title (or one of its alternative names) once case
 	 * and symbols are ignored. Several equal candidates are only accepted when exactly one of them is
-	 * the tracker's own best match.
+	 * the tracker's own best match. When no name is equal, a search that returned only one entry is
+	 * accepted as well.
 	 */
 	private fun pickMatch(manga: Manga, candidates: List<ScrobblerManga>): ScrobblerManga? {
 		val names = (sequenceOf(manga.title) + manga.altTitles.asSequence())
@@ -123,10 +124,12 @@ class AutoTracker @Inject constructor(
 			FavouriteTitleIndex.normalize(c.name) in names ||
 				c.altName?.let { FavouriteTitleIndex.normalize(it) } in names
 		}
-		return when (equal.size) {
-			0 -> null
-			1 -> equal.first()
-			else -> equal.singleOrNull { it.isBestMatch }
+		return when {
+			equal.size == 1 -> equal.first()
+			equal.size > 1 -> equal.singleOrNull { it.isBestMatch }
+			// The tracker searches its synonyms too, so a lone result is the title it matched on.
+			candidates.size == 1 -> candidates.first()
+			else -> null
 		}
 	}
 }
