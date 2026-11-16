@@ -202,27 +202,39 @@ class OverrideConfigActivity : BaseActivity<ActivityOverrideEditBinding>(), Acti
 		mode(ImportField.COVER)?.let { viewModel.updateCover(tracker.coverUrl) }
 		mode(ImportField.TITLE)?.let { titleText.value = tracker.title }
 
-		// Description and alternative names share one text, so they are applied together.
+		// Description and alternative names share one text. It is only touched when the import really
+		// changes it, so "Fill if empty" leaves an existing description (and its alt names) alone.
 		var description = descriptionText.value.orEmpty()
+		var changed = false
 		val sourceDescription = manga?.description?.parseAsHtml()?.toString()?.trim().orEmpty()
 		val baseDescription = description.ifBlank { sourceDescription }
 		val imported = tracker.description?.toString().orEmpty().markdownToPlainText()
-		mode(ImportField.DESCRIPTION)?.let {
-			description = when (it) {
+		val descriptionMode = mode(ImportField.DESCRIPTION)
+		descriptionMode?.let {
+			val result = when (it) {
 				ImportMode.REPLACE -> imported
 				ImportMode.APPEND -> if (baseDescription.isBlank()) imported else baseDescription + "\n\n" + imported
 				ImportMode.FILL -> if (baseDescription.isBlank()) imported else description
 			}
+			if (result.isNotBlank() && result != description) {
+				description = result
+				changed = true
+			}
 		}
-		if (mode(ImportField.ALT_NAMES) != null && tracker.altNames.isNotEmpty()) {
+		val keepsDescription = descriptionMode == ImportMode.FILL && baseDescription.isNotBlank()
+		if (mode(ImportField.ALT_NAMES) != null && tracker.altNames.isNotEmpty() && !keepsDescription) {
 			val base = description.ifBlank { sourceDescription }
 			val heading = getString(R.string.alt_names_heading)
 			val cut = base.indexOf(heading)
 			val text = (if (cut >= 0) base.substring(0, cut) else base).trimEnd()
-			description = (if (text.isEmpty()) "" else text + "\n\n") +
+			val result = (if (text.isEmpty()) "" else text + "\n\n") +
 				heading + "\n" + tracker.altNames.joinToString("\n")
+			if (result != base) {
+				description = result
+				changed = true
+			}
 		}
-		descriptionText.value = description
+		if (changed) descriptionText.value = description
 
 		mode(ImportField.GENRES)?.let {
 			genresText.value = mergeList(
