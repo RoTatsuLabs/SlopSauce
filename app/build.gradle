@@ -76,8 +76,15 @@ android {
 		abi {
 			enable = true
 			reset()
-			include 'arm64-v8a', 'armeabi-v7a', 'x86_64', 'x86'
-			universalApk = true
+			// -PabiOnly=arm64-v8a (the preview workflow) builds just that one ABI.
+			def abiOnly = project.findProperty('abiOnly')
+			if (abiOnly) {
+				include abiOnly
+				universalApk = false
+			} else {
+				include 'arm64-v8a', 'armeabi-v7a', 'x86_64', 'x86'
+				universalApk = true
+			}
 		}
 	}
 	buildTypes {

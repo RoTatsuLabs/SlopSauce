@@ -8,8 +8,8 @@ name: Preview Build
 # (KEYSTORE_BASE64, RELEASE_* secrets), so previews update over each other. Without the secrets it
 # falls back to the runner's throwaway debug key.
 #
-# One APK per ABI (arm64-v8a, armeabi-v7a, x86_64, x86) plus a universal one, each published as its own
-# workflow artifact (zipped by GitHub). File names and SHA-256 hashes are printed to the run summary.
+# Builds only the arm64-v8a APK, published as a workflow artifact (zipped by GitHub). The file name and
+# SHA-256 hash are printed to the run summary.
 on:
   workflow_dispatch:
 
@@ -23,7 +23,7 @@ concurrency:
 
 jobs:
   preview:
-    name: Build preview APKs
+    name: Build preview APK
     if: github.actor == github.repository_owner
     runs-on: ubuntu-latest
 
@@ -68,7 +68,7 @@ jobs:
               -PRELEASE_KEY_PASSWORD="$RELEASE_KEY_PASSWORD"
             )
           fi
-          ./gradlew :app:assemblePreview --no-daemon --stacktrace "${ARGS[@]}"
+          ./gradlew :app:assemblePreview -PabiOnly=arm64-v8a --no-daemon --stacktrace "${ARGS[@]}"
 
       - name: Collect APKs and compute checksums
         id: apk
@@ -88,7 +88,7 @@ jobs:
             echo "| --- | --- | --- |"
           } >> "$GITHUB_STEP_SUMMARY"
 
-          for ABI in arm64-v8a armeabi-v7a x86_64 x86 universal; do
+          for ABI in arm64-v8a; do
             FILES=(app/build/outputs/apk/preview/*-"${ABI}"-*.apk)
             if [ ${#FILES[@]} -ne 1 ]; then
               echo "::error::Expected exactly one ${ABI} APK under app/build/outputs/apk/preview, found ${#FILES[@]}"
@@ -107,37 +107,5 @@ jobs:
         with:
           name: ${{ steps.apk.outputs.base }}-arm64-v8a
           path: out/${{ steps.apk.outputs.base }}-arm64-v8a.apk
-          if-no-files-found: error
-          retention-days: 30
-
-      - name: Upload armeabi-v7a APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ steps.apk.outputs.base }}-armeabi-v7a
-          path: out/${{ steps.apk.outputs.base }}-armeabi-v7a.apk
-          if-no-files-found: error
-          retention-days: 30
-
-      - name: Upload x86_64 APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ steps.apk.outputs.base }}-x86_64
-          path: out/${{ steps.apk.outputs.base }}-x86_64.apk
-          if-no-files-found: error
-          retention-days: 30
-
-      - name: Upload x86 APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ steps.apk.outputs.base }}-x86
-          path: out/${{ steps.apk.outputs.base }}-x86.apk
-          if-no-files-found: error
-          retention-days: 30
-
-      - name: Upload universal APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ steps.apk.outputs.base }}-universal
-          path: out/${{ steps.apk.outputs.base }}-universal.apk
           if-no-files-found: error
           retention-days: 30
