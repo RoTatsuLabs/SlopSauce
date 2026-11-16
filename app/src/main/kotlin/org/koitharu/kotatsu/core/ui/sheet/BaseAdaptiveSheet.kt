@@ -1,5 +1,6 @@
 package org.koitharu.kotatsu.core.ui.sheet
 
+import org.koitharu.kotatsu.core.ui.blur.applyGlassBlur
 import android.app.Dialog
 import android.content.Context
 import android.graphics.drawable.ColorDrawable
@@ -126,6 +127,7 @@ abstract class BaseAdaptiveSheet<B : ViewBinding> : AppCompatDialogFragment(),
 		).also {
 			dialog.onBackPressedDispatcher.addCallback(it)
 		}
+		dialog.window?.applyGlassBlur()
 		return dialog
 	}
 

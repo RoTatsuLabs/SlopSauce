@@ -1,6 +1,11 @@
 package org.koitharu.kotatsu.details.ui
 
+import androidx.compose.foundation.BorderStroke
 import androidx.annotation.DrawableRes
+import androidx.compose.ui.draw.clip
+import dev.chrisbanes.haze.HazeState
+import org.koitharu.kotatsu.core.ui.blur.blurBar
+import org.koitharu.kotatsu.core.ui.blur.rememberGlassLook
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
@@ -49,6 +54,7 @@ internal fun ActionDock(
 	accent: Color,
 	actions: DetailsExpressiveActions,
 	modifier: Modifier = Modifier,
+	blur: HazeState? = null,
 ) {
 	Column(
 		modifier = modifier,
@@ -57,18 +63,24 @@ internal fun ActionDock(
 	) {
 		val chapterCount = historyInfo.totalChapters
 		if (chapterCount > 0) {
-			ChaptersPill(count = chapterCount, onClick = actions.onChaptersClick)
+			ChaptersPill(count = chapterCount, onClick = actions.onChaptersClick, blur = blur)
 		}
 		ReadFab(historyInfo = historyInfo, isLoading = isLoading, accent = accent, actions = actions)
 	}
 }
 
 @Composable
-internal fun ChaptersPill(count: Int, onClick: () -> Unit) {
+internal fun ChaptersPill(count: Int, onClick: () -> Unit, blur: HazeState? = null) {
+	val glass = blur != null
+	val glassLook = rememberGlassLook()
 	Surface(
 		onClick = onClick,
+		modifier = Modifier
+			.clip(RoundedCornerShape(50))
+			.blurBar(blur, MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.7f)),
 		shape = RoundedCornerShape(50),
-		color = MaterialTheme.colorScheme.surfaceContainerHighest,
+		color = if (glass) Color.Transparent else MaterialTheme.colorScheme.surfaceContainerHighest,
+		border = if (glass && glassLook) BorderStroke(1.dp, Color.White.copy(alpha = 0.16f)) else null,
 		tonalElevation = 3.dp,
 		shadowElevation = 3.dp,
 	) {

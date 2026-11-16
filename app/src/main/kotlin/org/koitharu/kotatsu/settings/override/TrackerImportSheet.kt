@@ -1,5 +1,7 @@
 package org.koitharu.kotatsu.settings.override
 
+import org.koitharu.kotatsu.core.ui.blur.glassColor
+import org.koitharu.kotatsu.core.ui.blur.GlassWindowEffect
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -111,8 +113,9 @@ fun TrackerImportSheet(
 		onDismissRequest = onDismiss,
 		sheetState = rememberBottomSheetState(SheetValue.Hidden, setOf(SheetValue.Hidden, SheetValue.Expanded)),
 		shape = RoundedCornerShape(topStart = SHEET_CORNER, topEnd = SHEET_CORNER),
-		containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+		containerColor = glassColor(MaterialTheme.colorScheme.surfaceContainerLow),
 	) {
+		GlassWindowEffect()
 		val shown = ImportField.entries.filter { it in tracker.availableFields(context) }
 		val missing = ImportField.entries - shown.toSet()
 		Column(Modifier.padding(start = 20.dp, end = 20.dp, bottom = 24.dp)) {

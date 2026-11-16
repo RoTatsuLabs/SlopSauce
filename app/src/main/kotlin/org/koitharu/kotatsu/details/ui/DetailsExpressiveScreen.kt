@@ -35,6 +35,8 @@ import coil3.ImageLoader
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.crossfade
+import org.koitharu.kotatsu.core.ui.blur.blurSource
+import org.koitharu.kotatsu.core.ui.blur.rememberBlurState
 import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.core.prefs.DetailsUiMode
 import org.koitharu.kotatsu.core.ui.widgets.ChipsView
@@ -99,6 +101,7 @@ fun DetailsExpressiveScreen(
 	val accentColor = scheme.primary
 	val scrollState = rememberScrollState()
 	val centered = style != DetailsUiMode.COMPACT
+	val blur = rememberBlurState()
 
 	LaunchedEffect(scrollState) {
 		snapshotFlow { scrollState.value }.collect(onScroll)
@@ -123,6 +126,7 @@ fun DetailsExpressiveScreen(
 		Column(
 			modifier = Modifier
 				.fillMaxSize()
+				.blurSource(blur)
 				.verticalScroll(scrollState)
 				.padding(bottom = bottomContentPadding + DETAIL_DOCK_RESERVE),
 			horizontalAlignment = Alignment.CenterHorizontally,
@@ -211,6 +215,7 @@ fun DetailsExpressiveScreen(
 				isLoading = isLoading,
 				accent = accentColor,
 				actions = actions,
+				blur = blur,
 				modifier = Modifier
 					.align(Alignment.BottomEnd)
 					.padding(end = SCREEN_PADDING, bottom = bottomContentPadding + 16.dp)

@@ -1,5 +1,8 @@
 package org.koitharu.kotatsu.core.ui.dialog
 
+import org.koitharu.kotatsu.core.ui.blur.glassColor
+import org.koitharu.kotatsu.core.ui.blur.glassBorder
+import org.koitharu.kotatsu.core.ui.blur.applyGlassBlur
 import android.app.Dialog
 import android.content.Context
 import android.graphics.Color as AndroidColor
@@ -126,6 +129,7 @@ fun showComposeDialog(
 	dialog.window?.run {
 		setBackgroundDrawable(ColorDrawable(AndroidColor.TRANSPARENT))
 		setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+		applyGlassBlur()
 	}
 	// Plain dialog, not a DialogFragment — dismiss with the host to avoid a leaked window.
 	val owner = context.findActivity() as? LifecycleOwner
@@ -214,7 +218,8 @@ fun ExpressiveDialogCard(
 		Surface(
 			// Concentric with the round corner button: its radius plus the card padding.
 			shape = RoundedCornerShape(CornerButtonSize / 2 + CardPadding),
-			color = colors.surfaceContainer,
+			color = glassColor(colors.surfaceContainer),
+			border = glassBorder(),
 			modifier = Modifier
 				.fillMaxWidth()
 				.widthIn(max = DialogMaxWidth)

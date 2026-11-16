@@ -4,6 +4,11 @@ All notable changes to SlopSauce are listed here, newest version first. Entries 
 
 ## [Unreleased]
 
+### Additions
+
+- Backdrop blur behind popups and sheets, and on the Downloads bar and chapters button, with the existing "Blur behind bars" switch.
+- Frosted glass: popups, sheets and bars turn see-through over the blur. Switch it off in Appearance.
+
 ### Fixes
 
 - Tracker import no longer shows raw Markdown in descriptions.
