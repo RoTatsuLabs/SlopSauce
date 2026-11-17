@@ -48,7 +48,8 @@ class AutoTrackWorker @AssistedInject constructor(
 ) : CoroutineWorker(context, workerParams) {
 
 	override suspend fun doWork(): Result {
-		val pending = autoTracker.findPending()
+		val closest = inputData.getBoolean(KEY_CLOSEST, false)
+		val pending = if (closest) autoTracker.findReviewPending() else autoTracker.findPending()
 		if (pending.isEmpty()) {
 			return Result.success()
 		}
@@ -62,7 +63,7 @@ class AutoTrackWorker @AssistedInject constructor(
 			val service = item.scrobbler.scrobblerService
 			if (service in skipped) continue
 			try {
-				when (autoTracker.trackOne(item)) {
+				when (autoTracker.trackOne(item, closest)) {
 					AutoTracker.Outcome.TRACKED -> tracked++
 					AutoTracker.Outcome.NEEDS_REVIEW -> {
 						store.addReview(item.mangaId, service)
@@ -158,8 +159,9 @@ class AutoTrackWorker @AssistedInject constructor(
 	) {
 
 		/** Starts a pass, or queues one behind the pass already running. */
-		fun start() {
+		fun start(closest: Boolean = false) {
 			val request = OneTimeWorkRequestBuilder<AutoTrackWorker>()
+				.setInputData(workDataOf(KEY_CLOSEST to closest))
 				.setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
 				.setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 1, TimeUnit.MINUTES)
 				.addTag(TAG)
@@ -193,5 +195,6 @@ class AutoTrackWorker @AssistedInject constructor(
 		const val KEY_DONE = "done"
 		const val KEY_TOTAL = "total"
 		const val KEY_REVIEW = "review"
+		const val KEY_CLOSEST = "closest"
 	}
 }

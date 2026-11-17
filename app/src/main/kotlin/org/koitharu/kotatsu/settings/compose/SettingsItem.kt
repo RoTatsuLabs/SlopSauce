@@ -8,6 +8,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.shape.CornerBasedShape
@@ -92,6 +93,7 @@ fun SettingsItem(
 	containerColor: Color = LocalSettingsItemColor.current ?: MaterialTheme.colorScheme.surfaceContainer,
 	titleStyle: TextStyle = MaterialTheme.typography.titleMedium,
 	onClick: (() -> Unit)? = null,
+	onLongClick: (() -> Unit)? = null,
 	hapticEffect: HapticEffect? = null,
 	trailing: @Composable (() -> Unit)? = null,
 	// Extra content right under the title/subtitle, in the text column (e.g. value pills).
@@ -151,10 +153,15 @@ fun SettingsItem(
 	) {
 		Column(
 			modifier = if (onClick != null && enabled) {
-				Modifier.clickable(interactionSource = interactionSource, indication = LocalIndication.current) {
-					if (hapticEffect != null) haptic(hapticEffect)
-					onClick()
-				}
+				Modifier.combinedClickable(
+					interactionSource = interactionSource,
+					indication = LocalIndication.current,
+					onLongClick = onLongClick,
+					onClick = {
+						if (hapticEffect != null) haptic(hapticEffect)
+						onClick()
+					},
+				)
 			} else {
 				Modifier
 			},

@@ -107,6 +107,7 @@ class ServicesSettingsFragment : BaseComposeSettingsFragment(R.string.services) 
 					reviewCount = reviewTotal,
 					onTrackUntracked = ::confirmTrackUntracked,
 					onOpenReview = ::showReviewList,
+					onTrackReview = ::confirmTrackReview,
 					onOpenSuggestions = {
 						(activity as? SettingsActivity)?.openFragment(
 							SuggestionsSettingsFragment::class.java,
@@ -176,6 +177,24 @@ class ServicesSettingsFragment : BaseComposeSettingsFragment(R.string.services) 
 					confirmLabel = context.getString(R.string.auto_track_start),
 				) { autoTrackScheduler.start() }
 			}
+		}
+	}
+
+	private fun confirmTrackReview() {
+		val context = context ?: return
+		viewLifecycleOwner.lifecycleScope.launch {
+			val count = withContext(Dispatchers.Default) { autoTracker.findReviewPending().map { it.mangaId }.distinct().size }
+			if (count == 0) {
+				Snackbar.make(requireView(), R.string.auto_track_no_trackers, Snackbar.LENGTH_LONG).show()
+				return@launch
+			}
+			showConfirmDialog(
+				context = context,
+				icon = R.drawable.ic_sync_problem,
+				title = context.getString(R.string.auto_track_review),
+				message = context.getString(R.string.auto_track_closest_confirm, count),
+				confirmLabel = context.getString(R.string.auto_track_start),
+			) { autoTrackScheduler.start(closest = true) }
 		}
 	}
 
@@ -273,6 +292,7 @@ private fun ServicesScreen(
 	reviewCount: Int,
 	onTrackUntracked: () -> Unit,
 	onOpenReview: () -> Unit,
+	onTrackReview: () -> Unit,
 	onOpenSuggestions: () -> Unit,
 	onOpenStatistics: () -> Unit,
 	onScrobblerClick: (ScrobblerService) -> Unit,
@@ -404,7 +424,7 @@ private fun ServicesScreen(
 							checked = syncTrackingProgress,
 							onCheckedChange = { syncTrackingProgress = it },
 							icon = R.drawable.ic_sync_alt,
-							main = true,
+							shape = pos.shape,
 						)
 					}
 					item { pos ->
@@ -424,6 +444,7 @@ private fun ServicesScreen(
 							icon = R.drawable.ic_sync_alt,
 							shape = pos.shape,
 							onClick = onTrackUntracked,
+							onLongClick = if (reviewCount > 0) onTrackReview else null,
 						)
 					}
 					if (reviewCount > 0) {

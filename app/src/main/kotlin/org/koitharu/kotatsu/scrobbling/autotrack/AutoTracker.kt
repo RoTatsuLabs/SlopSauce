@@ -58,6 +58,12 @@ class AutoTracker @Inject constructor(
 		return result
 	}
 
+	/** The titles waiting for a manual pick, as work for a pass that links them to their nearest entry. */
+	suspend fun findReviewPending(): List<Pending> {
+		val active = enabledScrobblers.associateBy { it.scrobblerService }
+		return pendingReview().mapNotNull { (mangaId, service) -> active[service]?.let { Pending(mangaId, it) } }
+	}
+
 	/**
 	 * The titles still waiting for a manual pick. Ones that were linked by hand since, or are no
 	 * longer favourites, are dropped from the list here, so it always shows only what is really left.
@@ -81,7 +87,8 @@ class AutoTracker @Inject constructor(
 		return result
 	}
 
-	suspend fun trackOne(pending: Pending): Outcome {
+	/** [closest] links the nearest entry when nothing is clear, for titles the user chose to push through. */
+	suspend fun trackOne(pending: Pending, closest: Boolean = false): Outcome {
 		val scrobbler = pending.scrobbler
 		val service = scrobbler.scrobblerService
 		val manga = db.getMangaDao().find(pending.mangaId)?.toManga() ?: return Outcome.SKIPPED
@@ -96,6 +103,7 @@ class AutoTracker @Inject constructor(
 			match = TitleMatch.pick(manga, found.values.toList())
 			if (match != null) break
 		}
+		if (match == null && closest) match = TitleMatch.closest(manga, found.values.toList())
 		if (match == null) return Outcome.NEEDS_REVIEW
 		val history = historyRepository.getOne(manga)
 		limiter.awaitBackground(service)

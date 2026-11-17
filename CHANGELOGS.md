@@ -4,6 +4,14 @@ All notable changes to SlopSauce are listed here, newest version first. Entries 
 
 ## [Unreleased]
 
+### Additions
+
+- Hold "Track untracked favourites" to link the titles that need review to their nearest tracker entry.
+
+### Fixes
+
+- "Sync progress from tracking services" no longer shows as an oversized highlighted card in Services.
+
 ## [1.1.4] - 2026-11-17
 
 TL;DR: Frosted glass, the latest DropSauce changes, and better tracker import and auto-track.

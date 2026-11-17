@@ -301,6 +301,7 @@ fun ActionSettingsItem(
 	shape: Shape = MaterialTheme.shapes.medium,
 	enabled: Boolean = true,
 	accentColor: androidx.compose.ui.graphics.Color? = null,
+	onLongClick: (() -> Unit)? = null,
 ) {
 	SettingsItem(
 		title = title,
@@ -313,6 +314,7 @@ fun ActionSettingsItem(
 		enabled = enabled,
 		accentColor = accentColor,
 		onClick = onClick,
+		onLongClick = onLongClick,
 	)
 }
 

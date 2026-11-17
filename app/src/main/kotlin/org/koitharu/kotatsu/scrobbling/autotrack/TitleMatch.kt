@@ -16,6 +16,7 @@ internal object TitleMatch {
 
 	/** The best entry must lead the runner-up by this much, unless it is the only exact one. */
 	private const val LEAD = 0.1f
+	private const val CLOSEST_MIN = 0.5f
 
 	private val diacritics = Regex("\\p{InCombiningDiacriticalMarks}+")
 	private val brackets = Regex("[(\\[{][^)\\]}]*[)\\]}]")
@@ -106,6 +107,19 @@ internal object TitleMatch {
 			return null
 		}
 		return if (candidates.size == 1) top else null
+	}
+
+	/**
+	 * The nearest entry when [pick] found nothing clear: the best score among the entries that do not
+	 * conflict, as long as it is a fair match. Used only when the user asks for it by hand.
+	 */
+	fun closest(manga: Manga, candidates: List<ScrobblerManga>): ScrobblerManga? {
+		val names = namesOf(manga)
+		if (names.isEmpty()) return null
+		val best = candidates.filterNot { conflicts(manga, it) }
+			.map { it to bestScore(names, namesOf(it)) }
+			.maxByOrNull { it.second } ?: return null
+		return best.first.takeIf { best.second >= CLOSEST_MIN }
 	}
 
 	/** Alternative titles worth a search of their own, when the main title found nothing clear. */
