@@ -77,7 +77,7 @@ SlopSauce is a personal fork, built for my own use and shared as is. It takes no
 - Download ahead: queue the next chapters while you read, with a count you set. It stays off in incognito mode.
 - Hide favourites: hide titles you already favourited from source lists, in Settings > Appearance.
 - Faster downloads: several pages download at once, with a limit per website. Pick how many pages and how many manga download together in Settings > Downloads.
-- Download manager: sections and filters, sorting, a queue you can reorder step by step, live speed, time left, pause and resume for one or all, retry for all failed, and a notification that shows the total.
+- Download manager: sections and filters, sorting, a queue you can reorder by dragging or step by step, charging-only downloads, retries that wait longer each time, per-source speed and auto-delete, a storage summary, one history entry per manga, "download missing chapters", live speed, time left, pause and resume for one or all, retry for all failed, and a notification that shows the total.
 - Parallel page progress: the progress bar shows each page of the chapter being downloaded, with the ones in progress moving.
 - Tracker import: when editing a manga, import the cover, title, description, alternative names, genres, authors, status, content rating and score from a tracker. You choose per field whether to replace, append or fill if empty. Nothing changes until you save.
 - Same-title favourites: a title you already favourited from another source gets a badge on its cover in source lists and a note on its details page. Hide favourites is also in the list display options.

@@ -40,9 +40,8 @@ class LocalStorageCleanupWorker @AssistedInject constructor(
 ) : CoroutineWorker(appContext, params) {
 
 	override suspend fun doWork(): Result {
-		if (settings.isAutoLocalChaptersCleanupEnabled) {
-			deleteReadChaptersUseCase.invoke()
-		}
+		// Each source may turn the cleanup on or off for itself, so this always runs
+		deleteReadChaptersUseCase.invoke(bySourceSettings = true)
 		return if (localMangaRepository.cleanup()) {
 			dataRepository.cleanupLocalManga()
 			Result.success()

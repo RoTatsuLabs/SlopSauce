@@ -359,7 +359,7 @@ class DownloadWorker @AssistedInject constructor(
 		val pageCounter = AtomicInteger(0)
 		val pageStates = CharArray(pages.size) { PAGE_WAITING }
 		channelFlow {
-			val semaphore = Semaphore(settings.downloadConnections)
+			val semaphore = Semaphore(sourceThrottler.connectionsFor(manga.source))
 			for ((pageIndex, page) in pages.withIndex()) {
 				checkIsPaused()
 				launch {
@@ -442,7 +442,8 @@ class DownloadWorker @AssistedInject constructor(
 		block: suspend () -> R,
 	): R? {
 		checkIsPaused()
-		var countDown = MAX_FAILSAFE_ATTEMPTS
+		val maxAttempts = settings.downloadRetries
+		var countDown = maxAttempts
 		failsafe@ while (true) {
 			try {
 				return block()
@@ -452,7 +453,8 @@ class DownloadWorker @AssistedInject constructor(
 				val retryDelay = if (e is TooManyRequestExceptions) {
 					e.getRetryDelay()
 				} else {
-					DOWNLOAD_ERROR_DELAY
+					// Smart retry: wait longer after every failed attempt, up to a minute
+					(DOWNLOAD_ERROR_DELAY shl (maxAttempts - countDown).coerceIn(0, 5)).coerceAtMost(MAX_BACKOFF_DELAY)
 				}
 				if (countDown <= 0 || retryDelay < 0 || retryDelay > MAX_RETRY_DELAY) {
 					if (e !is IOException) {
@@ -471,7 +473,7 @@ class DownloadWorker @AssistedInject constructor(
 							isStuck = false,
 						),
 					)
-					countDown = MAX_FAILSAFE_ATTEMPTS
+					countDown = maxAttempts
 					pausingHandle.pause()
 					try {
 						pausingHandle.awaitResumed()
@@ -665,6 +667,7 @@ class DownloadWorker @AssistedInject constructor(
 		@ApplicationContext private val context: Context,
 		private val mangaDataRepository: MangaDataRepository,
 		private val workManager: WorkManager,
+		private val settings: AppSettings,
 	) {
 
 		fun observeWorks(): Flow<List<WorkInfo>> = workManager
@@ -741,20 +744,20 @@ class DownloadWorker @AssistedInject constructor(
 			workManager.deleteWorks(finishedWorks.mapToSet { it.id })
 		}
 
-		suspend fun updateConstraints(allowMeteredNetwork: Boolean) {
-			val constraints = createConstraints(allowMeteredNetwork)
+		/** @param allowMeteredNetwork null keeps each download's own network choice */
+		suspend fun updateConstraints(allowMeteredNetwork: Boolean?) {
 			val works = workManager.awaitWorkInfosByTag(TAG)
 			for (work in works) {
 				if (work.state.isFinished) {
 					continue
 				}
+				val metered = allowMeteredNetwork
+					?: (work.constraints.requiredNetworkType != NetworkType.UNMETERED)
 				val request = OneTimeWorkRequestBuilder<DownloadWorker>()
-					.setConstraints(constraints)
+					.setConstraints(createConstraints(metered))
 					.addTag(TAG)
 					.setId(work.id)
-					.apply {
-						if (!SecretSpace.isActive) setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
-					}
+					.apply { if (canExpedite()) setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST) }
 					.build()
 				workManager.awaitUpdateWork(request)
 			}
@@ -777,19 +780,21 @@ class DownloadWorker @AssistedInject constructor(
 			.keepResultsForAtLeast(30, TimeUnit.DAYS)
 			.setBackoffCriteria(BackoffPolicy.LINEAR, 10, TimeUnit.SECONDS)
 			.setInputData(task.toData())
-			.apply {
-				if (!SecretSpace.isActive) setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
-			}
+			.apply { if (canExpedite()) setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST) }
 			.build()
+
+		// WorkManager rejects expedited work that also needs the charger
+		private fun canExpedite() = !SecretSpace.isActive && !settings.isDownloadChargingOnly
 
 		private fun createConstraints(allowMeteredNetwork: Boolean) = Constraints.Builder()
 			.setRequiredNetworkType(if (allowMeteredNetwork) NetworkType.CONNECTED else NetworkType.UNMETERED)
+			.setRequiresCharging(settings.isDownloadChargingOnly)
 			.build()
 	}
 
 	companion object {
 
-		private const val MAX_FAILSAFE_ATTEMPTS = 2
+		private const val MAX_BACKOFF_DELAY = 60_000L
 		private const val MAX_PAGE_SEGMENTS = 120
 		private const val PAGE_WAITING = '0'
 		private const val PAGE_ACTIVE = '1'

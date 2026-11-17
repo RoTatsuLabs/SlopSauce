@@ -70,6 +70,7 @@ import org.koitharu.kotatsu.settings.compose.SettingsGroup
 import org.koitharu.kotatsu.settings.compose.SettingsItem
 import org.koitharu.kotatsu.settings.compose.SettingsScaffold
 import org.koitharu.kotatsu.settings.compose.LocalSettingsScrollToTop
+import org.koitharu.kotatsu.settings.compose.SliderSettingsItem
 import org.koitharu.kotatsu.settings.compose.SwitchSettingsItem
 
 @AndroidEntryPoint
@@ -426,6 +427,48 @@ private fun SourceSettingsScreen(
 								)
 							}
 						}
+						if (!isNovelSource) {
+							item { pos ->
+								var speed by rememberSourceInt(sourcePrefs, SourceSettings.KEY_DOWNLOAD_CONNECTIONS, 0)
+								val autoLabel = stringResource(R.string.source_download_speed_auto)
+								SliderSettingsItem(
+									title = stringResource(R.string.source_download_speed),
+									subtitle = stringResource(R.string.source_download_speed_summary),
+									value = speed.coerceIn(0, 10),
+									valueFrom = 0,
+									valueTo = 10,
+									stepSize = 1,
+									onValueChange = { speed = it },
+									valueLabel = { if (it == 0) autoLabel else it.toString() },
+									icon = R.drawable.ic_download,
+									shape = pos.shape,
+								)
+							}
+						}
+						item { pos ->
+							var autoDelete by rememberSourceString(
+								sourcePrefs,
+								SourceSettings.KEY_AUTO_DELETE_READ,
+								SourceSettings.AUTO_DELETE_DEFAULT,
+							)
+							ListSettingsItem(
+								title = stringResource(R.string.source_auto_delete),
+								entries = listOf(
+									stringResource(R.string.source_auto_delete_default),
+									stringResource(R.string.source_auto_delete_on),
+									stringResource(R.string.source_auto_delete_off),
+								),
+								entryValues = listOf(
+									SourceSettings.AUTO_DELETE_DEFAULT,
+									SourceSettings.AUTO_DELETE_ON,
+									SourceSettings.AUTO_DELETE_OFF,
+								),
+								selectedValue = autoDelete,
+								onValueChange = { autoDelete = it },
+								icon = R.drawable.ic_delete,
+								shape = pos.shape,
+							)
+						}
 						item { pos ->
 							var intercept by rememberSourceBoolean(sourcePrefs, SourceSettings.KEY_INTERCEPT_CLOUDFLARE, false)
 							SwitchSettingsItem(
@@ -658,6 +701,54 @@ private fun rememberSourceBoolean(
 
 			override fun component1() = value
 			override fun component2(): (Boolean) -> Unit = { value = it }
+		}
+	}
+}
+
+@Composable
+private fun rememberSourceInt(
+	prefs: SharedPreferences,
+	key: String,
+	default: Int,
+): androidx.compose.runtime.MutableState<Int> {
+	val state = remember(prefs, key) { mutableStateOf(prefs.getInt(key, default)) }
+	return remember(state, prefs) {
+		object : androidx.compose.runtime.MutableState<Int> {
+			override var value: Int
+				get() = state.value
+				set(newValue) {
+					if (state.value != newValue) {
+						state.value = newValue
+						prefs.edit().putInt(key, newValue).apply()
+					}
+				}
+
+			override fun component1() = value
+			override fun component2(): (Int) -> Unit = { value = it }
+		}
+	}
+}
+
+@Composable
+private fun rememberSourceString(
+	prefs: SharedPreferences,
+	key: String,
+	default: String,
+): androidx.compose.runtime.MutableState<String> {
+	val state = remember(prefs, key) { mutableStateOf(prefs.getString(key, default) ?: default) }
+	return remember(state, prefs) {
+		object : androidx.compose.runtime.MutableState<String> {
+			override var value: String
+				get() = state.value
+				set(newValue) {
+					if (state.value != newValue) {
+						state.value = newValue
+						prefs.edit().putString(key, newValue).apply()
+					}
+				}
+
+			override fun component1() = value
+			override fun component2(): (String) -> Unit = { value = it }
 		}
 	}
 }

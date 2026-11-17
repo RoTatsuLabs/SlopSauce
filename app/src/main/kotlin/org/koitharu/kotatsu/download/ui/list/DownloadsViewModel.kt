@@ -14,9 +14,18 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.mapLatest
+import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.withContext
+import org.koitharu.kotatsu.core.prefs.AppSettings
+import org.koitharu.kotatsu.core.prefs.TriStateOption
+import org.koitharu.kotatsu.download.ui.worker.DownloadTask
+import java.io.File
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.plus
 import kotlinx.coroutines.sync.Mutex
@@ -57,6 +66,7 @@ class DownloadsViewModel @Inject constructor(
 	private val mangaRepositoryFactory: MangaRepository.Factory,
 	@LocalStorageChanges private val localStorageChanges: MutableSharedFlow<LocalManga?>,
 	private val localMangaRepository: LocalMangaRepository,
+	private val settings: AppSettings,
 ) : BaseViewModel() {
 
 	private val mangaCache = LongSparseArray<Manga>()
@@ -74,6 +84,64 @@ class DownloadsViewModel @Inject constructor(
 		.stateIn(viewModelScope + Dispatchers.Default, SharingStarted.Eagerly, null)
 
 	val onActionDone = MutableEventFlow<ReversibleAction>()
+
+	/** How much room downloaded manga take, rebuilt a moment after the storage changes. */
+	@OptIn(kotlinx.coroutines.FlowPreview::class, kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+	val storage: StateFlow<StorageSummary?> = localStorageChanges
+		.onStart { emit(null) }
+		.debounce(1_500L)
+		.mapLatest { computeStorage() }
+		.stateIn(viewModelScope + Dispatchers.Default, SharingStarted.Eagerly, null)
+
+	private suspend fun computeStorage(): StorageSummary = withContext(Dispatchers.IO) {
+		val list = runCatchingCancellable {
+			localMangaRepository.getRawListAsFlow().toList()
+		}.getOrDefault(emptyList())
+		val entries = list.map { StorageEntry(it.manga, it.file.sizeOnDisk()) }
+		StorageSummary(
+			totalBytes = entries.sumOf { it.bytes },
+			mangaCount = entries.size,
+			largest = entries.sortedByDescending { it.bytes }.take(STORAGE_TOP),
+		)
+	}
+
+	private fun File.sizeOnDisk(): Long = if (isDirectory) {
+		walkTopDown().filter { it.isFile }.sumOf { it.length() }
+	} else {
+		length()
+	}
+
+	fun deleteStored(manga: Manga) {
+		launchJob(Dispatchers.Default) {
+			localMangaRepository.delete(manga)
+			onActionDone.call(ReversibleAction(R.string.downloads_storage_deleted, null))
+		}
+	}
+
+	/** Queues every chapter the source has that is not saved on this device yet. */
+	fun downloadMissing(item: DownloadItemModel) {
+		val manga = item.manga ?: return
+		launchJob(Dispatchers.Default) {
+			val remote = mangaRepositoryFactory.create(manga.source).getDetails(manga)
+			val saved = localMangaRepository.findSavedManga(manga)?.manga?.chapters?.mapToSet { it.id }.orEmpty()
+			val missing = remote.chapters.orEmpty().filter { it.id !in saved }.mapToSet { it.id }
+			if (missing.isEmpty()) {
+				onActionDone.call(ReversibleAction(R.string.download_nothing_missing, null))
+				return@launchJob
+			}
+			val task = DownloadTask(
+				mangaId = manga.id,
+				isPaused = false,
+				isSilent = false,
+				chaptersIds = missing.toLongArray(),
+				destination = null,
+				format = null,
+				allowMeteredNetwork = settings.allowDownloadOnMeteredNetwork == TriStateOption.ENABLED,
+			)
+			workScheduler.schedule(setOf(manga.copy(chapters = null) to task))
+			onActionDone.call(ReversibleAction(R.string.download_missing_started, null))
+		}
+	}
 
 	/** Everything for the downloads screen: running first, then waiting in start order, queued, finished. */
 	val models: StateFlow<List<DownloadItemModel>?> = works.map { list ->
@@ -216,6 +284,7 @@ class DownloadsViewModel @Inject constructor(
 			for (work in snapshot) {
 				if (work.id.mostSignificantBits in ids) {
 					uuids.add(work.id)
+					uuids.addAll(work.relatedIds)
 				}
 			}
 			workScheduler.delete(uuids)
@@ -254,7 +323,30 @@ class DownloadsViewModel @Inject constructor(
 		}
 		val list = mapNotNullTo(ArrayList(size)) { it.toUiModel(it.id in exp) }
 		list.sortByDescending { it.timestamp }
-		return list
+		return list.foldHistory()
+	}
+
+	/** Finished downloads of one manga are one history entry, however many times it was downloaded. */
+	private fun List<DownloadItemModel>.foldHistory(): List<DownloadItemModel> {
+		val done = filter { it.workState == WorkInfo.State.SUCCEEDED && it.manga != null }
+			.groupBy { it.manga?.id }
+		if (done.values.all { it.size < 2 }) {
+			return this
+		}
+		val folded = HashSet<UUID>()
+		val merged = HashMap<UUID, DownloadItemModel>()
+		for (group in done.values) {
+			if (group.size < 2) continue
+			val newest = group.first() // already newest first
+			val older = group.drop(1)
+			folded += older.map { it.id }
+			merged[newest.id] = newest.copy(
+				chaptersDownloaded = group.sumOf { it.chaptersDownloaded },
+				downloadedBytes = group.sumOf { it.downloadedBytes },
+				relatedIds = older.map { it.id },
+			)
+		}
+		return mapNotNull { if (it.id in folded) null else merged[it.id] ?: it }
 	}
 
 	private fun List<DownloadItemModel>.toUiList(): List<ListModel> {
@@ -391,4 +483,16 @@ class DownloadsViewModel @Inject constructor(
 	private suspend fun tryLoad(manga: Manga) = runCatchingCancellable {
 		mangaRepositoryFactory.create(manga.source).getDetails(manga)
 	}.getOrNull()
+
+	private companion object {
+		const val STORAGE_TOP = 5
+	}
 }
+
+class StorageEntry(val manga: Manga, val bytes: Long)
+
+class StorageSummary(
+	val totalBytes: Long,
+	val mangaCount: Int,
+	val largest: List<StorageEntry>,
+)

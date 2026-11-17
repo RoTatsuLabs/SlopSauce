@@ -38,9 +38,19 @@ class DownloadSourceThrottler @Inject constructor(
 	 */
 	suspend fun pace(source: MangaSource) = awaitSlot(source)
 
+	/** Pages fetched at once from [source]: its own limit if it has one, otherwise the global one. */
+	fun connectionsFor(source: MangaSource): Int {
+		val own = settingsFor(source).downloadConnections
+		return if (own > 0) own else appSettings.downloadConnections
+	}
+
+	private fun settingsFor(source: MangaSource): SourceSettings = synchronized(settingsMap) {
+		settingsMap.getOrPut(source) { SourceSettings(context, source) }
+	}
+
 	/** Runs [block] as one request against [source], waiting for a free slot first. */
 	suspend fun <T> withRequestPermit(source: MangaSource, block: suspend () -> T): T {
-		val limit = appSettings.downloadConnections
+		val limit = connectionsFor(source)
 		val semaphore = synchronized(semaphores) {
 			// Rebuilt when the limit setting changes; requests already running keep their old permit
 			val current = semaphores[source]
@@ -57,9 +67,7 @@ class DownloadSourceThrottler @Inject constructor(
 	}
 
 	private suspend fun awaitSlot(source: MangaSource) {
-		val settings = synchronized(settingsMap) {
-			settingsMap.getOrPut(source) { SourceSettings(context, source) }
-		}
+		val settings = settingsFor(source)
 		if (!settings.isSlowdownEnabled) {
 			return
 		}
