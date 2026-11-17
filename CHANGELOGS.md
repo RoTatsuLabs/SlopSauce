@@ -7,6 +7,11 @@ All notable changes to SlopSauce are listed here, newest version first. Entries 
 ### Additions
 
 - Hold "Track untracked favourites" to link the titles that need review to their nearest tracker entry.
+- Downloads redesign: filter chips, sections, sorting, a menu on every row, move up and down in the queue, and retry all failed.
+
+### Changes
+
+- Plainer wording across downloads. Notifications show the state (downloading, waiting, paused, failed) and download settings are grouped into Storage and Network and speed.
 
 ### Fixes
 

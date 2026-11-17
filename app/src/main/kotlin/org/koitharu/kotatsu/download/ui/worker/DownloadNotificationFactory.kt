@@ -146,6 +146,7 @@ class DownloadNotificationFactory @AssistedInject constructor(
 			state.localManga != null -> { // downloaded, final state
 				builder.setProgress(0, 0, false)
 				builder.setContentText(context.getString(R.string.download_complete))
+				builder.setSubText(context.getString(R.string.downloads_section_finished))
 				builder.setContentIntent(createMangaIntent(context, state.localManga.manga))
 				builder.setAutoCancel(true)
 				builder.setSmallIcon(R.drawable.general_notification)
@@ -158,7 +159,8 @@ class DownloadNotificationFactory @AssistedInject constructor(
 
 			state.isStopped -> {
 				builder.setProgress(0, 0, false)
-				builder.setContentText(context.getString(R.string.queued))
+				builder.setContentText(context.getString(R.string.download_waiting))
+				builder.setSubText(context.getString(R.string.downloads_section_waiting))
 				builder.setCategory(NotificationCompat.CATEGORY_PROGRESS)
 				builder.setStyle(null)
 				builder.setOngoing(true)
@@ -185,6 +187,7 @@ class DownloadNotificationFactory @AssistedInject constructor(
 					builder.setContentText(percent)
 				}
 				builder.setCategory(NotificationCompat.CATEGORY_PROGRESS)
+				builder.setSubText(context.getString(R.string.downloads_section_paused))
 				builder.setStyle(null)
 				builder.setOngoing(true)
 				builder.setSmallIcon(R.drawable.ic_stat_paused)
@@ -200,7 +203,7 @@ class DownloadNotificationFactory @AssistedInject constructor(
 			state.error != null -> { // error, final state
 				builder.setProgress(0, 0, false)
 				builder.setSmallIcon(R.drawable.general_notification)
-				builder.setSubText(context.getString(R.string.error))
+				builder.setSubText(context.getString(R.string.download_failed))
 				builder.setContentText(state.errorMessage)
 				builder.setAutoCancel(true)
 				builder.setOngoing(false)
@@ -213,6 +216,7 @@ class DownloadNotificationFactory @AssistedInject constructor(
 			else -> {
 				builder.setProgress(state.max, state.progress, false)
 				builder.setContentText(getInfoLine(state))
+				builder.setSubText(context.getString(R.string.downloads_section_downloading))
 				builder.setCategory(NotificationCompat.CATEGORY_PROGRESS)
 				builder.setStyle(null)
 				builder.setOngoing(true)
@@ -223,7 +227,7 @@ class DownloadNotificationFactory @AssistedInject constructor(
 		return builder.build()
 	}
 
-	/** "12% | 5.3 MB / ~44 MB | 574 kB/s | 16s", the same line the downloads screen shows. */
+	/** "12% · 5.3 MB / ~44 MB · 574 kB/s · 16s", the same line the downloads screen shows. */
 	private fun getInfoLine(state: DownloadState): CharSequence? {
 		val parts = ArrayList<String>(4)
 		if (state.percent >= 0f) {
@@ -253,7 +257,7 @@ class DownloadNotificationFactory @AssistedInject constructor(
 				else -> "${seconds / 3600}h%02dm".format(seconds % 3600 / 60)
 			}
 		}
-		return parts.takeIf { it.isNotEmpty() }?.joinToString(" | ")
+		return parts.takeIf { it.isNotEmpty() }?.joinToString(" · ")
 	}
 
 	@Suppress("unused")

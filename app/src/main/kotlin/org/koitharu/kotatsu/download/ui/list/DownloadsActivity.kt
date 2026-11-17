@@ -48,6 +48,8 @@ class DownloadsActivity : BaseActivity<ActivityDownloadsBinding>() {
 			onRemoveSelected = viewModel::remove,
 			onMoveTop = viewModel::moveToTop,
 			onMoveEnd = viewModel::moveToEnd,
+			onMoveUp = { viewModel.moveUp(it.id) },
+			onMoveDown = { viewModel.moveDown(it.id) },
 			onPauseAll = viewModel::pauseAll,
 			onResumeAll = viewModel::resumeAll,
 			onCancelAll = viewModel::cancelAll,

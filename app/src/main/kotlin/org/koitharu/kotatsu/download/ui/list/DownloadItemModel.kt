@@ -90,7 +90,7 @@ data class DownloadItemModel(
 	val isFinished: Boolean
 		get() = workState.isFinished
 
-	/** One line in the 1DM style, for example "12% | 5.3 MB / ~44 MB | 574 kB/s | 16s". */
+	/** One status line, for example "12% · 5.3 MB / ~44 MB · 574 kB/s · 16s". */
 	fun getInfoLine(context: Context): String {
 		val percentText = "${(percent * 100f).roundToInt()}%"
 		val parts = ArrayList<String>(4)
@@ -132,7 +132,7 @@ data class DownloadItemModel(
 			}
 
 			WorkInfo.State.FAILED -> {
-				parts += context.getString(R.string.error_occurred)
+				parts += context.getString(R.string.download_failed)
 				if (downloadedBytes > 0L) {
 					parts += Formatter.formatFileSize(context, downloadedBytes)
 				}
@@ -140,7 +140,7 @@ data class DownloadItemModel(
 
 			WorkInfo.State.CANCELLED -> parts += context.getString(R.string.canceled)
 		}
-		return parts.joinToString(" | ")
+		return parts.joinToString(" · ")
 	}
 
 	private fun sizeText(context: Context): String? = when {

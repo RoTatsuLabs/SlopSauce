@@ -548,7 +548,7 @@ private fun DownloadsScreen(
 
 	SettingsScaffold {
 		item {
-			SettingsGroup(title = "General") {
+			SettingsGroup(title = stringResource(R.string.downloads_group_storage)) {
 				item { pos ->
 					ActionSettingsItem(
 						title = stringResource(R.string.local_manga_directories),
@@ -582,6 +582,20 @@ private fun DownloadsScreen(
 					)
 				}
 				item { pos ->
+					ActionSettingsItem(
+						title = stringResource(R.string.rebuild_downloads_index),
+						subtitle = stringResource(R.string.rebuild_downloads_index_summary),
+						icon = R.drawable.ic_sync,
+						shape = pos.shape,
+						onClick = onRebuildDownloadsIndex,
+					)
+				}
+			}
+		}
+		item { Spacer(Modifier.height(8.dp).fillMaxWidth()) }
+		item {
+			SettingsGroup(title = stringResource(R.string.downloads_group_network)) {
+				item { pos ->
 					ListSettingsItem(
 						title = stringResource(R.string.download_over_cellular),
 						entries = meteredOptions,
@@ -593,32 +607,6 @@ private fun DownloadsScreen(
 						shape = pos.shape,
 					)
 				}
-				item { pos ->
-					ActionSettingsItem(
-						title = stringResource(R.string.rebuild_downloads_index),
-						subtitle = stringResource(R.string.rebuild_downloads_index_summary),
-						icon = R.drawable.ic_sync,
-						shape = pos.shape,
-						onClick = onRebuildDownloadsIndex,
-					)
-				}
-				if (showDoze) {
-					item { pos ->
-						ActionSettingsItem(
-							title = stringResource(R.string.disable_battery_optimization),
-							subtitle = stringResource(R.string.disable_battery_optimization_summary_downloads),
-							icon = R.drawable.ic_battery_outline,
-							
-							shape = pos.shape,
-							onClick = onIgnoreDoze,
-						)
-					}
-				}
-			}
-		}
-		item { Spacer(Modifier.height(8.dp).fillMaxWidth()) }
-		item {
-			SettingsGroup(title = stringResource(R.string.download_speed)) {
 				item { pos ->
 					SliderSettingsItem(
 						title = stringResource(R.string.download_connections),
@@ -644,6 +632,18 @@ private fun DownloadsScreen(
 						icon = R.drawable.ic_download,
 						shape = pos.shape,
 					)
+				}
+				if (showDoze) {
+					item { pos ->
+						ActionSettingsItem(
+							title = stringResource(R.string.disable_battery_optimization),
+							subtitle = stringResource(R.string.disable_battery_optimization_summary_downloads),
+							icon = R.drawable.ic_battery_outline,
+							
+							shape = pos.shape,
+							onClick = onIgnoreDoze,
+						)
+					}
 				}
 			}
 		}

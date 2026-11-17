@@ -84,12 +84,16 @@ class DownloadSummaryNotifier @Inject constructor(
 		val speed = values.filter { it.isRunning }.sumOf { it.speed }
 		val running = values.count { it.isRunning }
 		val waiting = values.count { it.isWaiting }
+		val details = buildList {
+			add(context.getString(R.string.download_summary_downloading, running))
+			if (waiting > 0) add(context.getString(R.string.download_summary_waiting, waiting))
+		}.joinToString(" · ")
 		val notification = NotificationCompat.Builder(context, CHANNEL_ID)
 			.setSmallIcon(R.drawable.general_notification)
 			.setContentTitle(
 				context.getString(R.string.download_speed_format, Formatter.formatFileSize(context, speed)),
 			)
-			.setContentText(context.getString(R.string.download_summary_line, running, waiting))
+			.setContentText(details)
 			.setContentIntent(
 				PendingIntentCompat.getActivity(context, 0, Intent(context, DownloadsActivity::class.java), 0, false),
 			)
@@ -102,7 +106,7 @@ class DownloadSummaryNotifier @Inject constructor(
 			.setCategory(NotificationCompat.CATEGORY_PROGRESS)
 			.addAction(0, context.getString(R.string.pause_all), broadcast(ACTION_PAUSE_ALL))
 			.addAction(0, context.getString(R.string.resume_all), broadcast(ACTION_RESUME_ALL))
-			.addAction(0, context.getString(R.string.stop_all), broadcast(ACTION_STOP_ALL))
+			.addAction(0, context.getString(R.string.cancel_all), broadcast(ACTION_STOP_ALL))
 			.build()
 		manager.notify(NOTIFICATION_ID, notification)
 	}
