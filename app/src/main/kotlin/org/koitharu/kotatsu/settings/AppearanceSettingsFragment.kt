@@ -295,6 +295,7 @@ private fun AppearanceScreen(
 	var navPinned by rememberBooleanPref(AppSettings.KEY_NAV_PINNED, true)
 	var navLegacy by rememberBooleanPref(AppSettings.KEY_NAV_LEGACY, false)
 	var barBlur by rememberBooleanPref(AppSettings.KEY_BAR_BLUR, true)
+	var glassBlur by rememberBooleanPref(AppSettings.KEY_FROSTED_GLASS, true)
 	var exitConfirm by rememberBooleanPref(AppSettings.KEY_EXIT_CONFIRM, false)
 	var dynamicShortcuts by rememberBooleanPref(AppSettings.KEY_SHORTCUTS, true)
 
@@ -616,6 +617,16 @@ private fun AppearanceScreen(
 						subtitle = stringResource(R.string.bar_blur_summary),
 						checked = barBlur,
 						onCheckedChange = { barBlur = it },
+						icon = R.drawable.ic_blur,
+						shape = pos.shape,
+					)
+				}
+				item { pos ->
+					SwitchSettingsItem(
+						title = stringResource(R.string.frosted_glass),
+						subtitle = stringResource(R.string.frosted_glass_summary),
+						checked = glassBlur,
+						onCheckedChange = { glassBlur = it },
 						icon = R.drawable.ic_blur,
 						shape = pos.shape,
 					)

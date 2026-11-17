@@ -1,5 +1,6 @@
 package org.koitharu.kotatsu.download.ui.list
 
+import androidx.compose.ui.draw.drawBehind
 import android.text.format.Formatter
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
@@ -76,6 +77,10 @@ import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.crossfade
 import org.koitharu.kotatsu.R
+import org.koitharu.kotatsu.core.ui.blur.blurBar
+import org.koitharu.kotatsu.core.ui.blur.blurSource
+import org.koitharu.kotatsu.core.ui.blur.rememberBlurState
+import org.koitharu.kotatsu.core.ui.blur.rememberGlassLook
 import org.koitharu.kotatsu.core.util.ext.mangaSourceExtra
 import org.koitharu.kotatsu.core.util.ext.stableMangaCoverKey
 
@@ -134,12 +139,30 @@ fun DownloadsScreen(
 	val visible = all
 	val selectedItems = all.filter { it.id.mostSignificantBits in selected }
 	val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+	val blur = rememberBlurState()
+	val glassLook = rememberGlassLook()
+	val barTint = MaterialTheme.colorScheme.surface.copy(alpha = 0.72f)
 
 	Scaffold(
 		modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
 		topBar = {
 			if (selected.isEmpty()) {
 				LargeFlexibleTopAppBar(
+					modifier = Modifier
+						.blurBar(blur, barTint)
+						.drawBehind {
+							if (blur != null && glassLook) {
+								drawLine(Color.White.copy(alpha = 0.14f), Offset(0f, size.height), Offset(size.width, size.height), 1.dp.toPx())
+							}
+						},
+					colors = if (blur != null) {
+						TopAppBarDefaults.topAppBarColors(
+							containerColor = Color.Transparent,
+							scrolledContainerColor = Color.Transparent,
+						)
+					} else {
+						TopAppBarDefaults.topAppBarColors()
+					},
 					scrollBehavior = scrollBehavior,
 					title = { Text(stringResource(R.string.downloads)) },
 					navigationIcon = {
@@ -201,7 +224,12 @@ fun DownloadsScreen(
 			}
 		},
 	) { padding ->
-		Column(Modifier.padding(padding).fillMaxSize()) {
+		Column(
+			Modifier
+				.padding(bottom = padding.calculateBottomPadding())
+				.fillMaxSize()
+				.blurSource(blur),
+		) {
 			when {
 				models == null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
 					CircularProgressIndicator()
@@ -217,7 +245,12 @@ fun DownloadsScreen(
 				}
 
 				else -> LazyColumn(
-					contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 24.dp),
+					contentPadding = PaddingValues(
+						start = 16.dp,
+						end = 16.dp,
+						top = padding.calculateTopPadding() + 4.dp,
+						bottom = 24.dp,
+					),
 					verticalArrangement = Arrangement.spacedBy(3.dp),
 				) {
 					if (active.isNotEmpty()) {

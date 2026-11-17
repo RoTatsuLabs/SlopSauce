@@ -31,6 +31,20 @@ class BarBlur(
 	}
 	private var last = FloatArray(3) { Float.NaN }
 
+	/** Also blur behind the docked (legacy) bar, when it is frosted glass. */
+	var legacyBarBlur = false
+		set(value) {
+			field = value
+			content.invalidate()
+		}
+
+	/** The status bar zone is only blurred while "Blur behind bars" is on; the pill zone also follows "Frosted glass". */
+	var statusEnabled = true
+		set(value) {
+			field = value
+			content.invalidate()
+		}
+
 	var isEnabled = false
 		set(value) {
 			if (field == value) return
@@ -57,22 +71,23 @@ class BarBlur(
 		val parent = content.parent as? View ?: return true
 		// Screen edges, in the content view's own coordinates (it is offset by the collapsing appbar).
 		val top = -(content.top + content.translationY)
+		val statusZone = if (statusEnabled) statusBarZone else 0f
 		val bottom = parent.height + top
-		val bottomZone = if (bar != null && bar.isFloating && bar.isShown) {
+		val bottomZone = if (bar != null && (bar.isFloating || legacyBarBlur) && bar.isShown) {
 			(parent.height - bar.top - bar.translationY).coerceAtLeast(0f) * BOTTOM_HEIGHT_FACTOR
 		} else {
 			0f
 		}
-		if (top == last[0] && statusBarZone == last[1] && bottomZone == last[2]) return true
-		last = floatArrayOf(top, statusBarZone, bottomZone)
+		if (top == last[0] && statusZone == last[1] && bottomZone == last[2]) return true
+		last = floatArrayOf(top, statusZone, bottomZone)
 		// Lets overlays drawn inside the content (the fast scroller) stay clear of the nav pill
 		content.setTag(R.id.tag_bottom_nav_overlap, (bottomZone / BOTTOM_HEIGHT_FACTOR).roundToInt())
 		content.setRenderEffect(
-			if (statusBarZone < 1f && bottomZone < 1f) {
+			if (statusZone < 1f && bottomZone < 1f) {
 				null
 			} else {
 				shader.setFloatUniform("top", top)
-				shader.setFloatUniform("topHeight", statusBarZone)
+				shader.setFloatUniform("topHeight", statusZone)
 				shader.setFloatUniform("bottom", bottom)
 				shader.setFloatUniform("bottomHeight", bottomZone)
 				RenderEffect.createRuntimeShaderEffect(shader, "content")

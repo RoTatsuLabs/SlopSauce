@@ -82,6 +82,7 @@ SlopSauce is a personal fork, built for my own use and shared as is. It takes no
 - Tracker import: when editing a manga, import the cover, title, description, alternative names, genres, authors, status, content rating and score from a tracker. You choose per field whether to replace, append or fill if empty. Nothing changes until you save.
 - Same-title favourites: a title you already favourited from another source gets a badge on its cover in source lists and a note on its details page. Hide favourites is also in the list display options.
 - Auto-track favourites: titles you add to favourites are tracked on every tracker you are signed in to, with your reading progress. Only clear matches are linked and the rest wait in a needs-review list. A button tracks the favourites that are not tracked yet. Requests are spaced out and follow each tracker's rate limit.
+- Frosted glass: dialogs, sheets, the reader bars, the Downloads bar and the navigation bar turn see-through with a blurred background and a light edge. One switch in Settings > Appearance.
 
 </details>
 

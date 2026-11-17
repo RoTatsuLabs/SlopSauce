@@ -1,5 +1,6 @@
 package org.koitharu.kotatsu.core.ui
 
+import org.koitharu.kotatsu.core.ui.blur.applyGlassBlur
 import android.app.Dialog
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
@@ -27,6 +28,7 @@ abstract class ComposeAlertDialogFragment : DialogFragment() {
 	override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
 		return super.onCreateDialog(savedInstanceState).apply {
 			window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+			window?.applyGlassBlur()
 		}
 	}
 

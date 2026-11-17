@@ -274,6 +274,7 @@ dependencies {
     implementation libs.androidx.compose.material3
     implementation libs.androidx.compose.activity
     implementation libs.androidx.graphics.shapes
+    implementation libs.haze
 
 	implementation libs.androidx.room.runtime
 	implementation libs.androidx.room.ktx

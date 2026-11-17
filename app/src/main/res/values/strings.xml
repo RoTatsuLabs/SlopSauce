@@ -1008,6 +1008,8 @@
     <string name="use_legacy_navigation_bar_summary">Show Android\'s default bottom navigation style</string>
     <string name="bar_blur">Blur behind bars</string>
     <string name="bar_blur_summary">Blur the content behind the status bar and the navigation bar</string>
+    <string name="frosted_glass">Frosted glass</string>
+    <string name="frosted_glass_summary">Dialogs, sheets and bars turn see-through, with a blurred background and a light edge</string>
     <string name="pin_navigation_ui">Pin navigation UI</string>
     <string name="pin_navigation_ui_summary">Do not hide navigation bar and search view on scroll</string>
     <string name="search_suggestions">Search suggestions</string>

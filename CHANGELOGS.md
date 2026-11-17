@@ -4,6 +4,10 @@ All notable changes to SlopSauce are listed here, newest version first. Entries 
 
 ## [Unreleased]
 
+### Additions
+
+- Frosted glass: dialogs, sheets, the reader bars and the navigation bar turn see-through with a blurred background. Switch it off in Appearance.
+
 ### Fixes
 
 - Tracker import no longer shows raw Markdown in descriptions, and "Fill if empty" no longer changes a description that is already there.
