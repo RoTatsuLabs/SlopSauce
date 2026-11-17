@@ -1,5 +1,7 @@
 package org.koitharu.kotatsu.local.domain
 
+import android.content.Context
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.buffer
 import kotlinx.coroutines.flow.channelFlow
@@ -13,6 +15,8 @@ import org.koitharu.kotatsu.core.model.sortedChapters
 import org.koitharu.kotatsu.core.parser.MangaDataRepository
 import org.koitharu.kotatsu.core.parser.MangaRepository
 import org.koitharu.kotatsu.core.prefs.AppSettings
+import org.koitharu.kotatsu.core.prefs.SourceSettings
+import org.koitharu.kotatsu.parsers.model.MangaSource
 import org.koitharu.kotatsu.core.util.ext.printStackTraceDebug
 import org.koitharu.kotatsu.history.data.HistoryRepository
 import org.koitharu.kotatsu.local.data.LocalMangaRepository
@@ -30,7 +34,18 @@ class DeleteReadChaptersUseCase @Inject constructor(
 	private val mangaRepositoryFactory: MangaRepository.Factory,
 	private val mangaDataRepository: MangaDataRepository,
 	private val settings: AppSettings,
+	@ApplicationContext private val context: Context,
 ) {
+
+	/** A source's own choice wins over the global auto-delete setting. */
+	fun isCleanupEnabled(source: MangaSource?): Boolean {
+		val own = source?.let { SourceSettings(context, it).autoDeleteRead }
+		return own ?: settings.isAutoLocalChaptersCleanupEnabled
+	}
+
+	private suspend fun sourceOf(manga: LocalManga): MangaSource? = runCatchingCancellable {
+		localMangaRepository.getRemoteManga(manga.manga)?.source
+	}.getOrNull()
 
 	/**
 	 * @param keep how many chapters behind the current one are kept as a safety margin. Only the
@@ -48,7 +63,11 @@ class DeleteReadChaptersUseCase @Inject constructor(
 		return task.chaptersIds.size
 	}
 
-	suspend operator fun invoke(keep: Int = settings.localChaptersCleanupKeep): Int {
+	/** @param bySourceSettings only clean the manga whose source allows it, as the automatic cleanup does */
+	suspend operator fun invoke(
+		keep: Int = settings.localChaptersCleanupKeep,
+		bySourceSettings: Boolean = false,
+	): Int {
 		val list = localMangaRepository.getList(0, null, null)
 		if (list.isEmpty()) {
 			return 0
@@ -57,7 +76,12 @@ class DeleteReadChaptersUseCase @Inject constructor(
 			for (manga in list) {
 				launch(Dispatchers.Default) {
 					val task = runCatchingCancellable {
-						getDeletionTask(LocalManga(manga), keep)
+						val local = LocalManga(manga)
+						if (bySourceSettings && !isCleanupEnabled(sourceOf(local))) {
+							null
+						} else {
+							getDeletionTask(local, keep)
+						}
 					}.onFailure {
 						it.printStackTraceDebug()
 					}.getOrNull()
@@ -88,7 +112,9 @@ class DeleteReadChaptersUseCase @Inject constructor(
 		chapters: List<MangaChapter>,
 		currentChapterId: Long,
 		exclude: Set<Long>,
+		source: MangaSource? = null,
 	): Set<Long> {
+		if (!isCleanupEnabled(source)) return emptySet()
 		val downloaded = localManga.manga.chapters?.ids() ?: return emptySet()
 		val ids = chaptersBehind(chapters, currentChapterId, settings.localChaptersCleanupKeep)
 			.mapNotNullTo(HashSet()) { x -> x.id.takeIf { it in downloaded && it !in exclude } }

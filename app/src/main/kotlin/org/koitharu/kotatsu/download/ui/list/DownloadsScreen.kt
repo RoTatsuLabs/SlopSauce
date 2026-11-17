@@ -65,6 +65,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -88,6 +93,7 @@ import org.koitharu.kotatsu.core.ui.blur.blurSource
 import org.koitharu.kotatsu.core.ui.blur.rememberBlurState
 import org.koitharu.kotatsu.core.ui.blur.rememberGlassLook
 import org.koitharu.kotatsu.core.util.ext.mangaSourceExtra
+import org.koitharu.kotatsu.parsers.model.Manga
 import org.koitharu.kotatsu.core.util.ext.stableMangaCoverKey
 
 /** Everything the downloads screen can ask for. Ids are the ones the view model uses. */
@@ -114,6 +120,8 @@ class DownloadsCallbacks(
 	val onCancelAll: () -> Unit,
 	val onRemoveCompleted: () -> Unit,
 	val onSettings: () -> Unit,
+	val onDownloadMissing: (DownloadItemModel) -> Unit,
+	val onDeleteStored: (Manga) -> Unit,
 )
 
 private val ROW_COVER_WIDTH = 60.dp
@@ -150,8 +158,10 @@ fun DownloadsScreen(
 	hasActive: Boolean,
 	hasPaused: Boolean,
 	hasCancellable: Boolean,
+	storage: StorageSummary?,
 	callbacks: DownloadsCallbacks,
 ) {
+	var confirmDeleteStored by remember { mutableStateOf<StorageEntry?>(null) }
 	var selected by remember { mutableStateOf(emptySet<Long>()) }
 	var menuOpen by remember { mutableStateOf(false) }
 	var confirmCancelAll by remember { mutableStateOf(false) }
@@ -317,7 +327,7 @@ fun DownloadsScreen(
 					CircularProgressIndicator()
 				}
 
-				all.isEmpty() -> Box(Modifier.fillMaxSize().padding(32.dp), contentAlignment = Alignment.Center) {
+				all.isEmpty() && (storage == null || storage.mangaCount == 0) -> Box(Modifier.fillMaxSize().padding(32.dp), contentAlignment = Alignment.Center) {
 					Column(horizontalAlignment = Alignment.CenterHorizontally) {
 						Icon(
 							painterResource(R.drawable.ic_download),
@@ -344,6 +354,12 @@ fun DownloadsScreen(
 					),
 					verticalArrangement = Arrangement.spacedBy(3.dp),
 				) {
+					if (storage != null && storage.mangaCount > 0) {
+						item(key = "storage") {
+							StorageCard(storage, onDelete = { confirmDeleteStored = it })
+							Spacer(Modifier.height(8.dp))
+						}
+					}
 					if (activeFilter == null && active.isNotEmpty()) {
 						item(key = "summary") {
 							SummaryBar(active)
@@ -389,6 +405,7 @@ fun DownloadsScreen(
 									}
 								},
 								onLongClick = { selected = if (id in selected) selected - id else selected + id },
+								canDrag = sort == DownloadSort.QUEUE && selected.isEmpty(),
 								modifier = Modifier.animateItem(),
 							)
 						}
@@ -398,6 +415,15 @@ fun DownloadsScreen(
 		}
 	}
 
+	confirmDeleteStored?.let { entry ->
+		ConfirmDialog(
+			title = entry.manga.title,
+			message = stringResource(R.string.downloads_storage_delete_confirm, Formatter.formatFileSize(LocalContext.current, entry.bytes)),
+			confirm = stringResource(R.string.delete),
+			onConfirm = { callbacks.onDeleteStored(entry.manga) },
+			onDismiss = { confirmDeleteStored = null },
+		)
+	}
 	if (confirmCancelAll) {
 		ConfirmDialog(
 			title = stringResource(R.string.cancel_all),
@@ -539,6 +565,68 @@ private fun SelectionBar(
 	)
 }
 
+/** What downloaded manga take on this device, with the biggest ones a tap away. */
+@Composable
+private fun StorageCard(storage: StorageSummary, onDelete: (StorageEntry) -> Unit) {
+	val context = LocalContext.current
+	var open by remember { mutableStateOf(false) }
+	Surface(
+		shape = MaterialTheme.shapes.extraLarge,
+		color = MaterialTheme.colorScheme.surfaceContainerHigh,
+		modifier = Modifier.fillMaxWidth(),
+	) {
+		Column {
+			Surface(onClick = { open = !open }, color = Color.Transparent) {
+				Row(
+					Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 16.dp),
+					verticalAlignment = Alignment.CenterVertically,
+				) {
+					Column(Modifier.weight(1f)) {
+						Text(
+							text = Formatter.formatFileSize(context, storage.totalBytes),
+							style = MaterialTheme.typography.headlineSmall,
+						)
+						Text(
+							text = stringResource(R.string.downloads_storage_summary, storage.mangaCount),
+							style = MaterialTheme.typography.bodyMedium,
+							color = MaterialTheme.colorScheme.onSurfaceVariant,
+						)
+					}
+					Icon(
+						painterResource(if (open) R.drawable.ic_expand_more else R.drawable.ic_expand),
+						contentDescription = null,
+						tint = MaterialTheme.colorScheme.onSurfaceVariant,
+					)
+				}
+			}
+			AnimatedVisibility(open) {
+				Column(Modifier.padding(start = 20.dp, end = 8.dp, bottom = 12.dp)) {
+					Text(
+						text = stringResource(R.string.downloads_storage_largest),
+						style = MaterialTheme.typography.labelMedium,
+						color = MaterialTheme.colorScheme.onSurfaceVariant,
+					)
+					storage.largest.forEach { entry ->
+						Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+							Column(Modifier.weight(1f).padding(vertical = 6.dp)) {
+								Text(entry.manga.title, maxLines = 1, overflow = TextOverflow.Ellipsis)
+								Text(
+									text = Formatter.formatFileSize(context, entry.bytes),
+									style = MaterialTheme.typography.bodySmall,
+									color = MaterialTheme.colorScheme.onSurfaceVariant,
+								)
+							}
+							IconButton(onClick = { onDelete(entry) }) {
+								Icon(painterResource(R.drawable.ic_delete), stringResource(R.string.delete))
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
 /** Total speed and counts for everything that is not finished. */
 @Composable
 private fun SummaryBar(active: List<DownloadItemModel>) {
@@ -594,9 +682,14 @@ private fun DownloadRow(
 	onClick: () -> Unit,
 	onOpenManga: () -> Unit,
 	onLongClick: () -> Unit,
+	canDrag: Boolean,
 	modifier: Modifier = Modifier,
 ) {
 	val context = LocalContext.current
+	// Drag to reorder: moving past half of the row's height swaps it with the neighbour
+	var dragY by remember { mutableStateOf(0f) }
+	var dragging by remember { mutableStateOf(false) }
+	var rowHeight by remember { mutableStateOf(0) }
 	val container by animateColorAsState(
 		if (isSelected) {
 			MaterialTheme.colorScheme.secondaryContainer
@@ -618,10 +711,14 @@ private fun DownloadRow(
 	Surface(
 		modifier = modifier
 			.fillMaxWidth()
+			.onSizeChanged { rowHeight = it.height }
+			.zIndex(if (dragging) 1f else 0f)
+			.graphicsLayer { translationY = dragY }
 			.clip(shape)
 			.combinedClickable(onClick = onClick, onLongClick = onLongClick),
 		shape = shape,
 		color = container,
+		shadowElevation = if (dragging) 8.dp else 0.dp,
 	) {
 		Column(Modifier.padding(start = 16.dp, end = 8.dp, top = 16.dp, bottom = 8.dp)) {
 			Row(Modifier.padding(end = 8.dp)) {
@@ -705,6 +802,35 @@ private fun DownloadRow(
 						Icon(painterResource(R.drawable.ic_retry), stringResource(R.string.retry))
 					}
 				}
+				if (canDrag && item.canReorder) {
+					Icon(
+						painterResource(R.drawable.ic_reorder_handle),
+						contentDescription = stringResource(R.string.downloads_drag_to_reorder),
+						tint = MaterialTheme.colorScheme.onSurfaceVariant,
+						modifier = Modifier
+							.align(Alignment.CenterVertically)
+							.size(40.dp)
+							.padding(8.dp)
+							.pointerInput(item.id) {
+								detectDragGestures(
+									onDragStart = { dragging = true },
+									onDragEnd = { dragging = false; dragY = 0f },
+									onDragCancel = { dragging = false; dragY = 0f },
+								) { change, amount ->
+									change.consume()
+									dragY += amount.y
+									val half = rowHeight / 2f
+									if (dragY > half) {
+										callbacks.onMoveDown(item)
+										dragY -= rowHeight
+									} else if (dragY < -half) {
+										callbacks.onMoveUp(item)
+										dragY += rowHeight
+									}
+								}
+							},
+					)
+				}
 				Box {
 					IconButton(onClick = { menuOpen = true }) {
 						Icon(painterResource(R.drawable.ic_more_vert), stringResource(R.string.more))
@@ -714,6 +840,12 @@ private fun DownloadRow(
 							DropdownMenuItem(
 								text = { Text(stringResource(R.string.downloads_open_manga)) },
 								onClick = { menuOpen = false; callbacks.onOpen(item) },
+							)
+						}
+						if (item.isFinished && item.manga != null) {
+							DropdownMenuItem(
+								text = { Text(stringResource(R.string.download_missing)) },
+								onClick = { menuOpen = false; callbacks.onDownloadMissing(item) },
 							)
 						}
 						if (item.canReorder) {

@@ -41,6 +41,18 @@ class SourceSettings(context: Context, source: MangaSource) : MangaSourceConfig 
 	val isSlowdownEnabled: Boolean
 		get() = prefs.getBoolean(KEY_SLOWDOWN, false)
 
+	/** Pages fetched at once from this source. 0 follows the global setting. */
+	val downloadConnections: Int
+		get() = prefs.getInt(KEY_DOWNLOAD_CONNECTIONS, 0).coerceIn(0, 10)
+
+	/** Whether read chapters of this source are deleted: null follows the global setting. */
+	val autoDeleteRead: Boolean?
+		get() = when (prefs.getString(KEY_AUTO_DELETE_READ, AUTO_DELETE_DEFAULT)) {
+			AUTO_DELETE_ON -> true
+			AUTO_DELETE_OFF -> false
+			else -> null
+		}
+
 	val isCaptchaNotificationsDisabled: Boolean
 		get() = prefs.getBoolean(KEY_NO_CAPTCHA, false)
 
@@ -148,6 +160,11 @@ class SourceSettings(context: Context, source: MangaSource) : MangaSourceConfig 
 
 		const val KEY_NO_CAPTCHA = "no_captcha"
 		const val KEY_SLOWDOWN = "slowdown"
+		const val KEY_DOWNLOAD_CONNECTIONS = "download_connections"
+		const val KEY_AUTO_DELETE_READ = "auto_delete_read"
+		const val AUTO_DELETE_DEFAULT = "default"
+		const val AUTO_DELETE_ON = "on"
+		const val AUTO_DELETE_OFF = "off"
 		const val KEY_INTERCEPT_CLOUDFLARE = "intercept_cloudflare"
 		const val KEY_SORT_ORDER = "sort_order"
 		// Versioned key: bumping it drops every remembered server-side sort once, so all extensions

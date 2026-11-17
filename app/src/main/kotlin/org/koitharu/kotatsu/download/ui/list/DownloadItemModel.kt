@@ -43,6 +43,8 @@ data class DownloadItemModel(
 	val chaptersDownloaded: Int,
 	val isExpanded: Boolean,
 	val chapters: StateFlow<List<DownloadChapter>?>,
+	/** Older finished downloads of the same manga, folded into this history entry. */
+	val relatedIds: List<UUID> = emptyList(),
 ) : ListModel, Comparable<DownloadItemModel> {
 
 	val percent: Float

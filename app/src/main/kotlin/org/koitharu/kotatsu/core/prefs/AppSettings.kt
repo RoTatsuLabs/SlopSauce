@@ -971,6 +971,14 @@ class AppSettings @Inject constructor(@ApplicationContext context: Context) {
 	val downloadConnections: Int
 		get() = prefs.getInt(KEY_DOWNLOADS_CONNECTIONS, 5).coerceIn(1, 10)
 
+	/** Downloads wait for the charger when on. */
+	val isDownloadChargingOnly: Boolean
+		get() = prefs.getBoolean(KEY_DOWNLOADS_CHARGING_ONLY, false)
+
+	/** How many times a failed page or chapter is retried before the download stops and waits for you. */
+	val downloadRetries: Int
+		get() = prefs.getInt(KEY_DOWNLOADS_RETRIES, 2).coerceIn(0, 5)
+
 	/** How many downloads run at the same time; the rest wait in the queue. */
 	val downloadMaxSimultaneous: Int
 		get() = prefs.getInt(KEY_DOWNLOADS_SIMULTANEOUS, 3).coerceIn(1, 5)
@@ -1586,6 +1594,8 @@ class AppSettings @Inject constructor(@ApplicationContext context: Context) {
 		const val KEY_DOWNLOADS_METERED_NETWORK = "downloads_metered_network"
 		const val KEY_DOWNLOADS_FORMAT = "downloads_format"
 		const val KEY_DOWNLOADS_CONNECTIONS = "downloads_connections"
+		const val KEY_DOWNLOADS_CHARGING_ONLY = "downloads_charging_only"
+		const val KEY_DOWNLOADS_RETRIES = "downloads_retries"
 		const val KEY_DOWNLOADS_SIMULTANEOUS = "downloads_simultaneous"
 		const val KEY_DOWNLOADS_NEXT_CHAPTER = "downloads_next_chapter"
 		const val KEY_DOWNLOADS_NEXT_CHAPTER_WIFI_ONLY = "downloads_next_chapter_wifi_only"

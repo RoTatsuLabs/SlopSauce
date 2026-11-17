@@ -209,9 +209,10 @@ class DownloadsSettingsFragment :
 		lifecycleScope.launch {
 			try {
 				withContext(Dispatchers.Default) {
+					// ASK keeps each download's own network choice; the charger rule still applies
 					val option = when (settings.allowDownloadOnMeteredNetwork) {
 						TriStateOption.ENABLED -> true
-						TriStateOption.ASK -> return@withContext
+						TriStateOption.ASK -> null
 						TriStateOption.DISABLED -> false
 					}
 					downloadsScheduler.updateConstraints(option)
@@ -540,11 +541,13 @@ private fun DownloadsScreen(
 	var pagesDirAsk by rememberBooleanPref(AppSettings.KEY_PAGES_SAVE_ASK, true)
 	var connections by rememberIntPref(AppSettings.KEY_DOWNLOADS_CONNECTIONS, 5)
 	var simultaneous by rememberIntPref(AppSettings.KEY_DOWNLOADS_SIMULTANEOUS, 3)
+	var chargingOnly by rememberBooleanPref(AppSettings.KEY_DOWNLOADS_CHARGING_ONLY, false)
+	var retries by rememberIntPref(AppSettings.KEY_DOWNLOADS_RETRIES, 2)
 	var autoDownloadNext by rememberBooleanPref(AppSettings.KEY_DOWNLOADS_NEXT_CHAPTER, false)
 	var autoDownloadCount by rememberIntPref(AppSettings.KEY_DOWNLOADS_NEXT_CHAPTER_COUNT, 1)
 	var autoDownloadWifiOnly by rememberBooleanPref(AppSettings.KEY_DOWNLOADS_NEXT_CHAPTER_WIFI_ONLY, true)
 
-	LaunchedEffect(metered) { onMeteredChanged() }
+	LaunchedEffect(metered, chargingOnly) { onMeteredChanged() }
 
 	SettingsScaffold {
 		item {
@@ -629,6 +632,29 @@ private fun DownloadsScreen(
 						valueTo = 5,
 						stepSize = 1,
 						onValueChange = { simultaneous = it },
+						icon = R.drawable.ic_download,
+						shape = pos.shape,
+					)
+				}
+				item { pos ->
+					SwitchSettingsItem(
+						title = stringResource(R.string.download_charging_only),
+						subtitle = stringResource(R.string.download_charging_only_summary),
+						checked = chargingOnly,
+						onCheckedChange = { chargingOnly = it },
+						icon = R.drawable.ic_download,
+						shape = pos.shape,
+					)
+				}
+				item { pos ->
+					SliderSettingsItem(
+						title = stringResource(R.string.download_retries),
+						subtitle = stringResource(R.string.download_retries_summary),
+						value = retries.coerceIn(0, 5),
+						valueFrom = 0,
+						valueTo = 5,
+						stepSize = 1,
+						onValueChange = { retries = it },
 						icon = R.drawable.ic_download,
 						shape = pos.shape,
 					)

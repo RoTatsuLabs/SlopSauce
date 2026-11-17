@@ -55,6 +55,8 @@ class DownloadsActivity : BaseActivity<ActivityDownloadsBinding>() {
 			onCancelAll = viewModel::cancelAll,
 			onRemoveCompleted = viewModel::removeCompleted,
 			onSettings = { router.openDownloadsSetting() },
+			onDownloadMissing = viewModel::downloadMissing,
+			onDeleteStored = viewModel::deleteStored,
 		)
 		viewBinding.composeView.setViewCompositionStrategy(
 			ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed,
@@ -65,8 +67,10 @@ class DownloadsActivity : BaseActivity<ActivityDownloadsBinding>() {
 				val hasActive by viewModel.hasActiveWorks.collectAsState()
 				val hasPaused by viewModel.hasPausedWorks.collectAsState()
 				val hasCancellable by viewModel.hasCancellableWorks.collectAsState()
+				val storage by viewModel.storage.collectAsState()
 				DownloadsScreen(
 					models = models,
+					storage = storage,
 					imageLoader = coil,
 					hasActive = hasActive,
 					hasPaused = hasPaused,

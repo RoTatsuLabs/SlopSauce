@@ -761,7 +761,12 @@ class ReaderViewModel @Inject constructor(
      * download kept as a single file: cleaning it rewrites the file the reader is reading from.
      */
     private fun deleteReadChapters(isClosing: Boolean) {
-        if (!settings.isAutoLocalChaptersCleanupEnabled || isIncognitoMode.value != false || isPeekMode.value) {
+        if (isIncognitoMode.value != false || isPeekMode.value) {
+            return
+        }
+        // A source can turn the cleanup on or off for itself; otherwise the global setting decides
+        val source = mangaDetails.value?.toManga()?.source
+        if (!deleteReadChaptersUseCase.isCleanupEnabled(source)) {
             return
         }
         // Outlives the reader, so neither the last pass nor one cut short by closing it is lost
@@ -777,6 +782,7 @@ class ReaderViewModel @Inject constructor(
                         chapters = details.allChapters,
                         currentChapterId = chapterId,
                         exclude = inUse + deletedChapterIds,
+                        source = source,
                     )
                 }.onSuccess { ids ->
                     deletedChapterIds += ids
