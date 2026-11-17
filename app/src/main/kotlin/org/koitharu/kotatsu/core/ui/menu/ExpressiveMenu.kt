@@ -580,6 +580,7 @@ private fun MenuCard(
 					heightProgress = heightProgress,
 					modifier = Modifier,
 					onClick = onHeaderClick,
+					onHold = {},
 				)
 				Box(
 					Modifier
