@@ -4,6 +4,8 @@ All notable changes to SlopSauce are listed here, newest version first. Entries 
 
 ## [Unreleased]
 
+## [1.1.4] - 2026-11-17
+
 ### Additions
 
 - Frosted glass: dialogs, sheets, menus, the reader bars and the navigation bar turn see-through with a blurred background. Switch it off in Appearance.
