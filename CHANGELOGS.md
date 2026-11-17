@@ -6,7 +6,7 @@ All notable changes to SlopSauce are listed here, newest version first. Entries 
 
 ### Additions
 
-- Frosted glass: dialogs, sheets, the reader bars and the navigation bar turn see-through with a blurred background. Switch it off in Appearance.
+- Frosted glass: dialogs, sheets, menus, the reader bars and the navigation bar turn see-through with a blurred background. Switch it off in Appearance.
 
 ### Fixes
 

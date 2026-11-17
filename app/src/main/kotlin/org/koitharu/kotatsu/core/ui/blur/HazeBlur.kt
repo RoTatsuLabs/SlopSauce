@@ -31,7 +31,7 @@ import org.koitharu.kotatsu.settings.compose.rememberBooleanPref
 /** How much a frosted panel lets through: 0.82 means 82% of the panel colour stays. */
 const val FROSTED_ALPHA = 0.82f
 
-private const val WINDOW_BLUR_DP = 20
+const val WINDOW_BLUR_DP = 20
 
 /** True when the "Frosted glass" switch is on. */
 fun Context.isGlassLookOn(): Boolean =
