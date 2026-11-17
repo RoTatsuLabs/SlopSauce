@@ -6,16 +6,31 @@ All notable changes to SlopSauce are listed here, newest version first. Entries 
 
 ## [1.1.4] - 2026-11-17
 
-TL;DR: Frosted glass for dialogs, menus, sheets and bars, plus better tracker import and auto-track.
+TL;DR: Frosted glass, JPEG XL images, a two-pane details page and redesigned display and reader menus, plus better tracker import and auto-track.
 
 ### Additions
 
 - Frosted glass: dialogs, sheets, menus, the reader bars and the navigation bar turn see-through with a blurred background. Switch it off in Appearance.
+- JPEG XL image support.
+- Two-pane details page in landscape and on wide screens.
+- Redesigned display options and reader options menus. The two-page layout options moved to Settings > Reader and are on by default.
+- Quick add to the default category on the details page. Hold it to change or disable it.
+- Extensions per row option, and pull to refresh in extensions now reloads everything.
+- Up to 6 sections in the navigation bar.
+- Option to hide the novel chapter divider in scroll mode.
+- Continue reading button on every tab in landscape and on tablets.
+- Local backups cover more.
+
+### Changes
+
+- Faster and smaller PDF imports, and reader chapter arrows dim at the ends.
 
 ### Fixes
 
 - Tracker import no longer shows raw Markdown in descriptions, and "Fill if empty" no longer changes a description that is already there.
 - Auto-track matches more titles: it compares every name, searches alternative titles and skips entries of another kind.
+- Re-bookmarking a page works again, and a random background crash is gone.
+- Excluded genres no longer show up in suggestions, and OLED dark mode backgrounds are fixed.
 
 ## [1.1.2] - 2026-11-05
 
