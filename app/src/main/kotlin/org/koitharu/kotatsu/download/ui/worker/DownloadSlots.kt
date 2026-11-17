@@ -14,7 +14,7 @@ import javax.inject.Singleton
 /**
  * Caps how many downloads run at once and decides which waiting download goes next. The limit is
  * read again on every check, so changing the setting takes effect for downloads that are still
- * waiting. The waiting order can be changed with [moveToTop] and [moveToEnd].
+ * waiting. The waiting order can be changed with [moveToTop], [moveToEnd] and [moveBy].
  */
 @Singleton
 class DownloadSlots @Inject constructor() {
@@ -39,6 +39,18 @@ class DownloadSlots @Inject constructor() {
 
 	fun moveToEnd(ids: List<UUID>) {
 		ids.sortedBy(::orderOf).forEach { order[it] = tail.incrementAndGet() }
+		changes.update { it + 1 }
+	}
+
+	/** Swaps [id] with the waiting download next to it, one place sooner ([earlier]) or later. */
+	fun moveBy(id: UUID, earlier: Boolean) {
+		val queue = waiting.sortedBy(::orderOf)
+		val index = queue.indexOf(id)
+		if (index < 0) return
+		val other = queue.getOrNull(if (earlier) index - 1 else index + 1) ?: return
+		val mine = orderOf(id)
+		order[id] = orderOf(other)
+		order[other] = mine
 		changes.update { it + 1 }
 	}
 

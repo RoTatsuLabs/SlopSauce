@@ -50,6 +50,12 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.lazy.items
+import androidx.compose.ui.text.font.FontWeight
+import androidx.annotation.StringRes
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -101,6 +107,8 @@ class DownloadsCallbacks(
 	val onRemoveSelected: (Set<Long>) -> Unit,
 	val onMoveTop: (Set<Long>) -> Unit,
 	val onMoveEnd: (Set<Long>) -> Unit,
+	val onMoveUp: (DownloadItemModel) -> Unit,
+	val onMoveDown: (DownloadItemModel) -> Unit,
 	val onPauseAll: () -> Unit,
 	val onResumeAll: () -> Unit,
 	val onCancelAll: () -> Unit,
@@ -110,6 +118,29 @@ class DownloadsCallbacks(
 
 private val ROW_COVER_WIDTH = 60.dp
 private val ROW_COVER_HEIGHT = 86.dp
+
+/** Where a download sits in the list. Also the filter chips and the section headers. */
+private enum class Bucket(@StringRes val title: Int) {
+	DOWNLOADING(R.string.downloads_section_downloading),
+	WAITING(R.string.downloads_section_waiting),
+	PAUSED(R.string.downloads_section_paused),
+	FAILED(R.string.downloads_section_failed),
+	FINISHED(R.string.downloads_section_finished),
+}
+
+private enum class DownloadSort(@StringRes val title: Int) {
+	QUEUE(R.string.downloads_sort_queue),
+	TITLE(R.string.downloads_sort_title),
+	NEWEST(R.string.downloads_sort_newest),
+}
+
+private fun DownloadItemModel.bucket(): Bucket = when {
+	workState == WorkInfo.State.FAILED -> Bucket.FAILED
+	isFinished -> Bucket.FINISHED
+	workState == WorkInfo.State.RUNNING && isPaused -> Bucket.PAUSED
+	workState == WorkInfo.State.RUNNING && !isQueued -> Bucket.DOWNLOADING
+	else -> Bucket.WAITING
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -125,6 +156,8 @@ fun DownloadsScreen(
 	var menuOpen by remember { mutableStateOf(false) }
 	var confirmCancelAll by remember { mutableStateOf(false) }
 	var confirmRemoveCompleted by remember { mutableStateOf(false) }
+	var filter by remember { mutableStateOf<Bucket?>(null) }
+	var sort by remember { mutableStateOf(DownloadSort.QUEUE) }
 
 	val all = models.orEmpty()
 	LaunchedEffect(models) {
@@ -135,8 +168,24 @@ fun DownloadsScreen(
 	}
 	BackHandler(enabled = selected.isNotEmpty()) { selected = emptySet() }
 
+	val buckets = all.groupBy { it.bucket() }
+	// A filter whose last item is gone falls back to showing everything
+	val activeFilter = filter?.takeIf { buckets[it].orEmpty().isNotEmpty() }
+	val failedItems = buckets[Bucket.FAILED].orEmpty().filter { it.canRetry }
 	val active = all.filter { !it.isFinished }
-	val visible = all
+	val shown = all.filter { activeFilter == null || it.bucket() == activeFilter }
+	val sections = Bucket.entries.mapNotNull { bucket ->
+		val items = shown.filter { it.bucket() == bucket }
+		if (items.isEmpty()) {
+			null
+		} else {
+			bucket to when (sort) {
+				DownloadSort.QUEUE -> items
+				DownloadSort.TITLE -> items.sortedBy { it.manga?.title?.lowercase().orEmpty() }
+				DownloadSort.NEWEST -> items.sortedByDescending { it.timestamp }
+			}
+		}
+	}
 	val selectedItems = all.filter { it.id.mostSignificantBits in selected }
 	val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 	val blur = rememberBlurState()
@@ -167,25 +216,34 @@ fun DownloadsScreen(
 					title = { Text(stringResource(R.string.downloads)) },
 					navigationIcon = {
 						IconButton(onClick = callbacks.onBack) {
-							Icon(painterResource(R.drawable.ic_arrow_back), contentDescription = null)
+							Icon(painterResource(R.drawable.ic_arrow_back), stringResource(R.string.back))
 						}
 					},
 					actions = {
 						if (hasActive) {
 							IconButton(onClick = callbacks.onPauseAll) {
-								Icon(painterResource(R.drawable.ic_action_pause), stringResource(R.string.pause))
+								Icon(painterResource(R.drawable.ic_action_pause), stringResource(R.string.pause_all))
 							}
 						}
 						if (hasPaused) {
 							IconButton(onClick = callbacks.onResumeAll) {
-								Icon(painterResource(R.drawable.ic_action_resume), stringResource(R.string.resume))
+								Icon(painterResource(R.drawable.ic_action_resume), stringResource(R.string.resume_all))
 							}
 						}
 						Box {
 							IconButton(onClick = { menuOpen = true }) {
-								Icon(painterResource(R.drawable.ic_more_vert), contentDescription = null)
+								Icon(painterResource(R.drawable.ic_more_vert), stringResource(R.string.more))
 							}
 							DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+								if (failedItems.isNotEmpty()) {
+									DropdownMenuItem(
+										text = { Text(stringResource(R.string.downloads_retry_failed)) },
+										onClick = {
+											menuOpen = false
+											failedItems.forEach(callbacks.onRetry)
+										},
+									)
+								}
 								if (hasCancellable) {
 									DropdownMenuItem(
 										text = { Text(stringResource(R.string.cancel_all)) },
@@ -195,13 +253,37 @@ fun DownloadsScreen(
 										},
 									)
 								}
-								DropdownMenuItem(
-									text = { Text(stringResource(R.string.remove_completed)) },
-									onClick = {
-										menuOpen = false
-										confirmRemoveCompleted = true
-									},
+								if (buckets[Bucket.FINISHED].orEmpty().isNotEmpty()) {
+									DropdownMenuItem(
+										text = { Text(stringResource(R.string.remove_completed)) },
+										onClick = {
+											menuOpen = false
+											confirmRemoveCompleted = true
+										},
+									)
+								}
+								HorizontalDivider()
+								Text(
+									text = stringResource(R.string.downloads_sort),
+									style = MaterialTheme.typography.labelMedium,
+									color = MaterialTheme.colorScheme.onSurfaceVariant,
+									modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
 								)
+								DownloadSort.entries.forEach { option ->
+									DropdownMenuItem(
+										text = { Text(stringResource(option.title)) },
+										trailingIcon = {
+											if (option == sort) {
+												Icon(painterResource(R.drawable.ic_check), contentDescription = null)
+											}
+										},
+										onClick = {
+											menuOpen = false
+											sort = option
+										},
+									)
+								}
+								HorizontalDivider()
 								DropdownMenuItem(
 									text = { Text(stringResource(R.string.settings)) },
 									onClick = {
@@ -218,7 +300,7 @@ fun DownloadsScreen(
 					items = selectedItems,
 					ids = selected,
 					onClose = { selected = emptySet() },
-					onSelectAll = { selected = visible.mapTo(HashSet()) { it.id.mostSignificantBits } },
+					onSelectAll = { selected = shown.mapTo(HashSet()) { it.id.mostSignificantBits } },
 					callbacks = callbacks,
 				)
 			}
@@ -235,13 +317,22 @@ fun DownloadsScreen(
 					CircularProgressIndicator()
 				}
 
-				visible.isEmpty() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-					Text(
-						text = stringResource(R.string.text_downloads_list_holder),
-						style = MaterialTheme.typography.bodyLarge,
-						color = MaterialTheme.colorScheme.onSurfaceVariant,
-						textAlign = TextAlign.Center,
-					)
+				all.isEmpty() -> Box(Modifier.fillMaxSize().padding(32.dp), contentAlignment = Alignment.Center) {
+					Column(horizontalAlignment = Alignment.CenterHorizontally) {
+						Icon(
+							painterResource(R.drawable.ic_download),
+							contentDescription = null,
+							tint = MaterialTheme.colorScheme.onSurfaceVariant,
+							modifier = Modifier.size(48.dp),
+						)
+						Spacer(Modifier.height(12.dp))
+						Text(
+							text = stringResource(R.string.text_downloads_list_holder),
+							style = MaterialTheme.typography.bodyLarge,
+							color = MaterialTheme.colorScheme.onSurfaceVariant,
+							textAlign = TextAlign.Center,
+						)
+					}
 				}
 
 				else -> LazyColumn(
@@ -253,37 +344,54 @@ fun DownloadsScreen(
 					),
 					verticalArrangement = Arrangement.spacedBy(3.dp),
 				) {
-					if (active.isNotEmpty()) {
+					if (activeFilter == null && active.isNotEmpty()) {
 						item(key = "summary") {
 							SummaryBar(active)
 							Spacer(Modifier.height(8.dp))
 						}
 					}
-					itemsIndexed(visible, key = { _, it -> it.id }) { index, item ->
-						val id = item.id.mostSignificantBits
-						DownloadRow(
-							item = item,
-							imageLoader = imageLoader,
-							isSelected = id in selected,
-							shape = groupShape(index, visible.size),
-							callbacks = callbacks,
-							onClick = {
-								if (selected.isNotEmpty()) {
-									selected = if (id in selected) selected - id else selected + id
-								} else {
-									callbacks.onExpand(item)
-								}
-							},
-							onOpenManga = {
-								if (selected.isNotEmpty()) {
-									selected = if (id in selected) selected - id else selected + id
-								} else {
-									callbacks.onOpen(item)
-								}
-							},
-							onLongClick = { selected = if (id in selected) selected - id else selected + id },
-							modifier = Modifier.animateItem(),
-						)
+					if (buckets.size > 1) {
+						item(key = "filters") {
+							FilterRow(
+								buckets = buckets,
+								total = all.size,
+								selected = activeFilter,
+								onSelect = { filter = it },
+							)
+						}
+					}
+					sections.forEach { (bucket, items) ->
+						if (activeFilter == null && sections.size > 1) {
+							item(key = "header-$bucket") {
+								SectionHeader(stringResource(bucket.title), items.size)
+							}
+						}
+						itemsIndexed(items, key = { _, it -> it.id }) { index, item ->
+							val id = item.id.mostSignificantBits
+							DownloadRow(
+								item = item,
+								imageLoader = imageLoader,
+								isSelected = id in selected,
+								shape = groupShape(index, items.size),
+								callbacks = callbacks,
+								onClick = {
+									if (selected.isNotEmpty()) {
+										selected = if (id in selected) selected - id else selected + id
+									} else {
+										callbacks.onExpand(item)
+									}
+								},
+								onOpenManga = {
+									if (selected.isNotEmpty()) {
+										selected = if (id in selected) selected - id else selected + id
+									} else {
+										callbacks.onOpen(item)
+									}
+								},
+								onLongClick = { selected = if (id in selected) selected - id else selected + id },
+								modifier = Modifier.animateItem(),
+							)
+						}
 					}
 				}
 			}
@@ -308,6 +416,48 @@ fun DownloadsScreen(
 			onDismiss = { confirmRemoveCompleted = false },
 		)
 	}
+}
+
+@Composable
+private fun FilterRow(
+	buckets: Map<Bucket, List<DownloadItemModel>>,
+	total: Int,
+	selected: Bucket?,
+	onSelect: (Bucket?) -> Unit,
+) {
+	Row(
+		Modifier
+			.fillMaxWidth()
+			.horizontalScroll(rememberScrollState())
+			.padding(bottom = 8.dp),
+		horizontalArrangement = Arrangement.spacedBy(8.dp),
+	) {
+		FilterChip(
+			selected = selected == null,
+			onClick = { onSelect(null) },
+			label = { Text(stringResource(R.string.downloads_filter_all, total)) },
+		)
+		Bucket.entries.forEach { bucket ->
+			val count = buckets[bucket].orEmpty().size
+			if (count > 0) {
+				FilterChip(
+					selected = selected == bucket,
+					onClick = { onSelect(if (selected == bucket) null else bucket) },
+					label = { Text("${stringResource(bucket.title)} $count") },
+				)
+			}
+		}
+	}
+}
+
+@Composable
+private fun SectionHeader(title: String, count: Int) {
+	Text(
+		text = "$title · $count",
+		style = MaterialTheme.typography.titleSmall,
+		color = MaterialTheme.colorScheme.primary,
+		modifier = Modifier.padding(start = 8.dp, top = 12.dp, bottom = 6.dp),
+	)
 }
 
 @Composable
@@ -347,10 +497,10 @@ private fun SelectionBar(
 	val canRemove = items.isNotEmpty() && items.all { it.isFinished }
 	val canReorder = items.isNotEmpty() && items.all { it.canReorder }
 	TopAppBar(
-		title = { Text(ids.size.toString()) },
+		title = { Text(stringResource(R.string.downloads_selected, ids.size)) },
 		navigationIcon = {
 			IconButton(onClick = onClose) {
-				Icon(painterResource(R.drawable.ic_close), contentDescription = null)
+				Icon(painterResource(R.drawable.ic_close), stringResource(R.string.close))
 			}
 		},
 		actions = {
@@ -393,9 +543,10 @@ private fun SelectionBar(
 @Composable
 private fun SummaryBar(active: List<DownloadItemModel>) {
 	val context = LocalContext.current
-	val running = active.filter { it.workState == WorkInfo.State.RUNNING && !it.isQueued && !it.isPaused }
+	val running = active.filter { it.bucket() == Bucket.DOWNLOADING }
 	val speed = running.sumOf { it.speed }
-	val waiting = active.count { it.isQueued || it.workState != WorkInfo.State.RUNNING }
+	val waiting = active.count { it.bucket() == Bucket.WAITING }
+	val paused = active.count { it.bucket() == Bucket.PAUSED }
 	Surface(
 		shape = MaterialTheme.shapes.extraLarge,
 		color = MaterialTheme.colorScheme.primaryContainer,
@@ -409,7 +560,11 @@ private fun SummaryBar(active: List<DownloadItemModel>) {
 			)
 			Spacer(Modifier.height(4.dp))
 			Text(
-				text = stringResource(R.string.download_summary_line, running.size, waiting),
+				text = buildList {
+					add(stringResource(R.string.download_summary_downloading, running.size))
+					if (waiting > 0) add(stringResource(R.string.download_summary_waiting, waiting))
+					if (paused > 0) add(stringResource(R.string.download_summary_paused, paused))
+				}.joinToString(" · "),
 				style = MaterialTheme.typography.bodyLarge,
 			)
 		}
@@ -450,11 +605,16 @@ private fun DownloadRow(
 		},
 		label = "row_bg",
 	)
+	var menuOpen by remember { mutableStateOf(false) }
 	val chapters by item.chapters.collectAsState()
 	val hasChapters = !chapters.isNullOrEmpty()
 	val hasError = item.error != null
-	val hasActions = !item.isFinished
 	val openManga = Modifier.combinedClickable(onClick = onOpenManga, onLongClick = onLongClick)
+	val statusColor = when (item.bucket()) {
+		Bucket.FAILED -> MaterialTheme.colorScheme.error
+		Bucket.DOWNLOADING -> MaterialTheme.colorScheme.primary
+		else -> MaterialTheme.colorScheme.onSurfaceVariant
+	}
 	Surface(
 		modifier = modifier
 			.fillMaxWidth()
@@ -463,7 +623,7 @@ private fun DownloadRow(
 		shape = shape,
 		color = container,
 	) {
-		Column(Modifier.padding(start = 16.dp, end = 8.dp, top = 16.dp, bottom = if (hasActions) 8.dp else 16.dp)) {
+		Column(Modifier.padding(start = 16.dp, end = 8.dp, top = 16.dp, bottom = 8.dp)) {
 			Row(Modifier.padding(end = 8.dp)) {
 				item.manga?.let { manga ->
 					AsyncImage(
@@ -497,7 +657,8 @@ private fun DownloadRow(
 					Text(
 						text = item.getInfoLine(context),
 						style = MaterialTheme.typography.bodyMedium,
-						color = MaterialTheme.colorScheme.onSurfaceVariant,
+						fontWeight = if (item.bucket() == Bucket.DOWNLOADING) FontWeight.Medium else null,
+						color = statusColor,
 						maxLines = 2,
 						overflow = TextOverflow.Ellipsis,
 					)
@@ -522,35 +683,85 @@ private fun DownloadRow(
 					}
 				}
 			}
-			if (hasActions) {
-				Row(verticalAlignment = Alignment.CenterVertically) {
-					Spacer(Modifier.weight(1f))
-					if (item.isPaused && hasError) {
-						TextButton(onClick = { callbacks.onSkip(item) }) { Text(stringResource(R.string.skip)) }
-						TextButton(onClick = { callbacks.onSkipAll(item) }) { Text(stringResource(R.string.skip_all)) }
+			Row(verticalAlignment = Alignment.CenterVertically) {
+				Spacer(Modifier.weight(1f))
+				if (item.isPaused && hasError) {
+					TextButton(onClick = { callbacks.onSkip(item) }) { Text(stringResource(R.string.skip)) }
+					TextButton(onClick = { callbacks.onSkipAll(item) }) { Text(stringResource(R.string.skip_all)) }
+				}
+				when {
+					item.canPause -> FilledTonalIconButton(onClick = { callbacks.onPause(item) }) {
+						Icon(painterResource(R.drawable.ic_action_pause), stringResource(R.string.pause))
 					}
-					if (!item.isFinished) {
-						IconButton(onClick = { callbacks.onCancel(item) }) {
-							Icon(painterResource(R.drawable.ic_close), stringResource(android.R.string.cancel))
-						}
-					}
-					when {
-						item.canPause -> FilledTonalIconButton(onClick = { callbacks.onPause(item) }) {
-							Icon(painterResource(R.drawable.ic_action_pause), stringResource(R.string.pause))
-						}
 
-						item.canResume -> FilledTonalIconButton(onClick = { callbacks.onResume(item) }) {
-							Icon(
-								painterResource(if (hasError) R.drawable.ic_retry else R.drawable.ic_action_resume),
-								stringResource(if (hasError) R.string.retry else R.string.resume),
+					item.canResume -> FilledTonalIconButton(onClick = { callbacks.onResume(item) }) {
+						Icon(
+							painterResource(if (hasError) R.drawable.ic_retry else R.drawable.ic_action_resume),
+							stringResource(if (hasError) R.string.retry else R.string.resume),
+						)
+					}
+
+					item.canRetry -> FilledTonalIconButton(onClick = { callbacks.onRetry(item) }) {
+						Icon(painterResource(R.drawable.ic_retry), stringResource(R.string.retry))
+					}
+				}
+				Box {
+					IconButton(onClick = { menuOpen = true }) {
+						Icon(painterResource(R.drawable.ic_more_vert), stringResource(R.string.more))
+					}
+					DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+						if (item.manga != null) {
+							DropdownMenuItem(
+								text = { Text(stringResource(R.string.downloads_open_manga)) },
+								onClick = { menuOpen = false; callbacks.onOpen(item) },
 							)
 						}
-
-						item.canRetry -> FilledTonalIconButton(onClick = { callbacks.onRetry(item) }) {
-							Icon(painterResource(R.drawable.ic_retry), stringResource(R.string.retry))
+						if (item.canReorder) {
+							DropdownMenuItem(
+								text = { Text(stringResource(R.string.download_move_top)) },
+								onClick = { menuOpen = false; callbacks.onMoveTop(setOf(item.id.mostSignificantBits)) },
+							)
+							DropdownMenuItem(
+								text = { Text(stringResource(R.string.download_move_up)) },
+								onClick = { menuOpen = false; callbacks.onMoveUp(item) },
+							)
+							DropdownMenuItem(
+								text = { Text(stringResource(R.string.download_move_down)) },
+								onClick = { menuOpen = false; callbacks.onMoveDown(item) },
+							)
+							DropdownMenuItem(
+								text = { Text(stringResource(R.string.download_move_end)) },
+								onClick = { menuOpen = false; callbacks.onMoveEnd(setOf(item.id.mostSignificantBits)) },
+							)
+						}
+						if (hasChapters) {
+							DropdownMenuItem(
+								text = {
+									Text(
+										stringResource(
+											if (item.isExpanded) R.string.downloads_hide_chapters else R.string.downloads_show_chapters,
+										),
+									)
+								},
+								onClick = { menuOpen = false; callbacks.onExpand(item) },
+							)
+						}
+						DropdownMenuItem(
+							text = { Text(stringResource(R.string.downloads_select)) },
+							onClick = { menuOpen = false; onLongClick() },
+						)
+						if (!item.isFinished) {
+							DropdownMenuItem(
+								text = { Text(stringResource(android.R.string.cancel)) },
+								onClick = { menuOpen = false; callbacks.onCancel(item) },
+							)
+						} else {
+							DropdownMenuItem(
+								text = { Text(stringResource(R.string.remove)) },
+								onClick = { menuOpen = false; callbacks.onRemoveSelected(setOf(item.id.mostSignificantBits)) },
+							)
 						}
 					}
-					Spacer(Modifier.width(4.dp))
 				}
 			}
 			AnimatedVisibility(item.isExpanded && hasChapters) {

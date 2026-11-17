@@ -130,6 +130,14 @@ class DownloadsViewModel @Inject constructor(
 		onActionDone.call(ReversibleAction(R.string.downloads_reordered, null))
 	}
 
+	fun moveUp(id: UUID) {
+		downloadSlots.moveBy(id, earlier = true)
+	}
+
+	fun moveDown(id: UUID) {
+		downloadSlots.moveBy(id, earlier = false)
+	}
+
 	private fun reorderable(ids: Set<Long>): List<UUID> = works.value.orEmpty()
 		.filter { it.canReorder && it.id.mostSignificantBits in ids }
 		.map { it.id }
