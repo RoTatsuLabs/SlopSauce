@@ -42,7 +42,7 @@ import org.koitharu.kotatsu.core.prefs.ScreenshotsPolicy
 import org.koitharu.kotatsu.core.prefs.SearchSuggestionType
 import org.koitharu.kotatsu.core.ui.util.ActivityRecreationHandle
 import org.koitharu.kotatsu.core.util.LocaleComparator
-import org.koitharu.kotatsu.core.util.ext.applyNightMode
+import org.koitharu.kotatsu.core.ui.ThemeSwitchCoverActivity
 import org.koitharu.kotatsu.core.util.ext.getLocalesConfig
 import org.koitharu.kotatsu.core.util.ext.sortedWithSafe
 import org.koitharu.kotatsu.core.util.ext.toList
@@ -56,6 +56,9 @@ import org.koitharu.kotatsu.settings.compose.DropSauceTheme
 import org.koitharu.kotatsu.settings.compose.ListSettingsItem
 import org.koitharu.kotatsu.settings.compose.MultiSelectSettingsItem
 import org.koitharu.kotatsu.settings.compose.NavigationSettingsItem
+import org.koitharu.kotatsu.settings.compose.PreviewChoiceSettingsItem
+import org.koitharu.kotatsu.settings.compose.listModePreviewOptions
+import org.koitharu.kotatsu.settings.compose.themePreviewOptions
 import org.koitharu.kotatsu.settings.compose.SettingsGroup
 import org.koitharu.kotatsu.settings.compose.SettingsScaffold
 import org.koitharu.kotatsu.settings.compose.SliderSettingsItem
@@ -89,7 +92,10 @@ class AppearanceSettingsFragment : BaseComposeSettingsFragment(R.string.appearan
 	private val prefListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
 		when (key) {
 			AppSettings.KEY_THEME -> {
-				requireContext().applyNightMode(settings.theme)
+				// Let the picked tile's outline move first, so the switch starts from the new selection.
+				view?.postDelayed({
+					activity?.let { ThemeSwitchCoverActivity.switchNightMode(it, settings.theme) }
+				}, 300)
 			}
 			AppSettings.KEY_COLOR_THEME,
 			AppSettings.KEY_THEME_AMOLED,
@@ -227,7 +233,10 @@ private fun AppearanceScreen(
 	val themeEntries = remember { ctx.resources.getStringArray(R.array.themes).toList() }
 	val themeValues = remember { ctx.resources.getStringArray(R.array.values_theme).toList() }
 
-	val listModeEntries = remember { ctx.resources.getStringArray(R.array.list_modes).toList() }
+	// Same names as the display options sheet on the lists themselves.
+	val listModeEntries = remember {
+		listOf(R.string.compact, R.string.details, R.string.grid, R.string.cover_only).map(ctx::getString)
+	}
 	val listModeValues = remember { ListMode.entries.names().toList() }
 	val badgeEntries = remember { ctx.resources.getStringArray(R.array.list_badges).toList() }
 	val badgeValues = remember { ctx.resources.getStringArray(R.array.values_list_badges).toList() }
@@ -296,7 +305,7 @@ private fun AppearanceScreen(
 	)
 	var screenshotsPolicy by rememberStringPref(
 		AppSettings.KEY_SCREENSHOTS_POLICY,
-		ScreenshotsPolicy.ALLOW.name,
+		ScreenshotsPolicy.BLOCK_INCOGNITO.name,
 	)
 
 	// PIN works without a device screen lock, so the option is always available; the method
@@ -318,14 +327,12 @@ private fun AppearanceScreen(
 		item {
 			SettingsGroup(title = "Theme") {
 				item { pos ->
-					ListSettingsItem(
+					PreviewChoiceSettingsItem(
 						title = stringResource(R.string.theme),
-						entries = themeEntries,
-						entryValues = themeValues,
-						selectedValue = theme,
-						onValueChange = { theme = it }, // prefListener applies it
+						options = themePreviewOptions(themeEntries, amoled),
+						selectedIndex = themeValues.indexOf(theme),
+						onSelected = { theme = themeValues[it] }, // prefListener applies it
 						icon = R.drawable.ic_appearance,
-						
 						shape = pos.shape,
 					)
 				}
@@ -407,14 +414,12 @@ private fun AppearanceScreen(
 		item {
 			SettingsGroup(title = stringResource(R.string.manga_list)) {
 				item { pos ->
-					ListSettingsItem(
+					PreviewChoiceSettingsItem(
 						title = stringResource(R.string.list_mode),
-						entries = listModeEntries,
-						entryValues = listModeValues,
-						selectedValue = listMode,
-						onValueChange = { listMode = it },
+						options = listModePreviewOptions(listModeEntries),
+						selectedIndex = listModeValues.indexOf(listMode),
+						onSelected = { listMode = listModeValues[it] },
 						icon = R.drawable.ic_list,
-						
 						shape = pos.shape,
 					)
 				}

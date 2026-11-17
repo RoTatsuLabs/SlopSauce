@@ -8,7 +8,6 @@ import android.graphics.pdf.PdfRenderer
 import android.net.Uri
 import android.os.ParcelFileDescriptor
 import androidx.documentfile.provider.DocumentFile
-import com.github.junrar.Archive
 import dagger.Reusable
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -107,19 +106,21 @@ class SingleMangaImporter @Inject constructor(
 				throw IOException("PDF has no pages")
 			}
 			ZipOutputStream(outputFile.outputStream().buffered()).use { zip ->
+				zip.setLevel(Deflater.NO_COMPRESSION) // JPEGs don't shrink, deflating them only costs time
 				for (index in 0 until renderer.pageCount) {
 					renderer.openPage(index).use { page ->
+						// Every page at screen-level size: tiny vector pages get sharper, huge scans get smaller
 						val maxPageSize = maxOf(page.width, page.height).coerceAtLeast(1)
-						val scale = minOf(PDF_RENDER_SCALE, MAX_RENDER_DIMENSION / maxPageSize.toFloat())
+						val scale = PDF_PAGE_LONG_SIDE / maxPageSize.toFloat()
 						val matrix = Matrix().apply { setScale(scale, scale) }
 						val width = (page.width * scale).roundToInt().coerceAtLeast(1)
 						val height = (page.height * scale).roundToInt().coerceAtLeast(1)
 						val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
 						bitmap.eraseColor(Color.WHITE)
 						page.render(bitmap, null, matrix, PdfRenderer.Page.RENDER_MODE_FOR_PRINT)
-						val entryName = String.format(Locale.US, "%04d.png", index + 1)
+						val entryName = String.format(Locale.US, "%04d.jpg", index + 1)
 						zip.putNextEntry(ZipEntry(entryName))
-						bitmap.compress(Bitmap.CompressFormat.PNG, 100, zip)
+						bitmap.compress(Bitmap.CompressFormat.JPEG, PDF_JPEG_QUALITY, zip)
 						zip.closeEntry()
 						bitmap.recycle()
 					}
@@ -141,20 +142,7 @@ class SingleMangaImporter @Inject constructor(
 				}
 				return cbz
 			}
-			Archive(this).use { rar ->
-				ZipOutputStream(cbz.outputStream().buffered()).use { zip ->
-					// Pages are already compressed images, deflating them again only costs time
-					zip.setLevel(Deflater.NO_COMPRESSION)
-					for (header in rar) {
-						if (header.isDirectory) {
-							continue
-						}
-						zip.putNextEntry(ZipEntry(header.fileName.replace('\\', '/')))
-						rar.extractFile(header, zip)
-						zip.closeEntry()
-					}
-				}
-			}
+			repackRar(this, cbz) // real RAR: GitHub version only (src/github, src/fdroid)
 			return cbz
 		} catch (e: Exception) {
 			cbz.delete()
@@ -282,8 +270,8 @@ class SingleMangaImporter @Inject constructor(
 	}
 
 	private companion object {
-		private const val PDF_RENDER_SCALE = 4f
-		private const val MAX_RENDER_DIMENSION = 4096
+		private const val PDF_PAGE_LONG_SIDE = 2560
+		private const val PDF_JPEG_QUALITY = 90
 		private val ZIP_MAGIC = "504b0304".decodeHex()
 	}
 }

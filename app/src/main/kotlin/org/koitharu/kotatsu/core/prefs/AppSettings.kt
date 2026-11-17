@@ -145,7 +145,7 @@ class AppSettings @Inject constructor(@ApplicationContext context: Context) {
 			} else {
 				raw.mapNotNull { x -> NavItem.entries.find(x) }.ifEmpty { listOf(NavItem.EXPLORE) }
 			}
-			return items.take(4)
+			return items.take(6) // MainNavigationDelegate.MAX_ITEM_COUNT
 		}
 		set(value) {
 			prefs.edit {
@@ -289,11 +289,11 @@ class AppSettings @Inject constructor(@ApplicationContext context: Context) {
 		}
 
 	var isReaderDoubleOnLandscape: Boolean
-		get() = prefs.getBoolean(KEY_READER_DOUBLE_PAGES, false)
+		get() = prefs.getBoolean(KEY_READER_DOUBLE_PAGES, true)
 		set(value) = prefs.edit { putBoolean(KEY_READER_DOUBLE_PAGES, value) }
 
 	var isReaderDoubleOnFoldable: Boolean
-		get() = prefs.getBoolean(KEY_READER_DOUBLE_FOLDABLE, false)
+		get() = prefs.getBoolean(KEY_READER_DOUBLE_FOLDABLE, true)
 		set(value) = prefs.edit { putBoolean(KEY_READER_DOUBLE_FOLDABLE, value) }
 
 	@get:FloatRange(0.0, 1.0)
@@ -404,6 +404,10 @@ class AppSettings @Inject constructor(@ApplicationContext context: Context) {
 		get() = prefs.getBoolean(KEY_EPUB_BIONIC_READING, false)
 		set(value) = prefs.edit { putBoolean(KEY_EPUB_BIONIC_READING, value) }
 
+	var isEpubChapterDividerEnabled: Boolean
+		get() = prefs.getBoolean(KEY_EPUB_CHAPTER_DIVIDER, true)
+		set(value) = prefs.edit { putBoolean(KEY_EPUB_CHAPTER_DIVIDER, value) }
+
 	// "system" | "white" | "gray" | "black" | "custom" - page colors of the EPUB reader only
 	var epubTheme: String
 		get() = prefs.getString(KEY_EPUB_THEME, "system") ?: "system"
@@ -429,14 +433,28 @@ class AppSettings @Inject constructor(@ApplicationContext context: Context) {
 		get() = prefs.getInt(KEY_EPUB_CUSTOM_FONT_REVISION, 0)
 		set(value) = prefs.edit { putInt(KEY_EPUB_CUSTOM_FONT_REVISION, value) }
 
+	/** Where the details screen's quick-add button puts a title; 0 until the user picks one. */
+	var defaultFavouriteCategoryId: Long
+		get() = prefs.getLong(KEY_FAVOURITES_DEFAULT_CATEGORY, 0L)
+		set(value) = prefs.edit { putLong(KEY_FAVOURITES_DEFAULT_CATEGORY, value) }
+
+	/** Off when "None" is picked as the default category: the favourites button is then one piece. */
+	var isFavouritesQuickAddEnabled: Boolean
+		get() = prefs.getBoolean(KEY_FAVOURITES_QUICK_ADD, true)
+		set(value) = prefs.edit { putBoolean(KEY_FAVOURITES_QUICK_ADD, value) }
+
 	val isReaderRotateWideEnabled: Boolean
-		get() = prefs.getBoolean(KEY_READER_ROTATE_WIDE, false)
+		get() = prefs.getBoolean(KEY_READER_ROTATE_WIDE, true)
 
 	val isReaderRotateWideInverted: Boolean
 		get() = prefs.getBoolean(KEY_READER_ROTATE_WIDE_INVERT, false)
 
 	val isReaderWideSplit: Boolean
-		get() = prefs.getBoolean(KEY_READER_WIDE_SPLIT, false)
+		get() = prefs.getBoolean(KEY_READER_WIDE_SPLIT, true)
+
+	/** Wide pages open whole and only split from the reader's spread button. */
+	val isReaderWideSplitManual: Boolean
+		get() = prefs.getBoolean(KEY_READER_WIDE_SPLIT_MANUAL, true)
 
 	val isReaderDoubleTapFill: Boolean
 		get() = prefs.getBoolean(KEY_READER_DOUBLE_TAP_FILL, false)
@@ -801,6 +819,10 @@ class AppSettings @Inject constructor(@ApplicationContext context: Context) {
 		get() = prefs.getBoolean(KEY_SOURCES_GRID, true)
 		set(value) = prefs.edit { putBoolean(KEY_SOURCES_GRID, value) }
 
+	/** Extensions in a row of Explore's grid on a phone (3, 4 or 5); wider screens fit proportionally more. */
+	val sourcesGridColumns: Int
+		get() = prefs.getInt(KEY_SOURCES_GRID_COLUMNS, 4)
+
 	/**
 	 * The active language chosen per logical source (a package + source-name pair) for
 	 * multi-language extensions. Each entry is encoded as "lang\npkgName\nsourceName" (newline
@@ -907,7 +929,7 @@ class AppSettings @Inject constructor(@ApplicationContext context: Context) {
 		get() = prefs.getBoolean(KEY_PAGES_NUMBERS, false)
 
 	val screenshotsPolicy: ScreenshotsPolicy
-		get() = prefs.getEnumValue(KEY_SCREENSHOTS_POLICY, ScreenshotsPolicy.ALLOW)
+		get() = prefs.getEnumValue(KEY_SCREENSHOTS_POLICY, ScreenshotsPolicy.BLOCK_INCOGNITO)
 
 	val isAdBlockEnabled: Boolean
 		get() = prefs.getBoolean(KEY_ADBLOCK, false)
@@ -1518,6 +1540,7 @@ class AppSettings @Inject constructor(@ApplicationContext context: Context) {
 		const val KEY_EPUB_TTS_PITCH = "epub_tts_pitch"
 		const val KEY_EPUB_PUBLISHER_STYLE = "epub_publisher_style"
 		const val KEY_EPUB_BIONIC_READING = "epub_bionic_reading"
+		const val KEY_EPUB_CHAPTER_DIVIDER = "epub_chapter_divider"
 		const val KEY_EPUB_THEME = "epub_theme"
 		const val KEY_EPUB_CUSTOM_BACKGROUND_COLOR = "epub_custom_background_color"
 		const val KEY_EPUB_CUSTOM_TEXT_COLOR = "epub_custom_text_color"
@@ -1530,6 +1553,7 @@ class AppSettings @Inject constructor(@ApplicationContext context: Context) {
 		const val KEY_READER_ROTATE_WIDE = "reader_rotate_wide"
 		const val KEY_READER_ROTATE_WIDE_INVERT = "reader_rotate_wide_invert"
 		const val KEY_READER_WIDE_SPLIT = "reader_wide_split"
+		const val KEY_READER_WIDE_SPLIT_MANUAL = "reader_wide_split_manual"
 		const val KEY_READER_DOUBLE_TAP_FILL = "reader_double_tap_fill"
 		const val KEY_PROTECT_APP = "protect_app"
 		const val KEY_PROTECT_APP_TIMEOUT = "protect_app_timeout"
@@ -1582,6 +1606,8 @@ class AppSettings @Inject constructor(@ApplicationContext context: Context) {
 		const val KEY_CATEGORY_DEFAULT_ORDER = "category_default_order"
 		const val KEY_CATEGORIES_ORDER = "categories_order"
 		const val KEY_FAVORITES_PINNED = "fav_pinned_order_"
+		const val KEY_FAVOURITES_DEFAULT_CATEGORY = "fav_default_category"
+		const val KEY_FAVOURITES_QUICK_ADD = "fav_quick_add"
 		const val KEY_WEBTOON_GAPS = "webtoon_gaps"
 		const val KEY_WEBTOON_ZOOM = "webtoon_zoom"
 		const val KEY_WEBTOON_ZOOM_OUT = "webtoon_zoom_out"
@@ -1590,6 +1616,7 @@ class AppSettings @Inject constructor(@ApplicationContext context: Context) {
 		const val KEY_PREFETCH_CONTENT = "prefetch_content"
 		const val KEY_APP_LOCALE = "app_locale"
 		const val KEY_SOURCES_GRID = "sources_grid"
+		const val KEY_SOURCES_GRID_COLUMNS = "sources_grid_columns"
 		const val KEY_TIPS_CLOSED = "tips_closed"
 		const val KEY_SSL_BYPASS = "ssl_bypass"
 		const val DEFAULT_AUTOSCROLL_SPEED = 0.5f
@@ -1706,7 +1733,31 @@ class AppSettings @Inject constructor(@ApplicationContext context: Context) {
 		)
 
 		/**
-		 * Kept out of Drive sync (but not backups): every user-facing setting syncs except app lock
+		 * Kept out of local backups (and sync, through [SYNC_LOCAL_KEYS]): folder access and installers that
+		 * only work on this device, a font file the backup doesn't carry, a login token and install state.
+		 */
+		val BACKUP_LOCAL_KEYS = setOf(
+			KEY_LOCAL_STORAGE,
+			KEY_LOCAL_MANGA_DIRS,
+			KEY_PAGES_SAVE_DIR,
+			KEY_EPUB_CUSTOM_FONT_NAME,
+			KEY_EPUB_CUSTOM_FONT_REVISION,
+			KEY_BACKUP_PERIODICAL_ENABLED,
+			KEY_BACKUP_PERIODICAL_OUTPUT,
+			KEY_SHIZUKU_INSTALLER,
+			KEY_PRIVATE_INSTALLER,
+			KEY_DISCORD_ACCESS_TOKEN,
+			KEY_DISCORD_REFRESH_TOKEN,
+			KEY_DISCORD_TOKEN_EXPIRES_AT,
+			KEY_DISCORD_USER_NAME,
+			KEY_DISCORD_TOKEN_LEGACY,
+			KEY_EXTENSION_UPDATES_AVAILABLE,
+			KEY_LAST_EXTENSION_UPDATE_NOTIFICATION_TIME,
+			KEY_APP_VERSION,
+		)
+
+		/**
+		 * Kept out of Drive sync (but not backups, except [BACKUP_LOCAL_KEYS]): every user-facing setting syncs except app lock
 		 * ([SENSITIVE_BACKUP_KEYS]). What stays here only makes sense on this device (storage folders,
 		 * installer capabilities, a font file) or is written by the app itself (caches, one-shot flags),
 		 * where syncing would make background writes look like user edits.
@@ -1728,6 +1779,9 @@ class AppSettings @Inject constructor(@ApplicationContext context: Context) {
 			KEY_BACKUP_TELEGRAM_SECTIONS,
 			KEY_SHIZUKU_INSTALLER,
 			KEY_PRIVATE_INSTALLER,
+			KEY_WEBTOON_ZOOM_OUT, // depends on the screen size
+			KEY_FAVOURITES_DEFAULT_CATEGORY, // a category id, which is different on every device
+			KEY_FAVOURITES_QUICK_ADD, // goes with the category above
 			KEY_DISCORD_ACCESS_TOKEN,
 			KEY_DISCORD_REFRESH_TOKEN,
 			KEY_DISCORD_TOKEN_EXPIRES_AT,

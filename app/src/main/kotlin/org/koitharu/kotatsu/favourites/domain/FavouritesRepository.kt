@@ -45,6 +45,9 @@ class FavouritesRepository @Inject constructor(
 	private val autoTrackScheduler: Provider<AutoTrackWorker.Scheduler>,
 ) {
 
+	var defaultCategoryId: Long by settings::defaultFavouriteCategoryId
+	var isQuickAddEnabled: Boolean by settings::isFavouritesQuickAddEnabled
+
 	suspend fun getAllManga(): List<Manga> {
 		val entities = db.getFavouritesDao().findAll()
 		return entities.toMangaList()

@@ -56,6 +56,8 @@ class DetailsExpressiveActions(
 	val onSourceClick: (Manga) -> Unit,
 	val onLocalClick: (Manga) -> Unit,
 	val onFavoriteClick: (Manga) -> Unit,
+	val onQuickFavoriteClick: () -> Unit,
+	val onDefaultCategoryClick: () -> Unit,
 	val onAuthorClick: (String) -> Unit,
 	val onTagClick: (MangaTag) -> Unit,
 	val onScrobblingMore: () -> Unit,
@@ -65,7 +67,8 @@ class DetailsExpressiveActions(
 	val onReadClick: () -> Unit,
 	val onIncognitoClick: () -> Unit,
 	val onForgetHistoryClick: () -> Unit,
-	val onChaptersClick: () -> Unit,
+	/** Null when the chapters are always on screen (two-pane layout), which hides the chapters pill. */
+	val onChaptersClick: (() -> Unit)?,
 )
 
 @Composable
@@ -157,6 +160,8 @@ fun DetailsExpressiveScreen(
 					isFavourite = isFavourite,
 					accent = accentColor,
 					onClick = { actions.onFavoriteClick(manga) },
+					onQuickClick = actions.onQuickFavoriteClick,
+					onQuickLongClick = actions.onDefaultCategoryClick,
 				)
 			}
 

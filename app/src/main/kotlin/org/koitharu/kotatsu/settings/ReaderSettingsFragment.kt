@@ -45,6 +45,8 @@ import org.koitharu.kotatsu.settings.compose.ListSettingsItem
 import org.koitharu.kotatsu.settings.compose.NavigationSettingsItem
 import org.koitharu.kotatsu.settings.compose.MultiSelectSettingsItem
 import org.koitharu.kotatsu.settings.compose.SegmentedRow
+import org.koitharu.kotatsu.settings.compose.PreviewChoiceSettingsItem
+import org.koitharu.kotatsu.settings.compose.readerModePreviewOptions
 import org.koitharu.kotatsu.settings.compose.SegmentedSettingsItem
 import org.koitharu.kotatsu.settings.compose.SettingsGroup
 import org.koitharu.kotatsu.settings.compose.SettingsScaffold
@@ -52,6 +54,7 @@ import org.koitharu.kotatsu.settings.compose.SliderSettingsItem
 import org.koitharu.kotatsu.settings.compose.SwitchSettingsItem
 import org.koitharu.kotatsu.settings.compose.rememberBooleanPref
 import org.koitharu.kotatsu.settings.compose.rememberIntPref
+import org.koitharu.kotatsu.settings.compose.rememberPercentPref
 import org.koitharu.kotatsu.settings.compose.rememberStringPref
 import org.koitharu.kotatsu.settings.compose.rememberStringSetPref
 
@@ -125,6 +128,9 @@ private fun ReaderScreen(
 	var webtoonZoomOutDisabled by rememberBooleanPref(AppSettings.KEY_WEBTOON_ZOOM_OUT_DISABLED, false)
 	var webtoonZoomOut by rememberIntPref(AppSettings.KEY_WEBTOON_ZOOM_OUT, 0)
 	var webtoonGaps by rememberBooleanPref(AppSettings.KEY_WEBTOON_GAPS, false)
+	var doublePages by rememberBooleanPref(AppSettings.KEY_READER_DOUBLE_PAGES, true)
+	var doublePagesFoldable by rememberBooleanPref(AppSettings.KEY_READER_DOUBLE_FOLDABLE, true)
+	var doublePagesSensitivity by rememberPercentPref(AppSettings.KEY_READER_DOUBLE_PAGES_SENSITIVITY, 0.5f)
 	var readerTapsLtr by rememberBooleanPref(AppSettings.KEY_READER_CONTROL_LTR, false)
 	var readerVolumeButtons by rememberBooleanPref(AppSettings.KEY_READER_VOLUME_BUTTONS, false)
 	var readerNavigationInverted by rememberBooleanPref(AppSettings.KEY_READER_NAVIGATION_INVERTED, false)
@@ -134,9 +140,10 @@ private fun ReaderScreen(
 	var readerOptimize by rememberBooleanPref(AppSettings.KEY_READER_OPTIMIZE, false)
 	var readerUpscale by rememberBooleanPref(AppSettings.KEY_READER_UPSCALE, false)
 	var readerCrop by rememberStringSetPref(AppSettings.KEY_READER_CROP, emptySet())
-	var readerRotateWide by rememberBooleanPref(AppSettings.KEY_READER_ROTATE_WIDE, false)
+	var readerRotateWide by rememberBooleanPref(AppSettings.KEY_READER_ROTATE_WIDE, true)
 	var readerRotateWideInvert by rememberBooleanPref(AppSettings.KEY_READER_ROTATE_WIDE_INVERT, false)
-	var readerWideSplit by rememberBooleanPref(AppSettings.KEY_READER_WIDE_SPLIT, false)
+	var readerWideSplit by rememberBooleanPref(AppSettings.KEY_READER_WIDE_SPLIT, true)
+	var readerWideSplitManual by rememberBooleanPref(AppSettings.KEY_READER_WIDE_SPLIT_MANUAL, true)
 	var readerFullscreen by rememberBooleanPref(AppSettings.KEY_READER_FULLSCREEN, true)
 	var readerOrientation by rememberStringPref(
 		AppSettings.KEY_READER_ORIENTATION,
@@ -160,14 +167,12 @@ private fun ReaderScreen(
 		item {
 			SettingsGroup(title = "Mode") {
 				item { pos ->
-					ListSettingsItem(
+					PreviewChoiceSettingsItem(
 						title = stringResource(R.string.default_mode),
-						entries = readerModeEntries,
-						entryValues = readerModeValues,
-						selectedValue = readerMode,
-						onValueChange = { readerMode = it },
+						options = readerModePreviewOptions(readerModeEntries),
+						selectedIndex = readerModeValues.indexOf(readerMode),
+						onSelected = { readerMode = readerModeValues[it] },
 						icon = R.drawable.ic_book_page,
-						
 						shape = pos.shape,
 					)
 				}
@@ -301,8 +306,46 @@ private fun ReaderScreen(
 						checked = webtoonGaps,
 						onCheckedChange = { webtoonGaps = it },
 						icon = R.drawable.ic_move_horizontal,
-						
+
 						shape = pos.shape,
+					)
+				}
+			}
+		}
+		item { Spacer(Modifier.height(8.dp).fillMaxWidth()) }
+		item {
+			SettingsGroup(title = "Two pages") {
+				item { pos ->
+					SwitchSettingsItem(
+						title = stringResource(R.string.use_two_pages_landscape),
+						checked = doublePages,
+						onCheckedChange = { doublePages = it },
+						icon = R.drawable.ic_split_horizontal,
+						shape = pos.shape,
+					)
+				}
+				item { pos ->
+					SwitchSettingsItem(
+						title = stringResource(R.string.auto_double_foldable),
+						checked = doublePagesFoldable,
+						onCheckedChange = { doublePagesFoldable = it },
+						icon = R.drawable.ic_devices_fold,
+						shape = pos.shape,
+					)
+				}
+				item { pos ->
+					SliderSettingsItem(
+						title = stringResource(R.string.two_page_scroll_sensitivity),
+						value = doublePagesSensitivity,
+						valueFrom = 0,
+						valueTo = 100,
+						stepSize = 5,
+						unitSuffix = "%",
+						onValueChange = { doublePagesSensitivity = it },
+						icon = R.drawable.ic_swipe,
+						shape = pos.shape,
+						// Only read by the two-page reader, so it has nothing to do while both are off.
+						enabled = doublePages || doublePagesFoldable,
 					)
 				}
 			}
@@ -442,6 +485,8 @@ private fun ReaderScreen(
 						onEnabledChange = { readerRotateWide = it },
 						split = readerWideSplit,
 						onSplitChange = { readerWideSplit = it },
+						splitManual = readerWideSplitManual,
+						onSplitManualChange = { readerWideSplitManual = it },
 						counterClockwise = readerRotateWideInvert,
 						onCounterClockwiseChange = { readerRotateWideInvert = it },
 						shape = pos.shape,
@@ -565,6 +610,8 @@ private fun FitWidePagesItem(
 	onEnabledChange: (Boolean) -> Unit,
 	split: Boolean,
 	onSplitChange: (Boolean) -> Unit,
+	splitManual: Boolean,
+	onSplitManualChange: (Boolean) -> Unit,
 	counterClockwise: Boolean,
 	onCounterClockwiseChange: (Boolean) -> Unit,
 	shape: Shape,
@@ -592,13 +639,23 @@ private fun FitWidePagesItem(
 					enabled = enabled,
 				)
 				Spacer(Modifier.height(12.dp))
-				FitWidePagesLabel(stringResource(R.string.rotate_wide_pages_direction), enabled && !split)
-				SegmentedRow(
-					labels = listOf(stringResource(R.string.rotation_clockwise), stringResource(R.string.rotation_counter_clockwise)),
-					selectedIndex = if (counterClockwise) 1 else 0,
-					onSelected = { onCounterClockwiseChange(it == 1) },
-					enabled = enabled && !split,
-				)
+				if (split) {
+					FitWidePagesLabel(stringResource(R.string.wide_pages_split_mode), enabled)
+					SegmentedRow(
+						labels = listOf(stringResource(R.string.wide_pages_split_auto), stringResource(R.string.wide_pages_split_manual)),
+						selectedIndex = if (splitManual) 1 else 0,
+						onSelected = { onSplitManualChange(it == 1) },
+						enabled = enabled,
+					)
+				} else {
+					FitWidePagesLabel(stringResource(R.string.rotate_wide_pages_direction), enabled)
+					SegmentedRow(
+						labels = listOf(stringResource(R.string.rotation_clockwise), stringResource(R.string.rotation_counter_clockwise)),
+						selectedIndex = if (counterClockwise) 1 else 0,
+						onSelected = { onCounterClockwiseChange(it == 1) },
+						enabled = enabled,
+					)
+				}
 			}
 		}
 	}

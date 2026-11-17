@@ -25,6 +25,7 @@ CLAUDE.md
 *.log
 *.txt
 !CMakeLists.txt
+!/fastlane/**/*.txt
 
 # Signing keystores
 *.jks

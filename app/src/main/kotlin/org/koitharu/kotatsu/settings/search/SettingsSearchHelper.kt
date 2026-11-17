@@ -22,7 +22,7 @@ import org.koitharu.kotatsu.settings.discord.DiscordSettingsFragment
 import org.koitharu.kotatsu.settings.sources.ExtensionsSettingsFragment
 import org.koitharu.kotatsu.settings.tracker.TrackerSettingsFragment
 import org.koitharu.kotatsu.settings.userdata.storage.DataCleanupSettingsFragment
-import org.koitharu.kotatsu.sync.ui.SyncSettingsFragment
+import org.koitharu.kotatsu.sync.SyncFeature
 import javax.inject.Inject
 
 @Reusable
@@ -119,20 +119,22 @@ class SettingsSearchHelper @Inject constructor(
 			}
 		}
 
-		section(R.string.google_drive_sync, SyncSettingsFragment::class.java) { sectionCrumbs ->
-			group(sectionCrumbs, ctx.getString(R.string.sync_account)) { crumbs ->
-				addItem("sync_sign_in", R.string.sync_sign_in, R.string.sync_sign_in_summary, crumbs, SyncSettingsFragment::class.java)
-				addItem("sync_sign_out", R.string.sync_sign_out, breadcrumbs = crumbs, fragmentClass = SyncSettingsFragment::class.java)
-				addItem("sync_account", R.string.sync_account, breadcrumbs = crumbs, fragmentClass = SyncSettingsFragment::class.java, keywordRes = intArrayOf(R.string.sync_hide_email, R.string.sync_show_email))
-			}
-			group(sectionCrumbs, ctx.getString(R.string.sync_section_sync)) { crumbs ->
-				addItem("sync_now", R.string.sync_now, breadcrumbs = crumbs, fragmentClass = SyncSettingsFragment::class.java, keywordRes = intArrayOf(R.string.sync_up_to_date, R.string.sync_never, R.string.sync_syncing), keywordText = listOf("last synced"))
-				addItem("sync_what", R.string.sync_what, breadcrumbs = crumbs, fragmentClass = SyncSettingsFragment::class.java, keywordRes = intArrayOf(R.string.sync_content_favourites, R.string.sync_content_history, R.string.sync_content_bookmarks, R.string.sync_content_feed, R.string.sync_content_tracking, R.string.sync_content_stats, R.string.sync_content_settings, R.string.sync_content_covers), keywordText = listOf("extension stores", "repositories", "pinned sources"))
-			}
-			group(sectionCrumbs, ctx.getString(R.string.advanced)) { crumbs ->
-				addItem("sync_frequency", R.string.sync_frequency, breadcrumbs = crumbs, fragmentClass = SyncSettingsFragment::class.java, keywordRes = intArrayOf(R.string.sync_freq_off, R.string.sync_freq_6h, R.string.sync_freq_12h, R.string.sync_freq_daily, R.string.sync_freq_weekly))
-				addItem("sync_wifi_only", R.string.sync_wifi_only, breadcrumbs = crumbs, fragmentClass = SyncSettingsFragment::class.java)
-				addItem("sync_delete_data", R.string.sync_delete_data, R.string.sync_delete_data_summary, crumbs, SyncSettingsFragment::class.java)
+		SyncFeature.settingsFragmentClass?.let { sync -> // not in the F-Droid version
+			section(R.string.google_drive_sync, sync) { sectionCrumbs ->
+				group(sectionCrumbs, ctx.getString(R.string.sync_account)) { crumbs ->
+					addItem("sync_sign_in", R.string.sync_sign_in, R.string.sync_sign_in_summary, crumbs, sync)
+					addItem("sync_sign_out", R.string.sync_sign_out, breadcrumbs = crumbs, fragmentClass = sync)
+					addItem("sync_account", R.string.sync_account, breadcrumbs = crumbs, fragmentClass = sync, keywordRes = intArrayOf(R.string.sync_hide_email, R.string.sync_show_email))
+				}
+				group(sectionCrumbs, ctx.getString(R.string.sync_section_sync)) { crumbs ->
+					addItem("sync_now", R.string.sync_now, breadcrumbs = crumbs, fragmentClass = sync, keywordRes = intArrayOf(R.string.sync_up_to_date, R.string.sync_never, R.string.sync_syncing), keywordText = listOf("last synced"))
+					addItem("sync_what", R.string.sync_what, breadcrumbs = crumbs, fragmentClass = sync, keywordRes = intArrayOf(R.string.sync_content_favourites, R.string.sync_content_history, R.string.sync_content_bookmarks, R.string.sync_content_feed, R.string.sync_content_tracking, R.string.sync_content_stats, R.string.sync_content_settings, R.string.sync_content_covers), keywordText = listOf("extension stores", "repositories", "pinned sources"))
+				}
+				group(sectionCrumbs, ctx.getString(R.string.advanced)) { crumbs ->
+					addItem("sync_frequency", R.string.sync_frequency, breadcrumbs = crumbs, fragmentClass = sync, keywordRes = intArrayOf(R.string.sync_freq_off, R.string.sync_freq_6h, R.string.sync_freq_12h, R.string.sync_freq_daily, R.string.sync_freq_weekly))
+					addItem("sync_wifi_only", R.string.sync_wifi_only, breadcrumbs = crumbs, fragmentClass = sync)
+					addItem("sync_delete_data", R.string.sync_delete_data, R.string.sync_delete_data_summary, crumbs, sync)
+				}
 			}
 		}
 
@@ -151,6 +153,7 @@ class SettingsSearchHelper @Inject constructor(
 			group(sectionCrumbs, ctx.getString(R.string.appearance)) { crumbs ->
 				addItem(AppSettings.KEY_SOURCES_ORDER, R.string.sort_order, breadcrumbs = crumbs, fragmentClass = ExtensionsSettingsFragment::class.java)
 				addItem(AppSettings.KEY_SOURCES_GRID, R.string.show_in_grid_view, breadcrumbs = crumbs, fragmentClass = ExtensionsSettingsFragment::class.java)
+				addItem(AppSettings.KEY_SOURCES_GRID_COLUMNS, R.string.extensions_per_row, breadcrumbs = crumbs, fragmentClass = ExtensionsSettingsFragment::class.java)
 			}
 			group(sectionCrumbs, ctx.getString(R.string.filter)) { crumbs ->
 				addItem(AppSettings.KEY_DEFAULT_BROWSE_SORT, R.string.extensions_default_sort, R.string.extensions_default_sort_summary, crumbs, ExtensionsSettingsFragment::class.java)
@@ -176,6 +179,11 @@ class SettingsSearchHelper @Inject constructor(
 				addItem(AppSettings.KEY_WEBTOON_ZOOM_OUT, R.string.default_webtoon_zoom_out, breadcrumbs = crumbs, fragmentClass = ReaderSettingsFragment::class.java)
 				addItem(AppSettings.KEY_WEBTOON_GAPS, R.string.webtoon_gaps, R.string.webtoon_gaps_summary, crumbs, ReaderSettingsFragment::class.java)
 			}
+			group(sectionCrumbs, "Two pages") { crumbs ->
+				addItem(AppSettings.KEY_READER_DOUBLE_PAGES, R.string.use_two_pages_landscape, breadcrumbs = crumbs, fragmentClass = ReaderSettingsFragment::class.java)
+				addItem(AppSettings.KEY_READER_DOUBLE_FOLDABLE, R.string.auto_double_foldable, breadcrumbs = crumbs, fragmentClass = ReaderSettingsFragment::class.java)
+				addItem(AppSettings.KEY_READER_DOUBLE_PAGES_SENSITIVITY, R.string.two_page_scroll_sensitivity, breadcrumbs = crumbs, fragmentClass = ReaderSettingsFragment::class.java)
+			}
 			group(sectionCrumbs, "Controls") { crumbs ->
 				addItem(AppSettings.KEY_READER_CONTROLS, R.string.reader_controls_in_bottom_bar, R.string.reader_controls_in_bottom_bar_summary, crumbs, ReaderSettingsFragment::class.java, keywordArrayRes = intArrayOf(R.array.reader_controls))
 				addItem("reader_tap_actions", R.string.reader_actions, R.string.reader_actions_summary, crumbs, ReaderSettingsFragment::class.java)
@@ -192,6 +200,7 @@ class SettingsSearchHelper @Inject constructor(
 				addItem(AppSettings.KEY_READER_CROP, R.string.crop_pages, breadcrumbs = crumbs, fragmentClass = ReaderSettingsFragment::class.java, keywordArrayRes = intArrayOf(R.array.reader_crop))
 				addItem(AppSettings.KEY_READER_ROTATE_WIDE, R.string.rotate_wide_pages, R.string.rotate_wide_pages_summary, crumbs, ReaderSettingsFragment::class.java)
 				addItem(AppSettings.KEY_READER_WIDE_SPLIT, R.string.wide_pages_method, R.string.wide_pages_split, crumbs, ReaderSettingsFragment::class.java)
+				addItem(AppSettings.KEY_READER_WIDE_SPLIT_MANUAL, R.string.wide_pages_split_mode, R.string.wide_pages_split_manual, crumbs, ReaderSettingsFragment::class.java)
 				addItem(AppSettings.KEY_READER_ROTATE_WIDE_INVERT, R.string.rotate_wide_pages_direction, R.string.rotation_counter_clockwise, crumbs, ReaderSettingsFragment::class.java)
 			}
 			group(sectionCrumbs, "Display") { crumbs ->

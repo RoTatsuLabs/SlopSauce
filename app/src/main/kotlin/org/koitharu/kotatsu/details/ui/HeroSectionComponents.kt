@@ -1,6 +1,12 @@
 package org.koitharu.kotatsu.details.ui
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.runtime.getValue
+import org.koitharu.kotatsu.core.prefs.AppSettings
+import org.koitharu.kotatsu.settings.compose.rememberBooleanPref
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -121,113 +127,77 @@ internal fun HeroSection(
 			)
 		}
 	} else {
-		BoxWithConstraints(
+		val density = LocalDensity.current
+		val compactCoverWidthPx = with(density) { COMPACT_COVER_WIDTH.roundToPx() }
+		val compactCoverHeightPx = with(density) { COMPACT_COVER_HEIGHT.roundToPx() }
+		val spacingPx = with(density) { 16.dp.roundToPx() }
+		val spacerHeightPx = with(density) { 14.dp.roundToPx() }
+
+		Layout(
 			modifier = Modifier
 				.fillMaxWidth()
-				.padding(horizontal = SCREEN_PADDING)
-		) {
-			val density = LocalDensity.current
-			val compactCoverWidthPx = with(density) { COMPACT_COVER_WIDTH.roundToPx() }
-			val compactCoverHeightPx = with(density) { COMPACT_COVER_HEIGHT.roundToPx() }
-			val spacingPx = with(density) { 16.dp.roundToPx() }
-			val spacerHeightPx = with(density) { 14.dp.roundToPx() }
-
-			val measurer = rememberTextMeasurer()
-			val authors = manga.authors.filter { it.isNotBlank() }
-			val authorText = authors.joinToString(", ")
-
-			val titleStyle = MaterialTheme.typography.headlineSmall
-			val authorStyle = MaterialTheme.typography.labelLarge
-
-			val infoWidth = maxWidth - COMPACT_COVER_WIDTH - 16.dp
-			val infoWidthPx = with(density) { infoWidth.roundToPx() }
-
-			val titleLayoutResult = measurer.measure(
-				text = manga.title,
-				style = titleStyle,
-				constraints = Constraints(maxWidth = infoWidthPx),
-				maxLines = 4,
-			)
-			val authorLayoutResult = if (authorText.isNotEmpty()) {
-				measurer.measure(
-					text = authorText,
-					style = authorStyle,
-					constraints = Constraints(maxWidth = infoWidthPx),
-					maxLines = 2,
+				.padding(horizontal = SCREEN_PADDING),
+			content = {
+				CoverCard(
+					manga = manga,
+					sourceManga = details?.sourceManga,
+					coverUrl = coverUrl,
+					coverRefreshes = coverRefreshes,
+					imageLoader = imageLoader,
+					modifier = Modifier.width(COMPACT_COVER_WIDTH),
+					corner = 20.dp,
+					nsfwLabel = nsfwLabel,
+					forceRefresh = details?.isLoaded == true,
+					actions = actions,
 				)
-			} else {
-				null
-			}
-
-			val titleFitsInOneLine = titleLayoutResult.lineCount <= 1
-			val authorFitsInOneLine = authorLayoutResult == null || authorLayoutResult.lineCount <= 1
-			val bothFitInOneLine = titleFitsInOneLine && authorFitsInOneLine
-
-			Layout(
-				content = {
-					CoverCard(
+				Column {
+					HeroTexts(centered = false, manga = manga, accent = accent, actions = actions)
+					Spacer(Modifier.height(12.dp))
+					StatPills(
+						centered = false,
+						showContentRating = false,
 						manga = manga,
-						sourceManga = details?.sourceManga,
-						coverUrl = coverUrl,
-						coverRefreshes = coverRefreshes,
-						imageLoader = imageLoader,
-						modifier = Modifier.width(COMPACT_COVER_WIDTH),
-						corner = 20.dp,
-						nsfwLabel = nsfwLabel,
-						forceRefresh = details?.isLoaded == true,
-						actions = actions,
-					)
-					Column {
-						HeroTexts(centered = false, manga = manga, accent = accent, actions = actions)
-						Spacer(Modifier.height(12.dp))
-						StatPills(
-							centered = false,
-							showContentRating = false,
-							manga = manga,
-							sourceTitle = sourceTitle,
-							accent = accent,
-							imageLoader = imageLoader,
-							onSourceClick = { actions.onSourceClick(manga) },
-						)
-					}
-					FavouriteButton(
-						label = favouriteLabel,
-						isFavourite = isFavourite,
+						sourceTitle = sourceTitle,
 						accent = accent,
-						onClick = onFavouriteClick,
-						horizontalPadding = 0.dp,
-					)
-				},
-			) { measurables, constraints ->
-				val remainingWidth = constraints.maxWidth - compactCoverWidthPx - spacingPx
-
-				val upperPlaceable = measurables[1].measure(
-					Constraints.fixedWidth(remainingWidth)
-				)
-
-				val buttonPlaceable = measurables[2].measure(
-					Constraints.fixedWidth(remainingWidth)
-				)
-
-				val naturalInfoHeight = upperPlaceable.height + spacerHeightPx + buttonPlaceable.height
-				val coverHeight = if (bothFitInOneLine) {
-					compactCoverHeightPx
-				} else {
-					maxOf(compactCoverHeightPx, naturalInfoHeight)
-				}
-
-				val coverPlaceable = measurables[0].measure(
-					Constraints.fixed(compactCoverWidthPx, coverHeight)
-				)
-
-				layout(constraints.maxWidth, coverHeight) {
-					coverPlaceable.placeRelative(0, 0)
-					upperPlaceable.placeRelative(compactCoverWidthPx + spacingPx, 0)
-					buttonPlaceable.placeRelative(
-						compactCoverWidthPx + spacingPx,
-						coverHeight - buttonPlaceable.height
+						imageLoader = imageLoader,
+						onSourceClick = { actions.onSourceClick(manga) },
 					)
 				}
+				FavouriteButton(
+					label = favouriteLabel,
+					isFavourite = isFavourite,
+					accent = accent,
+					onClick = onFavouriteClick,
+					onQuickClick = actions.onQuickFavoriteClick,
+					onQuickLongClick = actions.onDefaultCategoryClick,
+					horizontalPadding = 0.dp,
+				)
+			},
+		) { measurables, constraints ->
+			val remainingWidth = (constraints.maxWidth - compactCoverWidthPx - spacingPx).coerceAtLeast(0)
+
+			val upperPlaceable = measurables[1].measure(
+				Constraints.fixedWidth(remainingWidth)
+			)
+
+			val buttonPlaceable = measurables[2].measure(
+				Constraints.fixedWidth(remainingWidth)
+			)
+
+			val naturalInfoHeight = upperPlaceable.height + spacerHeightPx + buttonPlaceable.height
+			val coverHeight = maxOf(compactCoverHeightPx, naturalInfoHeight)
+
+			val coverPlaceable = measurables[0].measure(
+				Constraints.fixed(compactCoverWidthPx, coverHeight)
+			)
+
+			layout(constraints.maxWidth, coverHeight) {
+				coverPlaceable.placeRelative(0, 0)
+				upperPlaceable.placeRelative(compactCoverWidthPx + spacingPx, 0)
+				buttonPlaceable.placeRelative(
+					compactCoverWidthPx + spacingPx,
+					coverHeight - buttonPlaceable.height
+				)
 			}
 		}
 	}
@@ -527,22 +497,98 @@ internal fun FavouriteButton(
 	isFavourite: Boolean,
 	accent: Color,
 	onClick: () -> Unit,
+	onQuickClick: () -> Unit = {},
+	onQuickLongClick: () -> Unit = {},
 	horizontalPadding: Dp = SCREEN_PADDING,
 ) {
-	Surface(
-		onClick = onClick,
-		shape = RoundedCornerShape(20.dp),
-		color = if (isFavourite) accent else accent.copy(alpha = 0.16f),
+	val color = if (isFavourite) accent else accent.copy(alpha = 0.16f)
+	val contentColor = if (isFavourite) {
+		if (accent.luminanceIsLight()) Color.Black else Color.White
+	} else {
+		accent
+	}
+	Row(
 		modifier = Modifier
 			.fillMaxWidth()
 			.padding(horizontal = horizontalPadding)
 			.height(52.dp),
+		horizontalArrangement = Arrangement.spacedBy(FAVOURITE_SPLIT_GAP),
 	) {
-		val contentColor = if (isFavourite) {
-			if (accent.luminanceIsLight()) Color.Black else Color.White
-		} else {
-			accent
+		// The quick half is only there to add: gone once the title is a favourite, or when turned off
+		// ("None" in the default category picker). The big half is then the whole button.
+		val isQuickAddEnabled by rememberBooleanPref(AppSettings.KEY_FAVOURITES_QUICK_ADD, true)
+		val isSplit = isQuickAddEnabled && !isFavourite
+		FavouriteCategoriesButton(
+			label = label,
+			isFavourite = isFavourite,
+			color = color,
+			contentColor = contentColor,
+			endCorner = if (isSplit) FAVOURITE_SPLIT_CORNER else FAVOURITE_CORNER,
+			onClick = onClick,
+			modifier = Modifier.weight(0.7f),
+		)
+		if (isSplit) {
+			// Straight into the default category; hold to change the default.
+			val quickShape = RoundedCornerShape(
+				topStart = FAVOURITE_SPLIT_CORNER,
+				bottomStart = FAVOURITE_SPLIT_CORNER,
+				topEnd = FAVOURITE_CORNER,
+				bottomEnd = FAVOURITE_CORNER,
+			)
+			val quickLabel = stringResource(R.string.quick_add_to_favourites)
+			Surface(
+				shape = quickShape,
+				color = color,
+				modifier = Modifier
+					.weight(0.3f)
+					.fillMaxHeight()
+					.clip(quickShape)
+					.combinedClickable(
+						onClickLabel = quickLabel,
+						role = Role.Button,
+						onLongClick = onQuickLongClick,
+						onClick = onQuickClick,
+					),
+			) {
+				Box(contentAlignment = Alignment.Center) {
+					Icon(
+						painter = painterResource(R.drawable.ic_bolt),
+						contentDescription = quickLabel,
+						tint = contentColor,
+						modifier = Modifier.size(22.dp),
+					)
+				}
+			}
 		}
+	}
+}
+
+private val FAVOURITE_CORNER = 20.dp
+private val FAVOURITE_SPLIT_CORNER = 6.dp
+private val FAVOURITE_SPLIT_GAP = 3.dp
+
+/** The big half: opens the category picker, and names the categories the title is in. */
+@Composable
+private fun FavouriteCategoriesButton(
+	label: String,
+	isFavourite: Boolean,
+	color: Color,
+	contentColor: Color,
+	endCorner: Dp,
+	onClick: () -> Unit,
+	modifier: Modifier,
+) {
+	Surface(
+		onClick = onClick,
+		shape = RoundedCornerShape(
+			topStart = FAVOURITE_CORNER,
+			bottomStart = FAVOURITE_CORNER,
+			topEnd = endCorner,
+			bottomEnd = endCorner,
+		),
+		color = color,
+		modifier = modifier.fillMaxHeight(),
+	) {
 		Row(
 			modifier = Modifier
 				.fillMaxSize()

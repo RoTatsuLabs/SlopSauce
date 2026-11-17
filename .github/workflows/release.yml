@@ -44,6 +44,13 @@ jobs:
           fetch-depth: 0
           fetch-tags: true
 
+      # Only the parts of libjxl the JPEG XL decoder builds from (its tests and test data are huge).
+      - name: Fetch libjxl source
+        run: |
+          git submodule update --init --depth 1 app/src/main/cpp/libjxl
+          git -C app/src/main/cpp/libjxl submodule update --init --depth 1 \
+            third_party/highway third_party/brotli third_party/skcms
+
       - name: Check version
         id: previous
         run: |
@@ -101,7 +108,7 @@ jobs:
 
           # Build
           chmod +x gradlew
-          ./gradlew assembleRelease --no-daemon --stacktrace \
+          ./gradlew assembleGithubRelease --no-daemon --stacktrace \
             -PRELEASE_STORE_FILE="$RUNNER_TEMP/release.keystore" \
             -PRELEASE_STORE_PASSWORD="$STORE_PASSWORD" \
             -PRELEASE_KEY_ALIAS="$KEY_ALIAS" \
@@ -111,9 +118,9 @@ jobs:
           mkdir -p dist
           shopt -s nullglob
           for ABI in arm64-v8a armeabi-v7a x86_64 x86 universal; do
-            FILES=(app/build/outputs/apk/release/*-"${ABI}"-*.apk)
+            FILES=(app/build/outputs/apk/github/release/*-"${ABI}"-*.apk)
             if [ ${#FILES[@]} -ne 1 ]; then
-              echo "::error::Expected exactly one ${ABI} APK under app/build/outputs/apk/release, found ${#FILES[@]}"
+              echo "::error::Expected exactly one ${ABI} APK under app/build/outputs/apk/github/release, found ${#FILES[@]}"
               exit 1
             fi
             cp "${FILES[0]}" "dist/${APP_NAME}-v${VERSION_NAME}-${ABI}.apk"

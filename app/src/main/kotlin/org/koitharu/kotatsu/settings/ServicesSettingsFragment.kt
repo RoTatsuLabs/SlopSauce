@@ -10,7 +10,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
-import androidx.compose.material3.Switch
+import org.koitharu.kotatsu.settings.compose.SettingsSwitch
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.ui.Alignment
 import androidx.compose.runtime.Composable
@@ -348,7 +348,7 @@ private fun ServicesScreen(
 							Row(verticalAlignment = Alignment.CenterVertically) {
 								VerticalDivider(modifier = Modifier.height(32.dp))
 								Spacer(Modifier.width(14.dp))
-								Switch(
+								SettingsSwitch(
 									checked = statsEnabled,
 									onCheckedChange = { statsEnabled = it },
 								)
@@ -383,7 +383,7 @@ private fun ServicesScreen(
 							Row(verticalAlignment = Alignment.CenterVertically) {
 								VerticalDivider(modifier = Modifier.height(32.dp))
 								Spacer(Modifier.width(14.dp))
-								Switch(
+								SettingsSwitch(
 									checked = eyeReminder,
 									onCheckedChange = { eyeReminder = it },
 								)
@@ -404,7 +404,7 @@ private fun ServicesScreen(
 							checked = syncTrackingProgress,
 							onCheckedChange = { syncTrackingProgress = it },
 							icon = R.drawable.ic_sync_alt,
-							shape = pos.shape,
+							main = true,
 						)
 					}
 					item { pos ->

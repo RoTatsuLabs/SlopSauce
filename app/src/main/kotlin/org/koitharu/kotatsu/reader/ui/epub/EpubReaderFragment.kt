@@ -78,6 +78,7 @@ import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.ViewPager2
 import coil3.ImageLoader
 import coil3.request.ImageRequest
+import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
@@ -178,6 +179,7 @@ class EpubReaderFragment : BaseReaderFragment<FragmentReaderEpubBinding>() {
 	private val chapterDividerPaint = Paint(Paint.ANTI_ALIAS_FLAG)
 	private val chapterDividerDecoration = object : RecyclerView.ItemDecoration() {
 		override fun onDrawOver(canvas: Canvas, parent: RecyclerView, state: RecyclerView.State) {
+			if (!settings.isEpubChapterDividerEnabled) return
 			chapterDividerPaint.strokeWidth = resources.displayMetrics.density
 			for (index in 0 until parent.childCount) {
 				val child = parent.getChildAt(index)
@@ -267,6 +269,8 @@ class EpubReaderFragment : BaseReaderFragment<FragmentReaderEpubBinding>() {
 			}
 		settings.observeAsFlow(AppSettings.KEY_EPUB_RTL) { isEpubRtl }
 			.observe(viewLifecycleOwner) { switchReadingMode() }
+		settings.observeAsFlow(AppSettings.KEY_EPUB_CHAPTER_DIVIDER) { isEpubChapterDividerEnabled }
+			.observe(viewLifecycleOwner) { verticalView?.invalidate() }
 		tts.position.observe(viewLifecycleOwner) { onTtsPositionChanged(it) }
 		tts.chapterFinished.observe(viewLifecycleOwner) { onTtsChapterFinished(it) }
 	}
@@ -1356,6 +1360,8 @@ class EpubReaderFragment : BaseReaderFragment<FragmentReaderEpubBinding>() {
 	private fun showDictionary(word: String) {
 		val binding = SheetEpubDictionaryBinding.inflate(layoutInflater)
 		val dialog = BottomSheetDialog(requireContext())
+		dialog.behavior.skipCollapsed = true
+		dialog.behavior.state = BottomSheetBehavior.STATE_EXPANDED
 		binding.textViewWord.text = word
 		binding.buttonClose.setOnClickListener { dialog.dismiss() }
 		dialog.setContentView(binding.root)

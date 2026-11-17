@@ -31,6 +31,13 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # Only the parts of libjxl the JPEG XL decoder builds from (its tests and test data are huge).
+      - name: Fetch libjxl source
+        run: |
+          git submodule update --init --depth 1 app/src/main/cpp/libjxl
+          git -C app/src/main/cpp/libjxl submodule update --init --depth 1 \
+            third_party/highway third_party/brotli third_party/skcms
+
       - name: Set up JDK
         uses: actions/setup-java@v4
         with:
@@ -68,7 +75,7 @@ jobs:
               -PRELEASE_KEY_PASSWORD="$RELEASE_KEY_PASSWORD"
             )
           fi
-          ./gradlew :app:assemblePreview -PabiOnly=arm64-v8a --no-daemon --stacktrace "${ARGS[@]}"
+          ./gradlew :app:assembleGithubPreview -PabiOnly=arm64-v8a --no-daemon --stacktrace "${ARGS[@]}"
 
       - name: Collect APKs and compute checksums
         id: apk
@@ -89,9 +96,9 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
           for ABI in arm64-v8a; do
-            FILES=(app/build/outputs/apk/preview/*-"${ABI}"-*.apk)
+            FILES=(app/build/outputs/apk/github/preview/*-"${ABI}"-*.apk)
             if [ ${#FILES[@]} -ne 1 ]; then
-              echo "::error::Expected exactly one ${ABI} APK under app/build/outputs/apk/preview, found ${#FILES[@]}"
+              echo "::error::Expected exactly one ${ABI} APK under app/build/outputs/apk/github/preview, found ${#FILES[@]}"
               exit 1
             fi
             DEST="out/${BASE}-${ABI}.apk"

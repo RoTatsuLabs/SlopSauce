@@ -123,7 +123,6 @@
     <string name="open_website">Open website</string>
     <string name="back_to_top">Back to top</string>
     <string name="notifications">Notifications</string>
-    <string name="enabled_d_of_d" tools:ignore="PluralsCandidate">%1$d of %2$d on</string>
     <string name="new_chapters">New chapters</string>
     <string name="download">Download</string>
     <string name="notifications_settings">Notifications settings</string>
@@ -515,6 +514,7 @@
     <string name="theme_name_expressive">Expressive</string>
     <string name="color_theme">Color scheme</string>
     <string name="show_in_grid_view">Show in grid view</string>
+    <string name="extensions_per_row">Extensions per row</string>
     <string name="theme_name_miku">Miku</string>
     <string name="theme_name_lime">Remon</string>
     <string name="theme_name_amber">Amber</string>
@@ -566,6 +566,10 @@
 	<string name="export_epub_failed">Export failed</string>
 	<string name="epub_paged_tap_gestures">Paged tap zones</string>
 	<string name="epub_paged_tap_gestures_summary">Left: previous · Center: controls · Right: next</string>
+	<string name="epub_paged_tap_gestures_unavailable">Only works in paged read mode</string>
+	<string name="epub_chapter_divider">Chapter divider</string>
+	<string name="epub_chapter_divider_summary">Line between chapters</string>
+	<string name="epub_chapter_divider_unavailable">Only works in scroll read mode</string>
 	<string name="epub_theme_light">White</string>
 	<string name="epub_theme_dark">Gray</string>
 	<string name="epub_theme_black">Black</string>
@@ -655,6 +659,8 @@
     <string name="data_not_restored">Data was not restored</string>
     <string name="data_not_restored_text">Make sure you have selected the correct backup file</string>
     <string name="manage_categories">Manage categories</string>
+    <string name="default_category">Default category</string>
+    <string name="quick_add_to_favourites">Add a manga to favorite with one tap</string>
     <string name="default_category_sort">Sort manga in all categories</string>
     <string name="category_order">Arrange categories</string>
     <string name="category_order_reset">Category order set to Random</string>
@@ -682,8 +688,8 @@
     <string name="error_corrupted_file">Invalid data is returned or file is corrupted</string>
     <string name="on_device">On device</string>
     <string name="downloads_only">Downloads only</string>
-    <string name="sort_chapters_by_name">Sort by name</string>
-    <string name="sort_chapters_by_date">Sort by date</string>
+    <string name="sort_chapters_by_name">Name</string>
+    <string name="sort_chapters_by_date">Date</string>
     <string name="sort_chapters_by_source">Default</string>
     <string name="insert_search_query">Insert into search</string>
     <string name="extensions_default_sort">Default browse order</string>
@@ -691,6 +697,8 @@
     <string name="directories">Directories</string>
     <string name="main_screen_sections">Main screen sections</string>
     <string name="items_limit_exceeded">No more items can be added</string>
+	<string name="nav_items_many_title">More than 4 sections</string>
+	<string name="nav_items_many_text">Depending on your screen size, the navigation bar may look cramped or cut off some sections</string>
     <string name="zoom_out">Zoom out</string>
     <string name="zoom_in">Zoom in</string>
     <string name="reader_zoom_buttons">Show zoom buttons</string>
@@ -800,6 +808,7 @@
     <string name="onboarding_finish_description">Join the DropSauce community and visit the DropSauce website to stay up to date.</string>
     <string name="onboarding_sync_title">Sync &amp; Restore</string>
     <string name="onboarding_sync_description">Sign in with Google to sync your library across devices, or restore a backup to pick up where you left off.</string>
+    <string name="onboarding_restore_description">Restore a backup to pick up where you left off.</string>
     <string name="onboarding_restore_dropsauce">Restore Kotatsu backup</string>
     <string name="onboarding_restore_tachiyomi">Restore Tachi favorites</string>
     <string name="onboarding_visit_website">Visit website</string>
@@ -1032,6 +1041,9 @@
     <string name="wide_pages_method">Method</string>
     <string name="wide_pages_rotate">Rotate</string>
     <string name="wide_pages_split">Split in two</string>
+    <string name="wide_pages_split_mode">Split pages</string>
+    <string name="wide_pages_split_auto">Automatically</string>
+    <string name="wide_pages_split_manual">With a button</string>
     <string name="rotate_wide_pages_direction">Rotation direction</string>
     <string name="rotation_clockwise">Clockwise</string>
     <string name="rotation_counter_clockwise">Counter-clockwise</string>
