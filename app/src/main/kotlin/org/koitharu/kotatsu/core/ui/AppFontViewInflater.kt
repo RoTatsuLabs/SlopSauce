@@ -44,7 +44,7 @@ class AppFontViewInflater : MaterialComponentsViewInflater() {
 	override fun createCheckedTextView(context: Context, attrs: AttributeSet): AppCompatCheckedTextView =
 		super.createCheckedTextView(context, attrs).withFont()
 
-	override fun createAutoCompleteTextView(context: Context, attrs: AttributeSet): AppCompatAutoCompleteTextView =
+	override fun createAutoCompleteTextView(context: Context, attrs: AttributeSet?): AppCompatAutoCompleteTextView =
 		super.createAutoCompleteTextView(context, attrs).withFont()
 
 	override fun createMultiAutoCompleteTextView(
