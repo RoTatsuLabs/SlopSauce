@@ -69,7 +69,7 @@ SlopSauce is a personal fork, built for my own use and shared as is. It takes no
 - Free and open-source under the GPLv3 license.
 
 <details>
-<summary><strong>SlopSauce Exclusive</strong></summary>
+<summary><strong>SlopSauce Features</strong></summary>
 
 - Secret space: a separate library, history, bookmarks and downloads behind a PIN or fingerprint. Hold Incognito in the ⋮ menu to open it. It locks when you leave the app and leaves nothing behind in the main app.
 - Telegram backup: send backups to your own Telegram chat with the built-in bot.
