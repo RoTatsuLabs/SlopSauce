@@ -36,6 +36,13 @@
     <string name="source_auto_delete_default">Same as Downloads settings</string>
     <string name="source_auto_delete_on">Always delete</string>
     <string name="source_auto_delete_off">Never delete</string>
+    <string name="downloads_sort_current">Sort: %1$s</string>
+    <string name="downloads_tab_active">Active</string>
+    <string name="downloads_tab_failed">Failed</string>
+    <string name="downloads_tab_done">Completed</string>
+    <string name="downloads_empty_active">Nothing is downloading</string>
+    <string name="downloads_empty_failed">No failed downloads</string>
+    <string name="downloads_empty_done">Nothing downloaded yet</string>
     <string name="downloads_section_downloading">Downloading</string>
     <string name="downloads_section_waiting">Waiting</string>
     <string name="downloads_section_paused">Paused</string>
