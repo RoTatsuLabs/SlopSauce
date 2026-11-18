@@ -5,6 +5,7 @@ import android.view.MenuInflater
 import android.view.MenuItem
 import androidx.core.view.MenuProvider
 import androidx.fragment.app.FragmentActivity
+import kotlinx.coroutines.flow.update
 import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.core.nav.router
 import org.koitharu.kotatsu.core.ui.dialog.showConfirmDialog
@@ -25,6 +26,8 @@ class DownloadsMenuProvider(
 			R.id.action_cancel_all -> confirmCancelAll()
 			R.id.action_remove_completed -> confirmRemoveCompleted()
 			R.id.action_settings -> activity.router.openDownloadsSetting()
+			R.id.action_retry_failed -> viewModel.models.value.orEmpty().filter { it.canRetry }.forEach { viewModel.retry(it.id) }
+			R.id.action_sort -> viewModel.sort.update { DownloadSort.entries[(it.ordinal + 1) % DownloadSort.entries.size] }
 			else -> return false
 		}
 		return true
@@ -34,6 +37,11 @@ class DownloadsMenuProvider(
 		super.onPrepareMenu(menu)
 		menu.findItem(R.id.action_pause)?.isVisible = viewModel.hasActiveWorks.value == true
 		menu.findItem(R.id.action_resume)?.isVisible = viewModel.hasPausedWorks.value == true
+		menu.findItem(R.id.action_retry_failed)?.isVisible = viewModel.models.value.orEmpty().any { it.canRetry }
+		menu.findItem(R.id.action_sort)?.title = activity.getString(
+			R.string.downloads_sort_current,
+			activity.getString(viewModel.sort.value.title),
+		)
 		menu.findItem(R.id.action_cancel_all)?.isVisible = viewModel.hasCancellableWorks.value == true
 	}
 

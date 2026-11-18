@@ -114,10 +114,10 @@ fun StorageUsageRow(
 	}
 }
 
-private data class BarSegment(val fraction: Float, val color: Color)
+internal data class BarSegment(val fraction: Float, val color: Color)
 
 @Composable
-private fun SegmentedBar(segments: List<BarSegment>) {
+internal fun SegmentedBar(segments: List<BarSegment>) {
 	val total = segments.sumOf { it.fraction.toDouble() }.toFloat().coerceAtLeast(0.0001f)
 	val trackColor = MaterialTheme.colorScheme.surfaceContainerHighest
 	Row(
@@ -142,7 +142,7 @@ private fun SegmentedBar(segments: List<BarSegment>) {
 }
 
 @Composable
-private fun LegendItem(label: String, value: String, color: Color) {
+internal fun LegendItem(label: String, value: String, color: Color) {
 	Row(verticalAlignment = Alignment.CenterVertically) {
 		Box(
 			modifier = Modifier

@@ -85,6 +85,8 @@ class DownloadsViewModel @Inject constructor(
 
 	val onActionDone = MutableEventFlow<ReversibleAction>()
 
+	val sort = MutableStateFlow(DownloadSort.QUEUE)
+
 	/** How much room downloaded manga take, rebuilt a moment after the storage changes. */
 	@OptIn(kotlinx.coroutines.FlowPreview::class, kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 	val storage: StateFlow<StorageSummary?> = localStorageChanges
