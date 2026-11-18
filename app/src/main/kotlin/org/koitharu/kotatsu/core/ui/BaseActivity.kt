@@ -7,14 +7,11 @@ import android.content.res.Configuration
 import org.koitharu.kotatsu.core.prefs.AppSettings
 import android.os.Build
 import android.os.Bundle
-import android.util.AttributeSet
 import android.util.Log
-import android.view.LayoutInflater
 import android.view.KeyEvent
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
-import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.annotation.CallSuper
@@ -23,7 +20,6 @@ import androidx.appcompat.app.AppCompatDelegate
 import androidx.appcompat.view.ActionMode
 import androidx.appcompat.widget.Toolbar
 import androidx.core.app.ActivityCompat
-import androidx.core.view.LayoutInflaterCompat
 import androidx.core.view.OnApplyWindowInsetsListener
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
@@ -100,33 +96,10 @@ abstract class BaseActivity<B : ViewBinding> :
 		putDataToExtras(intent)
 		exceptionResolver = entryPoint.exceptionResolverFactory.create(this)
 		enableEdgeToEdge()
-		if (AppFont.isActive(this)) {
-			installAppFont()
-		}
 		super.onCreate(savedInstanceState)
 		maybePlayRecreateFadeIn()
 		settings.subscribe(statusBarPrefListener)
 		applyStatusBarVisibility(settings.isStatusBarHidden)
-	}
-
-	/**
-	 * Swaps the family on every text view as it is inflated, keeping its weight and slant, so layouts
-	 * and list items pick up the imported font without each style naming it.
-	 */
-	private fun installAppFont() {
-		LayoutInflaterCompat.setFactory2(
-			layoutInflater,
-			object : LayoutInflater.Factory2 {
-				override fun onCreateView(parent: View?, name: String, context: Context, attrs: AttributeSet): View? {
-					val view = delegate.createView(parent, name, context, attrs)
-					if (view is TextView) AppFont.apply(view)
-					return view
-				}
-
-				override fun onCreateView(name: String, context: Context, attrs: AttributeSet): View? =
-					onCreateView(null, name, context, attrs)
-			},
-		)
 	}
 
 	override fun onDestroy() {
@@ -215,6 +188,7 @@ abstract class BaseActivity<B : ViewBinding> :
 		applyNavPinnedToAppBar(binding.root)
 		if (AppFont.isActive(this)) {
 			AppFont.applyTree(binding.root)
+			AppFont.watch(window.decorView)
 		}
 		val toolbar = (binding.root.findViewById<View>(R.id.toolbar) as? Toolbar)
 		toolbar?.let {

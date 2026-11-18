@@ -586,6 +586,7 @@
     <string name="folder_with_images_import_description">Select a folder to import as a single title. PDF files inside become chapters, EPUB files become volumes, otherwise each archive or subfolder becomes a chapter.</string>
     <string name="epub_text_size">Text size</string>
 	<string name="epub_font_family">Font</string>
+	<string name="epub_font_app">App</string>
 	<string name="epub_font_serif">Serif</string>
 	<string name="epub_font_sans">Sans</string>
 	<string name="epub_font_mono">Mono</string>

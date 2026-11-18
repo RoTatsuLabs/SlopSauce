@@ -96,6 +96,7 @@ import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.core.nav.AppRouter
 import org.koitharu.kotatsu.core.nav.router
 import org.koitharu.kotatsu.core.prefs.AppSettings
+import org.koitharu.kotatsu.core.ui.AppFont
 import org.koitharu.kotatsu.core.prefs.ReaderMode
 import org.koitharu.kotatsu.core.ui.sheet.AdaptiveSheetBehavior
 import org.koitharu.kotatsu.core.ui.sheet.BaseAdaptiveSheet
@@ -728,16 +729,21 @@ class ReaderConfigSheet : BaseAdaptiveSheet<SheetReaderConfigBinding>() {
 				}.getOrNull()
 			}
 		}
-		val fonts = listOf(
-			Triple("serif", stringResource(R.string.epub_font_serif), FontFamily.Serif),
-			Triple("sans-serif", stringResource(R.string.epub_font_sans), FontFamily.SansSerif),
-			Triple("monospace", stringResource(R.string.epub_font_mono), FontFamily.Monospace),
-			Triple(
-				EPUB_FONT_CUSTOM,
-				customFontName.substringBeforeLast('.').ifBlank { stringResource(R.string.epub_font_choose) },
-				customFont,
-			),
-		)
+		// The app font only shows up when one is set; until a font is picked here, novels follow it.
+		val appFont = remember { AppFont.composeFamily(requireContext()) }
+		val selectedValue = if (current == AppSettings.EPUB_FONT_APP && appFont == null) "serif" else current
+		val appLabel = stringResource(R.string.epub_font_app)
+		val serifLabel = stringResource(R.string.epub_font_serif)
+		val sansLabel = stringResource(R.string.epub_font_sans)
+		val monoLabel = stringResource(R.string.epub_font_mono)
+		val customLabel = customFontName.substringBeforeLast('.').ifBlank { stringResource(R.string.epub_font_choose) }
+		val fonts = buildList<Triple<String, String, FontFamily?>> {
+			if (appFont != null) add(Triple(AppSettings.EPUB_FONT_APP, appLabel, appFont))
+			add(Triple("serif", serifLabel, FontFamily.Serif))
+			add(Triple("sans-serif", sansLabel, FontFamily.SansSerif))
+			add(Triple("monospace", monoLabel, FontFamily.Monospace))
+			add(Triple(EPUB_FONT_CUSTOM, customLabel, customFont))
+		}
 		SettingsGroup(title = stringResource(R.string.epub_font_family)) {
 			item {
 				Row(
@@ -748,7 +754,7 @@ class ReaderConfigSheet : BaseAdaptiveSheet<SheetReaderConfigBinding>() {
 						val isCustom = value == EPUB_FONT_CUSTOM
 						PreviewTile(
 							label = label,
-							selected = current == value,
+							selected = selectedValue == value,
 							enabled = enabled,
 							onClick = {
 								if (isCustom && customFontName.isBlank()) {

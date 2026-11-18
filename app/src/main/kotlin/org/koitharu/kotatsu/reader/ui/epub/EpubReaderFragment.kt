@@ -112,6 +112,7 @@ import org.koitharu.kotatsu.lnreader.model.LnMangaSource
 import org.koitharu.kotatsu.mihon.model.MihonMangaSource
 import org.koitharu.kotatsu.lnreader.model.absoluteUrl
 import org.koitharu.kotatsu.core.prefs.AppSettings
+import org.koitharu.kotatsu.core.ui.AppFont
 import org.koitharu.kotatsu.core.prefs.observeAsFlow
 import org.koitharu.kotatsu.core.ui.dialog.DialogCornerAction
 import org.koitharu.kotatsu.core.ui.dialog.ExpressiveDialogCard
@@ -1710,6 +1711,7 @@ class EpubReaderFragment : BaseReaderFragment<FragmentReaderEpubBinding>() {
 	private val readerTypeface get() = when {
 		settings.isEpubPublisherStyleEnabled -> Typeface.SERIF
 		settings.epubFontFamily == EPUB_FONT_CUSTOM -> customReaderTypeface()
+		settings.epubFontFamily == AppSettings.EPUB_FONT_APP -> AppFont.typeface(requireContext()) ?: Typeface.SERIF
 		else -> Typeface.create(settings.epubFontFamily.substringBefore(',').trim().trim('\'', '"'), Typeface.NORMAL)
 	}
 

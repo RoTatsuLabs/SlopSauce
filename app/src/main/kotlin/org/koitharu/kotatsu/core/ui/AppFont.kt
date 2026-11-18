@@ -25,14 +25,28 @@ import org.koitharu.kotatsu.core.prefs.AppSettings
 object AppFont {
 
 	private val lock = Any()
-	private var stamp = 0L
+	private var loaded = false
 	private var base: Typeface? = null
 	private var variable = false
 	private val styled = HashMap<Int, Typeface>()
 
 	fun file(context: Context) = File(context.applicationContext.filesDir, AppSettings.APP_FONT_FILE)
 
-	fun isActive(context: Context): Boolean = file(context).isFile
+	fun isActive(context: Context): Boolean = ensure(context) != null
+
+	/** Reads the active font once; [invalidate] makes the next call read it again. */
+	private fun ensure(context: Context): Typeface? = synchronized(lock) {
+		if (!loaded) {
+			val f = file(context)
+			styled.clear()
+			base = if (f.isFile) runCatching { Typeface.createFromFile(f) }.getOrNull() else null
+			variable = base != null && isVariable(f)
+			loaded = true
+		}
+		base
+	}
+
+	private fun invalidate() = synchronized(lock) { loaded = false }
 
 	class Entry(val id: String, val name: String)
 
@@ -79,7 +93,7 @@ object AppFont {
 		if (!source.isFile) return false
 		return try {
 			source.copyTo(file(context), overwrite = true)
-			synchronized(lock) { stamp = 0L }
+			invalidate()
 			true
 		} catch (_: Exception) {
 			false
@@ -89,7 +103,7 @@ object AppFont {
 	/** Goes back to the app's own font. The library is left alone. */
 	fun clearActive(context: Context) {
 		file(context).delete()
-		synchronized(lock) { stamp = 0L }
+		invalidate()
 	}
 
 	fun delete(context: Context, id: String) {
@@ -99,25 +113,12 @@ object AppFont {
 
 	/** The font at the given weight, or null when no custom font is set. */
 	fun typeface(context: Context, weight: Int = 400, italic: Boolean = false): Typeface? {
-		val f = file(context)
-		if (!f.isFile) return null
+		val root = ensure(context) ?: return null
+		val w = weight.coerceIn(100, 900)
 		synchronized(lock) {
-			val current = f.lastModified() xor f.length()
-			if (current != stamp || base == null) {
-				styled.clear()
-				base = try {
-					Typeface.createFromFile(f)
-				} catch (_: Exception) {
-					null
-				}
-				variable = base != null && isVariable(f)
-				stamp = current
-			}
-			val root = base ?: return null
-			val w = weight.coerceIn(100, 900)
 			return styled.getOrPut(w * 2 + if (italic) 1 else 0) {
 				when {
-					variable -> Typeface.Builder(f)
+					variable -> Typeface.Builder(file(context))
 						.setWeight(w)
 						.setItalic(italic)
 						.setFontVariationSettings("'wght' $w")
@@ -157,10 +158,28 @@ object AppFont {
 		}
 	}
 
+	/**
+	 * Keeps text the layout inflater never sees (toolbar titles, tab and navigation labels, snackbars)
+	 * on the font. It re-checks at most once a frame, and only when something was laid out.
+	 */
+	fun watch(root: View) {
+		if (!isActive(root.context)) return
+		var scheduled = false
+		root.viewTreeObserver.addOnGlobalLayoutListener {
+			if (!scheduled) {
+				scheduled = true
+				root.postOnAnimation {
+					scheduled = false
+					applyTree(root)
+				}
+			}
+		}
+	}
+
 	@OptIn(ExperimentalTextApi::class)
 	fun composeFamily(context: Context): FontFamily? {
 		val f = file(context)
-		if (typeface(context) == null) return null
+		if (ensure(context) == null) return null
 		return if (synchronized(lock) { variable }) {
 			FontFamily(
 				listOf(

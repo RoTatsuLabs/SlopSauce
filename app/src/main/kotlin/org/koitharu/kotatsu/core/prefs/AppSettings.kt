@@ -316,7 +316,7 @@ class AppSettings @Inject constructor(@ApplicationContext context: Context) {
 		set(value) = prefs.edit { putInt(KEY_EPUB_FONT_SIZE, value.coerceIn(50, 200)) }
 
 	var epubFontFamily: String
-		get() = prefs.getString(KEY_EPUB_FONT_FAMILY, "serif") ?: "serif"
+		get() = prefs.getString(KEY_EPUB_FONT_FAMILY, EPUB_FONT_APP) ?: EPUB_FONT_APP
 		set(value) = prefs.edit { putString(KEY_EPUB_FONT_FAMILY, value) }
 
 	var epubLineHeight: Int
@@ -1545,6 +1545,9 @@ class AppSettings @Inject constructor(@ApplicationContext context: Context) {
 		const val KEY_EXPLORE_NOVEL_TAB_FIRST = "explore_novel_tab_first"
 		const val KEY_EPUB_FONT_SIZE = "epub_font_size"
 		const val KEY_EPUB_FONT_FAMILY = "epub_font_family"
+
+		/** Until the reader font is picked, novels use the app font (or serif when there is none). */
+		const val EPUB_FONT_APP = "app"
 		const val KEY_EPUB_LINE_HEIGHT = "epub_line_height"
 		const val KEY_EPUB_PARAGRAPH_SPACING = "epub_paragraph_spacing"
 		const val KEY_EPUB_HORIZONTAL_PADDING = "epub_horizontal_padding"
