@@ -45,6 +45,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import androidx.compose.runtime.Composable
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
@@ -192,6 +194,8 @@ fun DownloadsScreen(
 		val count = byPage[page].orEmpty().size
 		if (count > 0) "${stringResource(page.title)} $count" else stringResource(page.title)
 	}
+	// Nothing here sits in a Surface, so without this the text falls back to black
+	CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.onSurface) {
 	Column(Modifier.fillMaxSize()) {
 		Box(Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 4.dp)) {
 			SegmentedRow(
@@ -219,6 +223,7 @@ fun DownloadsScreen(
 				)
 			}
 		}
+	}
 	}
 }
 
