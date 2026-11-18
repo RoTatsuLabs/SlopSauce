@@ -3,7 +3,6 @@ package org.koitharu.kotatsu.core.ui.menu
 import android.view.View
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.matchParentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
