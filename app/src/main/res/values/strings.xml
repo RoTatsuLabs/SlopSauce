@@ -141,6 +141,10 @@
     <string name="read_mode">Read mode</string>
     <string name="grid_size">Grid size</string>
     <string name="ui_scale">Display size</string>
+    <string name="app_font">Font</string>
+    <string name="app_font_default">Default</string>
+    <string name="app_font_custom">Custom font</string>
+    <string name="app_font_reset">Use the default font</string>
     <string name="ui_scale_smallest">Smallest</string>
     <string name="ui_scale_smaller">Smaller</string>
     <string name="ui_scale_default">Default</string>

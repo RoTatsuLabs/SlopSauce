@@ -10,6 +10,7 @@ All notable changes to SlopSauce are listed here, newest version first. Entries 
 - Downloads redesign: filter chips, sections, sorting, a menu on every row, move up and down in the queue, and retry all failed.
 - Downloads can wait for the charger, retry failed pages with growing delays, and each source can set its own download speed and whether read chapters are deleted.
 - Downloads shows how much space your manga use, with the biggest ones to delete in a tap. Drag the handle on a waiting download to reorder the queue. The Downloads screen is rebuilt with swipeable Active, Failed and Completed tabs, a progress ring on each download and a storage card, using the same toolbar, menus, dialogs and cards as the rest of the app. Finished downloads are one history entry per manga, and "Download missing chapters" queues what you don't have yet.
+- Pick your own font: import a .ttf or .otf file in Settings > Appearance and the app uses it everywhere, and one tap goes back to the default.
 
 ### Changes
 

@@ -14,6 +14,7 @@ import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
+import org.koitharu.kotatsu.core.ui.AppFont
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
@@ -160,7 +161,8 @@ fun DropSauceTheme(content: @Composable () -> Unit) {
 	val isDark = (LocalConfiguration.current.uiMode and Configuration.UI_MODE_NIGHT_MASK) ==
 		Configuration.UI_MODE_NIGHT_YES
 	val scheme = remember(ctx, isDark) { composeColorSchemeFromTheme(ctx, isDark) }
-	val family = GoogleSansRounded
+	val customFamily = remember(ctx) { AppFont.composeFamily(ctx) }
+	val family = customFamily ?: GoogleSansRounded
 	val typography = bumpedTypography(family)
 	MaterialExpressiveTheme(
 		colorScheme = scheme,

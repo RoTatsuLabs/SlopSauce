@@ -83,6 +83,7 @@ SlopSauce is a personal fork, built for my own use and shared as is. It takes no
 - Same-title favourites: a title you already favourited from another source gets a badge on its cover in source lists and a note on its details page. Hide favourites is also in the list display options.
 - Auto-track favourites: titles you add to favourites are tracked on every tracker you are signed in to, with your reading progress. Only clear matches are linked and the rest wait in a needs-review list. A button tracks the favourites that are not tracked yet. Requests are spaced out and follow each tracker's rate limit.
 - Frosted glass: dialogs, sheets, menus, the reader bars, the Downloads bar and the navigation bar turn see-through with a blurred background and a light edge. One switch in Settings > Appearance.
+- Custom font: import a .ttf or .otf file in Settings > Appearance and the whole app uses it. Variable fonts keep their weights. A few system dialogs and the top bar title may keep the default font.
 
 </details>
 
