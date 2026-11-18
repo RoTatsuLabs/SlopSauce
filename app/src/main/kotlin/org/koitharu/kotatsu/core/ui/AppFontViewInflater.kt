@@ -26,32 +26,32 @@ class AppFontViewInflater : MaterialComponentsViewInflater() {
 		return this
 	}
 
-	override fun createTextView(context: Context, attrs: AttributeSet?): AppCompatTextView =
+	override fun createTextView(context: Context, attrs: AttributeSet): AppCompatTextView =
 		super.createTextView(context, attrs).withFont()
 
-	override fun createButton(context: Context, attrs: AttributeSet?): AppCompatButton =
+	override fun createButton(context: Context, attrs: AttributeSet): AppCompatButton =
 		super.createButton(context, attrs).withFont()
 
-	override fun createEditText(context: Context, attrs: AttributeSet?): AppCompatEditText =
+	override fun createEditText(context: Context, attrs: AttributeSet): AppCompatEditText =
 		super.createEditText(context, attrs).withFont()
 
-	override fun createCheckBox(context: Context, attrs: AttributeSet?): AppCompatCheckBox =
+	override fun createCheckBox(context: Context, attrs: AttributeSet): AppCompatCheckBox =
 		super.createCheckBox(context, attrs).withFont()
 
-	override fun createRadioButton(context: Context, attrs: AttributeSet?): AppCompatRadioButton =
+	override fun createRadioButton(context: Context, attrs: AttributeSet): AppCompatRadioButton =
 		super.createRadioButton(context, attrs).withFont()
 
-	override fun createCheckedTextView(context: Context, attrs: AttributeSet?): AppCompatCheckedTextView =
+	override fun createCheckedTextView(context: Context, attrs: AttributeSet): AppCompatCheckedTextView =
 		super.createCheckedTextView(context, attrs).withFont()
 
-	override fun createAutoCompleteTextView(context: Context, attrs: AttributeSet?): AppCompatAutoCompleteTextView =
+	override fun createAutoCompleteTextView(context: Context, attrs: AttributeSet): AppCompatAutoCompleteTextView =
 		super.createAutoCompleteTextView(context, attrs).withFont()
 
 	override fun createMultiAutoCompleteTextView(
 		context: Context,
-		attrs: AttributeSet?,
+		attrs: AttributeSet,
 	): AppCompatMultiAutoCompleteTextView = super.createMultiAutoCompleteTextView(context, attrs).withFont()
 
-	override fun createToggleButton(context: Context, attrs: AttributeSet?): AppCompatToggleButton =
+	override fun createToggleButton(context: Context, attrs: AttributeSet): AppCompatToggleButton =
 		super.createToggleButton(context, attrs).withFont()
 }
