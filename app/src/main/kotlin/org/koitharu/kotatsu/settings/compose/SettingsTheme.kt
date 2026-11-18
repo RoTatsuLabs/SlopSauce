@@ -31,7 +31,7 @@ private const val ROND_ROUNDED = 100f
  * match the project-wide font bump.
  */
 @OptIn(ExperimentalTextApi::class)
-private val GoogleSansRounded: FontFamily
+internal val GoogleSansRounded: FontFamily
 	@Composable
 	get() = remember {
 		FontFamily(

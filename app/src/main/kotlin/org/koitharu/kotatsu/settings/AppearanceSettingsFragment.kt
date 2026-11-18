@@ -3,13 +3,6 @@ package org.koitharu.kotatsu.settings
 import android.content.Intent
 import android.content.SharedPreferences
 import android.net.Uri
-import org.koitharu.kotatsu.core.ui.AppFont
-import kotlinx.coroutines.withContext
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.Dispatchers
-import androidx.lifecycle.lifecycleScope
-import androidx.activity.result.contract.ActivityResultContracts
-import android.widget.Toast
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings as SystemSettings
@@ -55,6 +48,7 @@ import org.koitharu.kotatsu.core.util.ext.sortedWithSafe
 import org.koitharu.kotatsu.core.util.ext.toList
 import org.koitharu.kotatsu.parsers.util.names
 import org.koitharu.kotatsu.parsers.util.toTitleCase
+import org.koitharu.kotatsu.settings.appearance.FontSettingsFragment
 import org.koitharu.kotatsu.settings.appearance.PreviewSettingsFragment
 import org.koitharu.kotatsu.settings.compose.ActionSettingsItem
 import org.koitharu.kotatsu.settings.compose.BaseComposeSettingsFragment
@@ -80,14 +74,6 @@ import org.koitharu.kotatsu.settings.protect.showProtectMethodDialog
 import javax.inject.Inject
 import org.koitharu.kotatsu.list.ui.GridColumns
 
-private val FONT_MIME_TYPES = arrayOf(
-	"font/ttf",
-	"font/otf",
-	"application/x-font-ttf",
-	"application/x-font-opentype",
-	"application/octet-stream",
-)
-
 @AndroidEntryPoint
 class AppearanceSettingsFragment : BaseComposeSettingsFragment(R.string.appearance) {
 
@@ -102,29 +88,6 @@ class AppearanceSettingsFragment : BaseComposeSettingsFragment(R.string.appearan
 
 	private var pendingProtectState: Boolean? = null
 
-	private val fontPicker = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-		if (uri != null) importFont(uri)
-	}
-
-	private fun importFont(uri: Uri) {
-		val context = requireContext().applicationContext
-		viewLifecycleOwner.lifecycleScope.launch {
-			val name = withContext(Dispatchers.IO) { AppFont.import(context, uri, getString(R.string.app_font_custom)) }
-			if (name == null) {
-				Toast.makeText(context, R.string.epub_font_invalid, Toast.LENGTH_SHORT).show()
-				return@launch
-			}
-			settings.appFontName = name
-			settings.appFontRevision++
-		}
-	}
-
-	private fun resetFont() {
-		AppFont.remove(requireContext())
-		settings.appFontName = ""
-		settings.appFontRevision++
-	}
-
 	// Mirror the legacy fragment behavior: theme / AMOLED toggles must trigger an activity
 	// recreation so the new color scheme takes effect immediately.
 	private val prefListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
@@ -137,7 +100,6 @@ class AppearanceSettingsFragment : BaseComposeSettingsFragment(R.string.appearan
 			}
 			AppSettings.KEY_COLOR_THEME,
 			AppSettings.KEY_THEME_AMOLED,
-			AppSettings.KEY_APP_FONT_REVISION,
 			AppSettings.KEY_UI_SCALE -> {
 				activityRecreationHandle.recreateAll()
 			}
@@ -165,6 +127,13 @@ class AppearanceSettingsFragment : BaseComposeSettingsFragment(R.string.appearan
 							isFromRoot = false,
 						)
 					},
+					onOpenFonts = {
+						(activity as? SettingsActivity)?.openFragment(
+							FontSettingsFragment::class.java,
+							null,
+							isFromRoot = false,
+						)
+					},
 					onOpenNavConfig = {
 						(activity as? SettingsActivity)?.openFragment(
 							NavConfigFragment::class.java,
@@ -173,8 +142,6 @@ class AppearanceSettingsFragment : BaseComposeSettingsFragment(R.string.appearan
 						)
 					},
 					onProtectToggle = ::onProtectToggle,
-					onPickFont = { fontPicker.launch(FONT_MIME_TYPES) },
-					onResetFont = ::resetFont,
 				)
 			}
 		}
@@ -265,10 +232,9 @@ private fun AppearanceScreen(
 	dynamicShortcutsAvailable: Boolean,
 	onOpenLocaleSettings: () -> Unit,
 	onOpenDetailsAppearance: () -> Unit,
+	onOpenFonts: () -> Unit,
 	onOpenNavConfig: () -> Unit,
 	onProtectToggle: (Boolean) -> Unit,
-	onPickFont: () -> Unit,
-	onResetFont: () -> Unit,
 ) {
 	val ctx = LocalContext.current
 
@@ -432,23 +398,13 @@ private fun AppearanceScreen(
 					)
 				}
 				item { pos ->
-					ActionSettingsItem(
+					NavigationSettingsItem(
 						title = stringResource(R.string.app_font),
 						subtitle = fontName.ifBlank { stringResource(R.string.app_font_default) },
-						onClick = onPickFont,
 						icon = R.drawable.ic_title,
 						shape = pos.shape,
+						onClick = onOpenFonts,
 					)
-				}
-				if (fontName.isNotBlank()) {
-					item { pos ->
-						ActionSettingsItem(
-							title = stringResource(R.string.app_font_reset),
-							onClick = onResetFont,
-							icon = R.drawable.ic_close,
-							shape = pos.shape,
-						)
-					}
 				}
 				item { pos ->
 					SwitchSettingsItem(

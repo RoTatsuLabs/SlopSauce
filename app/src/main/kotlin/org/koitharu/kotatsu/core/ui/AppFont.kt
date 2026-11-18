@@ -15,6 +15,7 @@ import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
 import java.io.File
 import java.io.RandomAccessFile
+import java.util.UUID
 import org.koitharu.kotatsu.core.prefs.AppSettings
 
 /**
@@ -33,8 +34,25 @@ object AppFont {
 
 	fun isActive(context: Context): Boolean = file(context).isFile
 
-	/** Copies the picked file in. Returns the name to show, or null if it is not a usable font. */
-	fun import(context: Context, uri: Uri, fallbackName: String): String? {
+	class Entry(val id: String, val name: String)
+
+	private fun libraryDir(context: Context) = File(context.applicationContext.filesDir, "fonts")
+
+	fun libraryFile(context: Context, id: String) = File(libraryDir(context), "$id.font")
+
+	/** Every font the user has added, by name. */
+	fun library(context: Context): List<Entry> = libraryDir(context)
+		.listFiles { f -> f.extension == "font" }
+		.orEmpty()
+		.map { f ->
+			val id = f.nameWithoutExtension
+			val name = File(f.parentFile, "$id.name").takeIf(File::isFile)?.readText()?.trim().orEmpty()
+			Entry(id, name.ifBlank { id })
+		}
+		.sortedBy { it.name.lowercase() }
+
+	/** Copies the picked file into the library. Returns it, or null if it is not a usable font. */
+	fun add(context: Context, uri: Uri, fallbackName: String): Entry? {
 		val resolver = context.contentResolver
 		val name = resolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
 			if (cursor.moveToFirst()) cursor.getString(0) else null
@@ -43,9 +61,11 @@ object AppFont {
 		return try {
 			resolver.openInputStream(uri)?.use { input -> temporary.outputStream().use(input::copyTo) } ?: return null
 			Typeface.createFromFile(temporary)
-			temporary.copyTo(file(context), overwrite = true)
-			synchronized(lock) { stamp = 0L }
-			name
+			val id = UUID.randomUUID().toString().take(8)
+			libraryDir(context).mkdirs()
+			temporary.copyTo(libraryFile(context, id), overwrite = true)
+			File(libraryDir(context), "$id.name").writeText(name)
+			Entry(id, name)
 		} catch (_: Exception) {
 			null
 		} finally {
@@ -53,9 +73,28 @@ object AppFont {
 		}
 	}
 
-	fun remove(context: Context) {
+	/** Makes a library font the one the app uses. */
+	fun select(context: Context, id: String): Boolean {
+		val source = libraryFile(context, id)
+		if (!source.isFile) return false
+		return try {
+			source.copyTo(file(context), overwrite = true)
+			synchronized(lock) { stamp = 0L }
+			true
+		} catch (_: Exception) {
+			false
+		}
+	}
+
+	/** Goes back to the app's own font. The library is left alone. */
+	fun clearActive(context: Context) {
 		file(context).delete()
 		synchronized(lock) { stamp = 0L }
+	}
+
+	fun delete(context: Context, id: String) {
+		libraryFile(context, id).delete()
+		File(libraryDir(context), "$id.name").delete()
 	}
 
 	/** The font at the given weight, or null when no custom font is set. */

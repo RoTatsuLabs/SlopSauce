@@ -440,9 +440,9 @@ class AppSettings @Inject constructor(@ApplicationContext context: Context) {
 		get() = prefs.getString(KEY_APP_FONT_NAME, "").orEmpty()
 		set(value) = prefs.edit { putString(KEY_APP_FONT_NAME, value) }
 
-	var appFontRevision: Int
-		get() = prefs.getInt(KEY_APP_FONT_REVISION, 0)
-		set(value) = prefs.edit { putInt(KEY_APP_FONT_REVISION, value) }
+	var appFontId: String
+		get() = prefs.getString(KEY_APP_FONT_ID, "").orEmpty()
+		set(value) = prefs.edit { putString(KEY_APP_FONT_ID, value) }
 
 	/** Where the details screen's quick-add button puts a title; 0 until the user picks one. */
 	var defaultFavouriteCategoryId: Long
@@ -1568,7 +1568,7 @@ class AppSettings @Inject constructor(@ApplicationContext context: Context) {
 		const val KEY_EPUB_CUSTOM_FONT_REVISION = "epub_custom_font_revision"
 		const val EPUB_CUSTOM_FONT_FILE = "epub_custom_font"
 		const val KEY_APP_FONT_NAME = "app_font_name"
-		const val KEY_APP_FONT_REVISION = "app_font_revision"
+		const val KEY_APP_FONT_ID = "app_font_id"
 		const val APP_FONT_FILE = "app_font"
 		const val KEY_READER_MODE_DETECT = "reader_mode_detect"
 		const val KEY_READER_CROP = "reader_crop"
@@ -1768,7 +1768,7 @@ class AppSettings @Inject constructor(@ApplicationContext context: Context) {
 			KEY_EPUB_CUSTOM_FONT_NAME,
 			KEY_EPUB_CUSTOM_FONT_REVISION,
 			KEY_APP_FONT_NAME,
-			KEY_APP_FONT_REVISION,
+			KEY_APP_FONT_ID,
 			KEY_BACKUP_PERIODICAL_ENABLED,
 			KEY_BACKUP_PERIODICAL_OUTPUT,
 			KEY_SHIZUKU_INSTALLER,
@@ -1798,7 +1798,7 @@ class AppSettings @Inject constructor(@ApplicationContext context: Context) {
 			KEY_EPUB_CUSTOM_FONT_NAME,
 			KEY_EPUB_CUSTOM_FONT_REVISION,
 			KEY_APP_FONT_NAME,
-			KEY_APP_FONT_REVISION,
+			KEY_APP_FONT_ID,
 			KEY_BACKUP_PERIODICAL_ENABLED,
 			KEY_BACKUP_PERIODICAL_OUTPUT,
 			KEY_BACKUP_PERIODICAL_FREQ,

@@ -144,7 +144,10 @@
     <string name="app_font">Font</string>
     <string name="app_font_default">Default</string>
     <string name="app_font_custom">Custom font</string>
-    <string name="app_font_reset">Use the default font</string>
+    <string name="app_font_add">Add a font</string>
+    <string name="app_font_add_summary">Pick a .ttf or .otf file</string>
+    <string name="app_font_sample">The quick brown fox jumps over the lazy dog</string>
+    <string name="app_font_delete">Delete font</string>
     <string name="ui_scale_smallest">Smallest</string>
     <string name="ui_scale_smaller">Smaller</string>
     <string name="ui_scale_default">Default</string>
