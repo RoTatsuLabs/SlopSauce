@@ -5,16 +5,22 @@
 ### New
 - Option to hide the line between chapters when reading novels in scroll mode
 - Up to 6 sections can be added to the navigation bar
+- App icon picker in settings > appearance: default, mono, or themed to the app's color scheme, following light, dark and black mode
+- Explore can show only manga or only novels (hold the tab)
 
 ### Improved
 - In landscape and on wide screens the details page shows the chapters list next to the details
 - PDF imports are much faster and take far less space
 - Reader chapter arrows dim when there is no previous or next chapter
 - Continue reading button now shows on every tab in landscape and on tablets, with the same rounder shape everywhere
+- "Migrate broken sources" is now "Migrate extensions": works on any extension, lets you pick and order the extensions to search in, and can show every match for review first
+- Global search options are a 3-dot menu, with the search type in a submenu
 
 ### Fixed
 - Sort button and filter chips missing when browsing a source in landscape
 - Large PDFs failing to import
+- Manga from Kotatsu backups showing no chapters or errors on about 90 sources (MangaDex, Webtoons, MANGA Plus, MangaLib, MangaTaro, Asura, Flame, Vortex and more), and duplicating when found through search
+- Kotatsu backups no longer move manga from a few sites onto an unrelated extension
 
 ## 1.1.4 (2026-11-15)
 

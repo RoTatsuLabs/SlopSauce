@@ -49,6 +49,11 @@ class KotatsuSourceMap @Inject constructor(
 		return load().byId[sourceId]
 	}
 
+	/** Targets whose url shape differs from their Kotatsu parser's, see [MihonTarget.mangaUrl]. */
+	suspend fun targetsWithUrlRules(): List<MihonTarget> {
+		return load().byId.values.filter { it.hasUrlRules }
+	}
+
 	private suspend fun load(): Tables {
 		tables?.let { return it }
 		return mutex.withLock {
@@ -72,10 +77,16 @@ class KotatsuSourceMap @Inject constructor(
 				sourceId = id,
 				sourceName = entry.name,
 				packageName = entry.pkg,
+				mangaUrl = entry.mangaUrl.map { it.toUrlRule() },
+				chapterUrl = entry.chapterUrl.map { it.toUrlRule() },
 			)
 			byName[enumName.uppercase()] = target
-			// Many Kotatsu enums can map to one Mihon id (language variants); first wins.
-			byId.putIfAbsent(id, target)
+			// Many Kotatsu enums can map to one Mihon id (language variants); first wins, but one
+			// carrying url rules beats one without so repairs of migrated entries find them.
+			val existing = byId[id]
+			if (existing == null || (target.hasUrlRules && !existing.hasUrlRules)) {
+				byId[id] = target
+			}
 		}
 		Tables(byName, byId)
 	} catch (e: Exception) {
@@ -102,7 +113,18 @@ class KotatsuSourceMap @Inject constructor(
 		@SerialName("id") val id: String,
 		@SerialName("name") val name: String = "",
 		@SerialName("pkg") val pkg: String = "",
+		@SerialName("mangaUrl") val mangaUrl: List<RuleEntry> = emptyList(),
+		@SerialName("chapterUrl") val chapterUrl: List<RuleEntry> = emptyList(),
 	)
+
+	@Serializable
+	private class RuleEntry(
+		@SerialName("url") val url: String,
+		@SerialName("public") val public: String? = null,
+		@SerialName("to") val to: String,
+	) {
+		fun toUrlRule() = UrlRule(Regex(url), public?.let(::Regex), to)
+	}
 }
 
 /** The installed Mihon source a legacy Kotatsu source maps to. */
@@ -113,4 +135,19 @@ data class MihonTarget(
 	val sourceName: String,
 	/** Extension package name, so we can recommend installing the matching extension. */
 	val packageName: String,
-)
+	/** Rewrites for sources whose Kotatsu parser stores a different url shape, see [UrlRule]. */
+	val mangaUrl: List<UrlRule> = emptyList(),
+	val chapterUrl: List<UrlRule> = emptyList(),
+) {
+	val hasUrlRules get() = mangaUrl.isNotEmpty() || chapterUrl.isNotEmpty()
+}
+
+/**
+ * Turns a Kotatsu url into the shape the extension stores (MangaDex: bare uuid → `/manga/<uuid>`).
+ * Fires only when [url] matches the whole Kotatsu url, so the extension's own urls are never touched.
+ * [to] is a regex replacement (`$1`) for [url], or for [public] when set — a pattern on the path of
+ * the manga's public url, for sources whose public url already is the extension's url (Webtoons).
+ * `{mangaId}` in [to] is the Kotatsu manga id, for parsers that store the site's id there; a rule
+ * using it is skipped when that id isn't available (already-migrated entries).
+ */
+class UrlRule(val url: Regex, val public: Regex?, val to: String)

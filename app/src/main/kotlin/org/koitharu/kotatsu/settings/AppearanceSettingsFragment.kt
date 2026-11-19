@@ -18,6 +18,24 @@ import androidx.biometric.BiometricPrompt
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material3.Text
+import androidx.compose.material3.MaterialTheme
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import org.koitharu.kotatsu.core.util.ext.processLifecycleScope
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.widthIn
+import org.koitharu.kotatsu.core.os.AppIcon
+import org.koitharu.kotatsu.core.os.AppIconManager
+import org.koitharu.kotatsu.core.util.ext.HapticEffect
+import org.koitharu.kotatsu.core.util.ext.rememberHapticEffect
+import org.koitharu.kotatsu.main.ui.nav.DrawablePainter
+import android.graphics.drawable.AdaptiveIconDrawable
+import android.graphics.drawable.LayerDrawable
+import org.koitharu.kotatsu.settings.compose.PreviewTile
+import org.koitharu.kotatsu.settings.compose.SettingsItem
 import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -101,6 +119,16 @@ class AppearanceSettingsFragment : BaseComposeSettingsFragment(R.string.appearan
 				view?.postDelayed({
 					activity?.let { ThemeSwitchCoverActivity.switchNightMode(it, settings.theme) }
 				}, 300)
+			}
+			AppSettings.KEY_APP_ICON -> activity?.let { activity ->
+				// Android closes a task opened from the icon being switched off anyway, so close it ourselves
+				// first instead of letting it fall apart screen by screen.
+				val context = activity.applicationContext
+				activity.finishAffinity()
+				activity.finishAndRemoveTask()
+				processLifecycleScope.launch(Dispatchers.Default) {
+					AppIconManager.apply(context, settings)
+				}
 			}
 			AppSettings.KEY_COLOR_THEME,
 			AppSettings.KEY_THEME_AMOLED,
@@ -285,6 +313,7 @@ private fun AppearanceScreen(
 	var colorScheme by rememberStringPref(AppSettings.KEY_COLOR_THEME, ColorScheme.default.name)
 	var theme by rememberStringPref(AppSettings.KEY_THEME, "-1")
 	var amoled by rememberBooleanPref(AppSettings.KEY_THEME_AMOLED, false)
+	var appIcon by rememberStringPref(AppSettings.KEY_APP_ICON, AppIcon.DEFAULT.name)
 	var uiScale by rememberIntPref(AppSettings.KEY_UI_SCALE, 100)
 	val fontName by rememberStringPref(AppSettings.KEY_APP_FONT_NAME, "")
 	var blurCovers by rememberBooleanPref(AppSettings.KEY_BLUR_SENSITIVE_COVERS, false)
@@ -383,6 +412,29 @@ private fun AppearanceScreen(
 						icon = R.drawable.ic_eye_off,
 						enabled = isDarkActive,
 						shape = pos.shape,
+					)
+				}
+				item { pos ->
+					SettingsItem(
+						title = stringResource(R.string.app_icon),
+						supporting = {
+							Text(
+								text = stringResource(R.string.app_icon_summary),
+								style = MaterialTheme.typography.bodySmall,
+								color = MaterialTheme.colorScheme.error,
+							)
+						},
+						icon = R.drawable.ic_app_icon,
+						shape = pos.shape,
+						below = {
+							AppIconPicker(
+								selected = appIcon,
+								scheme = ColorScheme.entries.find { it.name == colorScheme } ?: ColorScheme.default,
+								isDark = isSystemInDarkTheme(),
+								isOled = amoled,
+								onSelect = { appIcon = it },
+							)
+						},
 					)
 				}
 				item { pos ->
@@ -798,5 +850,51 @@ private fun AppearanceScreen(
 			}
 		}
 		item { Spacer(Modifier.height(24.dp).fillMaxWidth()) }
+	}
+}
+
+/** The launcher icons as tiles, in the app's current look, drawn from the launcher's own icon layers. */
+@Composable
+private fun AppIconPicker(
+	selected: String,
+	scheme: ColorScheme,
+	isDark: Boolean,
+	isOled: Boolean,
+	onSelect: (String) -> Unit,
+) {
+	val haptic = rememberHapticEffect()
+	val context = LocalContext.current
+	val labels = listOf(R.string.app_icon_default, R.string.app_icon_themed, R.string.app_icon_mono)
+	Row(
+		modifier = Modifier.fillMaxWidth(),
+		horizontalArrangement = Arrangement.spacedBy(8.dp),
+	) {
+		AppIcon.entries.forEach { icon ->
+			val res = AppIconManager.iconRes(icon, scheme, isDark, isOled)
+			// Both layers edge to edge, so the tile's own rounded shape is the icon's shape.
+			val painter = remember(context, res) {
+				val adaptive = ContextCompat.getDrawable(context, res) as AdaptiveIconDrawable
+				DrawablePainter(LayerDrawable(arrayOf(adaptive.background, adaptive.foreground)))
+			}
+			PreviewTile(
+				label = stringResource(labels[icon.ordinal]),
+				selected = icon.name == selected,
+				enabled = true,
+				onClick = {
+					haptic(HapticEffect.CONFIRM)
+					onSelect(icon.name)
+				},
+				aspectRatio = 1f,
+				modifier = Modifier
+					.weight(1f, fill = false)
+					.widthIn(max = 64.dp),
+			) {
+				Image(
+					painter = painter,
+					contentDescription = null,
+					modifier = Modifier.matchParentSize(),
+				)
+			}
+		}
 	}
 }
