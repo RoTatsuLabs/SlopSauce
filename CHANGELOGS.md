@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to SlopSauce are listed here, newest version first. Entries sit under Additions, Changes, Fixes, or Other, and each release gets a heading like `## [1.0.0] - 2026-01-31`.
+All notable changes to ShotenSauce are listed here, newest version first. Entries sit under Additions, Changes, Fixes, or Other, and each release gets a heading like `## [1.0.0] - 2026-01-31`.
 
 ## [Unreleased]
 
@@ -16,6 +16,7 @@ All notable changes to SlopSauce are listed here, newest version first. Entries 
 
 ### Changes
 
+- The app is now called ShotenSauce.
 - "Download new chapters" moved from Check new chapters to Downloads, and the page, manga and retry limits sit on their own Speed and retries screen.
 - Plainer wording across downloads. Notifications show the state (downloading, waiting, paused, failed) and download settings are grouped into Storage and Network and speed.
 

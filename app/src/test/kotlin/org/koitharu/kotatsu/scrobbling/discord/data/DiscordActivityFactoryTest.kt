@@ -25,11 +25,11 @@ class DiscordActivityFactoryTest {
 	)
 
 	private val options = DiscordPresenceOptions(
-		appName = "SlopSauce",
+		appName = "ShotenSauce",
 		customActivityName = "",
 		stateFormat = "Chapter %1\$s of %2\$s",
 		largeTextFormat = "%1\$s",
-		smallText = "SlopSauce",
+		smallText = "ShotenSauce",
 		smallImageUrl = null,
 		button1 = on,
 		button1DefaultLabel = "Read on {source_name}",
@@ -52,8 +52,8 @@ class DiscordActivityFactoryTest {
 
 	@Test
 	fun `blank activity name uses the app name`() {
-		assertEquals("SlopSauce", DiscordActivityFactory.create(snapshot, options).name)
-		assertEquals("SlopSauce", DiscordActivityFactory.create(snapshot, options.copy(customActivityName = "  ")).name)
+		assertEquals("ShotenSauce", DiscordActivityFactory.create(snapshot, options).name)
+		assertEquals("ShotenSauce", DiscordActivityFactory.create(snapshot, options.copy(customActivityName = "  ")).name)
 	}
 
 	@Test

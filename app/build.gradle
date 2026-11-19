@@ -65,7 +65,7 @@ android {
 		}
 		buildConfigField 'long', 'DISCORD_APP_ID', "${discordAppId}L"
 		buildConfigField 'String', 'TELEGRAM_BOT_TOKEN', "\"${telegramBotToken}\""
-		buildConfigField 'String', 'TELEGRAM_BOT_USERNAME', '"SlopSauceVaultBot"'
+		buildConfigField 'String', 'TELEGRAM_BOT_USERNAME', '"ShotenSauceBot"'
 		manifestPlaceholders = [discordAppId: discordAppId]
 	}
 	externalNativeBuild {
