@@ -642,6 +642,22 @@ fun showActionChoiceDialog(
 ) {
 	showComposeDialog(context) { dismiss ->
 		val copyLabel = stringResource(androidx.preference.R.string.copy)
+		val scrollable = actions.size > 4
+		val actionPills: @Composable ColumnScope.() -> Unit = {
+			Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+				actions.forEachIndexed { index, action ->
+					ExpressivePillButton(
+						text = action.label,
+						primary = index == 0,
+						outlined = action.outlined,
+						onClick = {
+							dismiss()
+							action.onClick()
+						},
+					)
+				}
+			}
+		}
 		ExpressiveDialogCard(
 			icon = rememberAnyDrawablePainter(icon),
 			title = title,
@@ -660,25 +676,9 @@ fun showActionChoiceDialog(
 					onClick = dismiss,
 				)
 			},
-			footer = if (actions.isNotEmpty()) {
-				{
-					Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-						actions.forEachIndexed { index, action ->
-							ExpressivePillButton(
-								text = action.label,
-								primary = index == 0,
-								outlined = action.outlined,
-								onClick = {
-									dismiss()
-									action.onClick()
-								},
-							)
-						}
-					}
-				}
-			} else {
-				null
-			},
+			// A long list goes in the scrollable body; a pinned footer can't scroll and clips the rest.
+			footer = if (actions.isNotEmpty() && !scrollable) actionPills else null,
+			content = if (actions.isNotEmpty() && scrollable) actionPills else null,
 		)
 	}
 }
