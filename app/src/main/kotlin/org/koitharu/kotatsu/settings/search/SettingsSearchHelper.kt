@@ -10,6 +10,7 @@ import org.koitharu.kotatsu.core.LocalizedAppContext
 import org.koitharu.kotatsu.core.prefs.AppSettings
 import org.koitharu.kotatsu.settings.AppearanceSettingsFragment
 import org.koitharu.kotatsu.settings.BackupSettingsFragment
+import org.koitharu.kotatsu.settings.DownloadSpeedSettingsFragment
 import org.koitharu.kotatsu.settings.DownloadsSettingsFragment
 import org.koitharu.kotatsu.settings.ProxySettingsFragment
 import org.koitharu.kotatsu.settings.ReaderSettingsFragment
@@ -261,6 +262,9 @@ class SettingsSearchHelper @Inject constructor(
 				addItem(AppSettings.KEY_DOWNLOADS_METERED_NETWORK, R.string.download_over_cellular, breadcrumbs = crumbs, fragmentClass = DownloadsSettingsFragment::class.java, keywordArrayRes = intArrayOf(R.array.metered_network_options))
 				addItem("rebuild_downloads_index", R.string.rebuild_downloads_index, R.string.rebuild_downloads_index_summary, crumbs, DownloadsSettingsFragment::class.java)
 				addItem("ignore_dose", R.string.disable_battery_optimization, R.string.disable_battery_optimization_summary_downloads, crumbs, DownloadsSettingsFragment::class.java)
+				addItem(AppSettings.KEY_DOWNLOADS_CONNECTIONS, R.string.download_connections, R.string.download_connections_summary, crumbs + ctx.getString(R.string.downloads_speed_title), DownloadSpeedSettingsFragment::class.java)
+				addItem(AppSettings.KEY_DOWNLOADS_SIMULTANEOUS, R.string.download_simultaneous, R.string.download_simultaneous_summary, crumbs + ctx.getString(R.string.downloads_speed_title), DownloadSpeedSettingsFragment::class.java)
+				addItem(AppSettings.KEY_DOWNLOADS_RETRIES, R.string.download_retries, R.string.download_retries_summary, crumbs + ctx.getString(R.string.downloads_speed_title), DownloadSpeedSettingsFragment::class.java)
 			}
 			group(sectionCrumbs, ctx.getString(R.string.auto_download)) { crumbs ->
 				addItem(AppSettings.KEY_DOWNLOADS_NEXT_CHAPTER, R.string.auto_download_next_chapter, R.string.auto_download_next_chapter_summary, crumbs, DownloadsSettingsFragment::class.java)

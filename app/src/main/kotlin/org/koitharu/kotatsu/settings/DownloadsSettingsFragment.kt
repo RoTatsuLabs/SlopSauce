@@ -55,6 +55,7 @@ import org.koitharu.kotatsu.settings.compose.ActionSettingsItem
 import org.koitharu.kotatsu.settings.compose.BaseComposeSettingsFragment
 import org.koitharu.kotatsu.settings.compose.DropSauceTheme
 import org.koitharu.kotatsu.settings.compose.ListSettingsItem
+import org.koitharu.kotatsu.settings.compose.NavigationSettingsItem
 import org.koitharu.kotatsu.settings.compose.SettingsGroup
 import org.koitharu.kotatsu.core.model.FavouriteCategory
 import org.koitharu.kotatsu.settings.compose.rememberStringSetPref
@@ -148,6 +149,13 @@ class DownloadsSettingsFragment :
 					dozeAvailable = dozeAvailable.asStateFlow(),
 					categories = categories.asStateFlow(),
 					onDownloadCategoriesChange = ::setNewChaptersDownloadCategories,
+					onOpenSpeed = {
+						(activity as? SettingsActivity)?.openFragment(
+							DownloadSpeedSettingsFragment::class.java,
+							null,
+							isFromRoot = false,
+						)
+					},
 					onPickLocalManga = { router.openDirectoriesSettings() },
 					onPickLocalStorage = { router.showDirectorySelectDialog() },
 					onMeteredChanged = { updateDownloadsConstraints() },
@@ -526,6 +534,7 @@ private fun DownloadsScreen(
 	dozeAvailable: StateFlow<Boolean>,
 	categories: StateFlow<List<FavouriteCategory>>,
 	onDownloadCategoriesChange: (Set<Long>) -> Unit,
+	onOpenSpeed: () -> Unit,
 	onPickLocalManga: () -> Unit,
 	onPickLocalStorage: () -> Unit,
 	onMeteredChanged: () -> Unit,
@@ -566,10 +575,10 @@ private fun DownloadsScreen(
 		TriStateOption.ASK.name,
 	)
 	var pagesDirAsk by rememberBooleanPref(AppSettings.KEY_PAGES_SAVE_ASK, true)
-	var connections by rememberIntPref(AppSettings.KEY_DOWNLOADS_CONNECTIONS, 5)
-	var simultaneous by rememberIntPref(AppSettings.KEY_DOWNLOADS_SIMULTANEOUS, 3)
+	val connections by rememberIntPref(AppSettings.KEY_DOWNLOADS_CONNECTIONS, 5)
+	val simultaneous by rememberIntPref(AppSettings.KEY_DOWNLOADS_SIMULTANEOUS, 3)
 	var chargingOnly by rememberBooleanPref(AppSettings.KEY_DOWNLOADS_CHARGING_ONLY, false)
-	var retries by rememberIntPref(AppSettings.KEY_DOWNLOADS_RETRIES, 2)
+	val retries by rememberIntPref(AppSettings.KEY_DOWNLOADS_RETRIES, 2)
 	var autoDownloadNext by rememberBooleanPref(AppSettings.KEY_DOWNLOADS_NEXT_CHAPTER, false)
 	var autoDownloadCount by rememberIntPref(AppSettings.KEY_DOWNLOADS_NEXT_CHAPTER_COUNT, 1)
 	var autoDownloadWifiOnly by rememberBooleanPref(AppSettings.KEY_DOWNLOADS_NEXT_CHAPTER_WIFI_ONLY, true)
@@ -638,32 +647,6 @@ private fun DownloadsScreen(
 					)
 				}
 				item { pos ->
-					SliderSettingsItem(
-						title = stringResource(R.string.download_connections),
-						subtitle = stringResource(R.string.download_connections_summary),
-						value = connections.coerceIn(1, 10),
-						valueFrom = 1,
-						valueTo = 10,
-						stepSize = 1,
-						onValueChange = { connections = it },
-						icon = R.drawable.ic_download,
-						shape = pos.shape,
-					)
-				}
-				item { pos ->
-					SliderSettingsItem(
-						title = stringResource(R.string.download_simultaneous),
-						subtitle = stringResource(R.string.download_simultaneous_summary),
-						value = simultaneous.coerceIn(1, 5),
-						valueFrom = 1,
-						valueTo = 5,
-						stepSize = 1,
-						onValueChange = { simultaneous = it },
-						icon = R.drawable.ic_download,
-						shape = pos.shape,
-					)
-				}
-				item { pos ->
 					SwitchSettingsItem(
 						title = stringResource(R.string.download_charging_only),
 						subtitle = stringResource(R.string.download_charging_only_summary),
@@ -674,16 +657,17 @@ private fun DownloadsScreen(
 					)
 				}
 				item { pos ->
-					SliderSettingsItem(
-						title = stringResource(R.string.download_retries),
-						subtitle = stringResource(R.string.download_retries_summary),
-						value = retries.coerceIn(0, 5),
-						valueFrom = 0,
-						valueTo = 5,
-						stepSize = 1,
-						onValueChange = { retries = it },
-						icon = R.drawable.ic_download,
+					NavigationSettingsItem(
+						title = stringResource(R.string.downloads_speed_title),
+						subtitle = stringResource(
+							R.string.downloads_speed_summary,
+							connections.coerceIn(1, 10),
+							simultaneous.coerceIn(1, 5),
+							retries.coerceIn(0, 5),
+						),
+						icon = R.drawable.ic_tune,
 						shape = pos.shape,
+						onClick = onOpenSpeed,
 					)
 				}
 				if (showDoze) {

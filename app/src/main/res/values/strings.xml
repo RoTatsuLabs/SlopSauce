@@ -24,6 +24,8 @@
     <string name="download_waiting">Waiting</string>
     <string name="downloads_group_storage">Storage</string>
     <string name="downloads_group_network">Network and speed</string>
+    <string name="downloads_speed_title">Speed and retries</string>
+    <string name="downloads_speed_summary">%1$d pages, %2$d manga, %3$d retries</string>
     <string name="download_failed">Failed</string>
     <string name="download_charging_only">Only while charging</string>
     <string name="download_charging_only_summary">Downloads wait until the phone is plugged in</string>
