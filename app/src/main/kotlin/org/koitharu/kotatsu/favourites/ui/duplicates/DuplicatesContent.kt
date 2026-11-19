@@ -358,7 +358,7 @@ private fun Cover(manga: Manga, progress: Float, imageLoader: ImageLoader) {
 				.width(92.dp)
 				.aspectRatio(CoverRatio)
 				.clip(RoundedCornerShape(18.dp))
-				.coverBlur(card.manga),
+				.coverBlur(manga),
 		)
 		if (ReadingProgress.isValid(progress) && progress > 0f) {
 			ProgressBadge(

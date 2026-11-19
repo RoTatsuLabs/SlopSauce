@@ -2,10 +2,10 @@ package org.koitharu.kotatsu.image.ui
 
 import android.content.Context
 import android.content.SharedPreferences
-import android.graphics.RenderEffect
-import android.graphics.Shader
+import android.graphics.Canvas
+import android.graphics.Path
+import android.graphics.RectF
 import android.graphics.drawable.LayerDrawable
-import android.os.Build
 import android.util.AttributeSet
 import android.view.Gravity
 import android.view.ViewGroup
@@ -16,6 +16,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.withStyledAttributes
 import androidx.core.graphics.ColorUtils
 import androidx.core.graphics.drawable.toDrawable
+import androidx.core.graphics.withClip
 import androidx.preference.PreferenceManager
 import coil3.request.Disposable
 import coil3.network.HttpException
@@ -26,6 +27,7 @@ import coil3.request.transformations
 import coil3.size.Dimension
 import coil3.size.Size
 import coil3.size.ViewSizeResolver
+import com.google.android.material.shape.ShapeAppearancePathProvider
 import kotlinx.coroutines.suspendCancellableCoroutine
 import okio.FileNotFoundException
 import org.jsoup.HttpStatusException
@@ -37,6 +39,7 @@ import org.koitharu.kotatsu.core.image.CoilImageView
 import org.koitharu.kotatsu.core.prefs.AppSettings
 import org.koitharu.kotatsu.core.ui.image.AnimatedPlaceholderDrawable
 import org.koitharu.kotatsu.core.ui.image.CoverBlur
+import org.koitharu.kotatsu.core.ui.image.CoverBlurPainter
 import org.koitharu.kotatsu.core.ui.image.TextDrawable
 import org.koitharu.kotatsu.core.ui.image.TrimTransformation
 import org.koitharu.kotatsu.core.util.ext.bookmarkExtra
@@ -98,6 +101,10 @@ class CoverImageView @JvmOverloads constructor(
 	private var blurSubject: Manga? = null
 	private var isBlurred = false
 	private var isPeeking = false
+	private val blurPainter = CoverBlurPainter()
+	private val blurPathProvider = ShapeAppearancePathProvider()
+	private val blurPath = Path()
+	private val blurShape = RectF()
 	private val peekRunnable = Runnable {
 		isPeeking = true
 		refreshBlur()
@@ -120,14 +127,26 @@ class CoverImageView @JvmOverloads constructor(
 		val blur = !isPeeking && CoverBlur.shouldBlur(context, blurSubject)
 		if (blur == isBlurred) return
 		isBlurred = blur
-		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-			val radius = CoverBlur.RADIUS_DP * resources.displayMetrics.density
-			setRenderEffect(if (blur) RenderEffect.createBlurEffect(radius, radius, Shader.TileMode.CLAMP) else null)
-		} else if (blur) {
-			setColorFilter(0xF2202020.toInt(), android.graphics.PorterDuff.Mode.SRC_ATOP)
-		} else {
-			clearColorFilter()
+		invalidate()
+	}
+
+	/**
+	 * A blurred cover is drawn as a small, blurred copy scaled up and clipped to the cover's own shape.
+	 * A render effect on the view would ignore that shape and leave square corners.
+	 */
+	override fun onDraw(canvas: Canvas) {
+		val d = drawable
+		if (!isBlurred || d == null || d is AnimatedPlaceholderDrawable || width <= 0 || height <= 0) {
+			super.onDraw(canvas)
+			return
 		}
+		if (blurShape.right != width.toFloat() || blurShape.bottom != height.toFloat()) {
+			blurShape.set(0f, 0f, width.toFloat(), height.toFloat())
+			blurPathProvider.calculatePath(shapeAppearanceModel, 1f, blurShape, blurPath)
+		}
+		val viewWidth = width
+		val viewHeight = height
+		canvas.withClip(blurPath) { blurPainter.draw(this, d, viewWidth, viewHeight) }
 	}
 
 	// A parent that is pressed passes the state to children that cannot be pressed themselves, so

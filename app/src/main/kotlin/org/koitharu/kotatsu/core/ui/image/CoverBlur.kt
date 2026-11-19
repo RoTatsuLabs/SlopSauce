@@ -1,6 +1,13 @@
 package org.koitharu.kotatsu.core.ui.image
 
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Paint
+import android.graphics.Rect
+import android.graphics.RectF
+import android.graphics.drawable.Animatable
+import android.graphics.drawable.Drawable
 import android.os.Build
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -95,4 +102,105 @@ fun Modifier.coverBlur(manga: Manga?): Modifier {
 		}
 	}
 	return this.then(peek).then(look)
+}
+
+/**
+ * Draws a drawable blurred: a tiny copy of it is blurred in software and scaled up with filtering.
+ * Unlike a render effect, this keeps the clip the caller sets, so rounded corners stay round.
+ * The blurred copy is made once per image; drawing it again only scales the small bitmap.
+ */
+class CoverBlurPainter {
+
+	private var small: Bitmap? = null
+	private var pixels = IntArray(0)
+	private var scratch = IntArray(0)
+	private var source: Drawable? = null
+	private var sourceWidth = 0
+	private var sourceHeight = 0
+	private var ready = false
+	private val paint = Paint(Paint.FILTER_BITMAP_FLAG)
+	private val oldBounds = Rect()
+	private val target = RectF()
+
+	fun draw(canvas: Canvas, drawable: Drawable, width: Int, height: Int) {
+		val animating = drawable is Animatable && drawable.isRunning
+		if (!ready || source !== drawable || sourceWidth != width || sourceHeight != height) {
+			render(drawable, width, height)
+		} else if (!animating && wasAnimating) {
+			render(drawable, width, height)
+		}
+		wasAnimating = animating
+		val bitmap = small ?: return
+		target.set(0f, 0f, width.toFloat(), height.toFloat())
+		canvas.drawBitmap(bitmap, null, target, paint)
+	}
+
+	private var wasAnimating = false
+
+	private fun render(drawable: Drawable, width: Int, height: Int) {
+		val tw = SMALL_WIDTH
+		val th = maxOf(1, Math.round(SMALL_WIDTH.toFloat() * height / width))
+		var bitmap = small
+		if (bitmap == null || bitmap.width != tw || bitmap.height != th) {
+			bitmap = Bitmap.createBitmap(tw, th, Bitmap.Config.ARGB_8888)
+			small = bitmap
+			pixels = IntArray(tw * th)
+			scratch = IntArray(tw * th)
+		}
+		bitmap.eraseColor(0)
+		val c = Canvas(bitmap)
+		oldBounds.set(drawable.bounds)
+		val dw = drawable.intrinsicWidth
+		val dh = drawable.intrinsicHeight
+		if (dw > 0 && dh > 0) {
+			val scale = maxOf(tw / dw.toFloat(), th / dh.toFloat())
+			c.translate((tw - dw * scale) / 2f, (th - dh * scale) / 2f)
+			c.scale(scale, scale)
+			drawable.setBounds(0, 0, dw, dh)
+		} else {
+			drawable.setBounds(0, 0, tw, th)
+		}
+		drawable.draw(c)
+		drawable.bounds = oldBounds
+		bitmap.getPixels(pixels, 0, tw, 0, 0, tw, th)
+		repeat(ROUNDS) {
+			pass(pixels, scratch, tw, th, horizontal = true)
+			pass(scratch, pixels, tw, th, horizontal = false)
+		}
+		bitmap.setPixels(pixels, 0, tw, 0, 0, tw, th)
+		source = drawable
+		sourceWidth = width
+		sourceHeight = height
+		ready = true
+	}
+
+	private fun pass(src: IntArray, dst: IntArray, w: Int, h: Int, horizontal: Boolean) {
+		val length = if (horizontal) w else h
+		val lines = if (horizontal) h else w
+		val count = RADIUS * 2 + 1
+		for (line in 0 until lines) {
+			for (i in 0 until length) {
+				var a = 0
+				var r = 0
+				var g = 0
+				var b = 0
+				for (k in -RADIUS..RADIUS) {
+					val j = (i + k).coerceIn(0, length - 1)
+					val p = src[if (horizontal) line * w + j else j * w + line]
+					a += p ushr 24
+					r += (p shr 16) and 0xFF
+					g += (p shr 8) and 0xFF
+					b += p and 0xFF
+				}
+				dst[if (horizontal) line * w + i else i * w + line] =
+					((a / count) shl 24) or ((r / count) shl 16) or ((g / count) shl 8) or (b / count)
+			}
+		}
+	}
+
+	private companion object {
+		const val SMALL_WIDTH = 32
+		const val RADIUS = 2
+		const val ROUNDS = 2
+	}
 }
