@@ -3,6 +3,7 @@
 
 	<!-- Base application theme. -->
 	<style name="Base.Theme.Kotatsu" parent="Theme.Material3.DayNight.NoActionBar">
+		<item name="viewInflaterClass">org.koitharu.kotatsu.core.ui.AppFontViewInflater</item>
 
 		<!-- Enable activity/shared-element transitions (manga cover float to details) -->
 		<item name="android:windowActivityTransitions">true</item>

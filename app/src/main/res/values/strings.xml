@@ -141,6 +141,13 @@
     <string name="read_mode">Read mode</string>
     <string name="grid_size">Grid size</string>
     <string name="ui_scale">Display size</string>
+    <string name="app_font">Font</string>
+    <string name="app_font_default">Default</string>
+    <string name="app_font_custom">Custom font</string>
+    <string name="app_font_add">Add a font</string>
+    <string name="app_font_add_summary">Pick a .ttf or .otf file</string>
+    <string name="app_font_sample">The quick brown fox jumps over the lazy dog</string>
+    <string name="app_font_delete">Delete font</string>
     <string name="ui_scale_smallest">Smallest</string>
     <string name="ui_scale_smaller">Smaller</string>
     <string name="ui_scale_default">Default</string>
@@ -579,6 +586,7 @@
     <string name="folder_with_images_import_description">Select a folder to import as a single title. PDF files inside become chapters, EPUB files become volumes, otherwise each archive or subfolder becomes a chapter.</string>
     <string name="epub_text_size">Text size</string>
 	<string name="epub_font_family">Font</string>
+	<string name="epub_font_app">App</string>
 	<string name="epub_font_serif">Serif</string>
 	<string name="epub_font_sans">Sans</string>
 	<string name="epub_font_mono">Mono</string>

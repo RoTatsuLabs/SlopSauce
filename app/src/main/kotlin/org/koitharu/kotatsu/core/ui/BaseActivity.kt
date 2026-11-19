@@ -186,6 +186,10 @@ abstract class BaseActivity<B : ViewBinding> :
 			onApplyWindowInsets(v, modifiedInsets)
 		}
 		applyNavPinnedToAppBar(binding.root)
+		if (AppFont.isActive(this)) {
+			AppFont.applyTree(binding.root)
+			AppFont.watch(window.decorView)
+		}
 		val toolbar = (binding.root.findViewById<View>(R.id.toolbar) as? Toolbar)
 		toolbar?.let {
 			setSupportActionBar(it)

@@ -48,6 +48,7 @@ import org.koitharu.kotatsu.core.util.ext.sortedWithSafe
 import org.koitharu.kotatsu.core.util.ext.toList
 import org.koitharu.kotatsu.parsers.util.names
 import org.koitharu.kotatsu.parsers.util.toTitleCase
+import org.koitharu.kotatsu.settings.appearance.FontSettingsFragment
 import org.koitharu.kotatsu.settings.appearance.PreviewSettingsFragment
 import org.koitharu.kotatsu.settings.compose.ActionSettingsItem
 import org.koitharu.kotatsu.settings.compose.BaseComposeSettingsFragment
@@ -122,6 +123,13 @@ class AppearanceSettingsFragment : BaseComposeSettingsFragment(R.string.appearan
 					onOpenDetailsAppearance = {
 						(activity as? SettingsActivity)?.openFragment(
 							PreviewSettingsFragment::class.java,
+							null,
+							isFromRoot = false,
+						)
+					},
+					onOpenFonts = {
+						(activity as? SettingsActivity)?.openFragment(
+							FontSettingsFragment::class.java,
 							null,
 							isFromRoot = false,
 						)
@@ -224,6 +232,7 @@ private fun AppearanceScreen(
 	dynamicShortcutsAvailable: Boolean,
 	onOpenLocaleSettings: () -> Unit,
 	onOpenDetailsAppearance: () -> Unit,
+	onOpenFonts: () -> Unit,
 	onOpenNavConfig: () -> Unit,
 	onProtectToggle: (Boolean) -> Unit,
 ) {
@@ -271,6 +280,7 @@ private fun AppearanceScreen(
 	var theme by rememberStringPref(AppSettings.KEY_THEME, "-1")
 	var amoled by rememberBooleanPref(AppSettings.KEY_THEME_AMOLED, false)
 	var uiScale by rememberIntPref(AppSettings.KEY_UI_SCALE, 100)
+	val fontName by rememberStringPref(AppSettings.KEY_APP_FONT_NAME, "")
 	var hapticFeedback by rememberBooleanPref(AppSettings.KEY_HAPTIC_FEEDBACK, true)
 	var hideStatusBar by rememberBooleanPref(AppSettings.KEY_HIDE_STATUS_BAR, false)
 	var locale by rememberStringPref(AppSettings.KEY_APP_LOCALE, "")
@@ -385,6 +395,15 @@ private fun AppearanceScreen(
 						onValueChange = { uiScale = it },
 						icon = R.drawable.ic_zoom_in,
 						shape = pos.shape,
+					)
+				}
+				item { pos ->
+					NavigationSettingsItem(
+						title = stringResource(R.string.app_font),
+						subtitle = fontName.ifBlank { stringResource(R.string.app_font_default) },
+						icon = R.drawable.ic_title,
+						shape = pos.shape,
+						onClick = onOpenFonts,
 					)
 				}
 				item { pos ->

@@ -316,7 +316,7 @@ class AppSettings @Inject constructor(@ApplicationContext context: Context) {
 		set(value) = prefs.edit { putInt(KEY_EPUB_FONT_SIZE, value.coerceIn(50, 200)) }
 
 	var epubFontFamily: String
-		get() = prefs.getString(KEY_EPUB_FONT_FAMILY, "serif") ?: "serif"
+		get() = prefs.getString(KEY_EPUB_FONT_FAMILY, EPUB_FONT_APP) ?: EPUB_FONT_APP
 		set(value) = prefs.edit { putString(KEY_EPUB_FONT_FAMILY, value) }
 
 	var epubLineHeight: Int
@@ -435,6 +435,14 @@ class AppSettings @Inject constructor(@ApplicationContext context: Context) {
 	var epubCustomFontRevision: Int
 		get() = prefs.getInt(KEY_EPUB_CUSTOM_FONT_REVISION, 0)
 		set(value) = prefs.edit { putInt(KEY_EPUB_CUSTOM_FONT_REVISION, value) }
+
+	var appFontName: String
+		get() = prefs.getString(KEY_APP_FONT_NAME, "").orEmpty()
+		set(value) = prefs.edit { putString(KEY_APP_FONT_NAME, value) }
+
+	var appFontId: String
+		get() = prefs.getString(KEY_APP_FONT_ID, "").orEmpty()
+		set(value) = prefs.edit { putString(KEY_APP_FONT_ID, value) }
 
 	/** Where the details screen's quick-add button puts a title; 0 until the user picks one. */
 	var defaultFavouriteCategoryId: Long
@@ -1537,6 +1545,9 @@ class AppSettings @Inject constructor(@ApplicationContext context: Context) {
 		const val KEY_EXPLORE_NOVEL_TAB_FIRST = "explore_novel_tab_first"
 		const val KEY_EPUB_FONT_SIZE = "epub_font_size"
 		const val KEY_EPUB_FONT_FAMILY = "epub_font_family"
+
+		/** Until the reader font is picked, novels use the app font (or serif when there is none). */
+		const val EPUB_FONT_APP = "app"
 		const val KEY_EPUB_LINE_HEIGHT = "epub_line_height"
 		const val KEY_EPUB_PARAGRAPH_SPACING = "epub_paragraph_spacing"
 		const val KEY_EPUB_HORIZONTAL_PADDING = "epub_horizontal_padding"
@@ -1559,6 +1570,9 @@ class AppSettings @Inject constructor(@ApplicationContext context: Context) {
 		const val KEY_EPUB_CUSTOM_FONT_NAME = "epub_custom_font_name"
 		const val KEY_EPUB_CUSTOM_FONT_REVISION = "epub_custom_font_revision"
 		const val EPUB_CUSTOM_FONT_FILE = "epub_custom_font"
+		const val KEY_APP_FONT_NAME = "app_font_name"
+		const val KEY_APP_FONT_ID = "app_font_id"
+		const val APP_FONT_FILE = "app_font"
 		const val KEY_READER_MODE_DETECT = "reader_mode_detect"
 		const val KEY_READER_CROP = "reader_crop"
 		const val KEY_READER_ROTATE_WIDE = "reader_rotate_wide"
@@ -1756,6 +1770,8 @@ class AppSettings @Inject constructor(@ApplicationContext context: Context) {
 			KEY_PAGES_SAVE_DIR,
 			KEY_EPUB_CUSTOM_FONT_NAME,
 			KEY_EPUB_CUSTOM_FONT_REVISION,
+			KEY_APP_FONT_NAME,
+			KEY_APP_FONT_ID,
 			KEY_BACKUP_PERIODICAL_ENABLED,
 			KEY_BACKUP_PERIODICAL_OUTPUT,
 			KEY_SHIZUKU_INSTALLER,
@@ -1784,6 +1800,8 @@ class AppSettings @Inject constructor(@ApplicationContext context: Context) {
 			KEY_PAGES_SAVE_DIR,
 			KEY_EPUB_CUSTOM_FONT_NAME,
 			KEY_EPUB_CUSTOM_FONT_REVISION,
+			KEY_APP_FONT_NAME,
+			KEY_APP_FONT_ID,
 			KEY_BACKUP_PERIODICAL_ENABLED,
 			KEY_BACKUP_PERIODICAL_OUTPUT,
 			KEY_BACKUP_PERIODICAL_FREQ,
