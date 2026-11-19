@@ -201,3 +201,9 @@
 }
 -keep class com.discord.** { *; }
 -keep class org.webrtc.** { *; }
+
+# Referenced only by name from the theme (viewInflaterClass); without this R8 drops it and the app falls back to a plain inflater.
+-keep class org.koitharu.kotatsu.core.ui.AppFontViewInflater { <init>(); }
+
+# The crash report reads these fields by reflection.
+-keepclassmembers class org.koitharu.kotatsu.core.CrashBuildInfo { public static final <fields>; }

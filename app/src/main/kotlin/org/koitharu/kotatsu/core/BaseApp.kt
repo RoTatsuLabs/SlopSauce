@@ -24,7 +24,6 @@ import org.acra.ACRA
 import org.acra.config.dialog
 import org.acra.data.StringFormat
 import org.acra.ktx.initAcra
-import org.koitharu.kotatsu.BuildConfig
 import org.koitharu.kotatsu.core.db.MangaDatabase
 import org.koitharu.kotatsu.core.logs.AppLogger
 import org.koitharu.kotatsu.core.logs.UserActionLogger
@@ -146,7 +145,7 @@ open class BaseApp : Application(), Configuration.Provider {
 			return
 		}
 		initAcra {
-			buildConfigClass = BuildConfig::class.java
+			buildConfigClass = CrashBuildInfo::class.java
 			reportFormat = StringFormat.JSON
 			
 			dialog {
