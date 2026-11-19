@@ -46,6 +46,8 @@ import org.koitharu.kotatsu.core.ui.blur.isGlassLookOn
 import org.koitharu.kotatsu.core.ui.blur.WINDOW_BLUR_DP
 import org.koitharu.kotatsu.core.ui.blur.RegionBlur
 import org.koitharu.kotatsu.core.ui.blur.FROSTED_ALPHA
+import org.koitharu.kotatsu.core.ui.blur.glassBlurScale
+import org.koitharu.kotatsu.core.ui.blur.glassAlpha
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.foundation.border
@@ -206,14 +208,14 @@ fun showExpressiveMenu(
 	// Frosted glass: a see-through card over a blurred page (the blur needs Android 13+).
 	val glass = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && context.isGlassLookOn()
 	val glassColors = if (glass) {
-		MenuColors(colors.content, colors.surface.copy(alpha = FROSTED_ALPHA), colors.highlight, glass = true)
+		MenuColors(colors.content, colors.surface.copy(alpha = context.glassAlpha(FROSTED_ALPHA)), colors.highlight, glass = true)
 	} else {
 		colors
 	}
 	val regionBlur = if (glass) {
 		root.getChildAt(0)?.takeIf { it !== root }?.let {
 			val density = context.resources.displayMetrics.density
-			RegionBlur(it, CardCorner.value * density, WINDOW_BLUR_DP / 2f * density)
+			RegionBlur(it, CardCorner.value * density, WINDOW_BLUR_DP / 2f * density * context.glassBlurScale())
 		}
 	} else {
 		null

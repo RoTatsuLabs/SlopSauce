@@ -162,6 +162,10 @@ class AppSettings @Inject constructor(@ApplicationContext context: Context) {
 	val isFrostedGlassEnabled: Boolean
 		get() = prefs.getBoolean(KEY_FROSTED_GLASS, true)
 
+	/** How strong the frosted glass looks, 1 (subtle) to 5 (intense). */
+	val frostedGlassLevel: Int
+		get() = prefs.getInt(KEY_FROSTED_GLASS_LEVEL, 3).coerceIn(1, 5)
+
 	val isBarBlurEnabled: Boolean
 		get() = prefs.getBoolean(KEY_BAR_BLUR, true)
 
@@ -1670,6 +1674,7 @@ class AppSettings @Inject constructor(@ApplicationContext context: Context) {
 		const val KEY_NAV_LEGACY = "nav_legacy"
 		const val KEY_BAR_BLUR = "bar_blur"
 		const val KEY_FROSTED_GLASS = "frosted_glass"
+		const val KEY_FROSTED_GLASS_LEVEL = "frosted_glass_level"
 		const val KEY_MAIN_FAB = "main_fab"
 		const val KEY_UPDATE_PROMPT_DISMISSED = "update_prompt_dismissed"
 		const val KEY_32BIT_COLOR = "enhanced_colors"

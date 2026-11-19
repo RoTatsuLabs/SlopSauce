@@ -1,5 +1,6 @@
 package org.koitharu.kotatsu.core.ui.widgets
 
+import org.koitharu.kotatsu.core.ui.blur.glassAlpha
 import android.graphics.drawable.LayerDrawable
 import android.content.Context
 import android.graphics.drawable.ColorDrawable
@@ -67,7 +68,8 @@ class FloatingBottomNavigationView @JvmOverloads constructor(
 		get() = glassState.value
 		set(value) {
 			glassState.value = value
-			legacyBackground.getDrawable(0).alpha = if (value) LEGACY_GLASS_ALPHA else 0xFF
+			legacyBackground.getDrawable(0).alpha =
+				if (value) (context.glassAlpha(LEGACY_GLASS_ALPHA / 255f) * 255).toInt() else 0xFF
 			legacyBackground.getDrawable(1).alpha = if (value) 0xFF else 0
 		}
 	private val legacyElevation = elevation

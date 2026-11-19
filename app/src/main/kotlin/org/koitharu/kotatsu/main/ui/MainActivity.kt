@@ -246,6 +246,7 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), AppBarOwner, BottomNav
 		}
 		settings.observe(AppSettings.KEY_BAR_BLUR).observe(this) { onBarBlurChanged() }
 		settings.observe(AppSettings.KEY_FROSTED_GLASS).observe(this) { onBarBlurChanged() }
+		settings.observe(AppSettings.KEY_FROSTED_GLASS_LEVEL).observe(this) { onBarBlurChanged() }
 		setupContainerInsetsListener()
 		viewBinding.searchView.addTransitionListener(this)
 		viewBinding.searchView.addTransitionListener(exitCallback)

@@ -1,5 +1,8 @@
 package org.koitharu.kotatsu.reader.ui
 
+import kotlin.math.roundToInt
+import org.koitharu.kotatsu.core.ui.blur.glassBlurScale
+import org.koitharu.kotatsu.core.ui.blur.glassAlpha
 import android.app.assist.AssistContent
 import android.content.Intent
 import android.content.res.Configuration
@@ -292,6 +295,7 @@ class ReaderActivity :
         // Two-page mode follows its switches in reader settings. Only while started: the switches are
         // flipped with this screen in the background, where swapping the reader would crash, so the
         // change is picked up on the way back instead.
+        settings.observe(AppSettings.KEY_FROSTED_GLASS_LEVEL).observe(this) { applyTranslucentReaderBars() }
         settings.observe(AppSettings.KEY_READER_DOUBLE_PAGES, AppSettings.KEY_READER_DOUBLE_FOLDABLE)
             .observe(this, Lifecycle.State.STARTED) { applyDoubleModeAuto() }
     }
@@ -654,10 +658,11 @@ class ReaderActivity :
             readerGlass = ReaderGlass(viewBinding.container, viewBinding.appbarTop, viewBinding.toolbarDocked)
         }
         readerGlass?.isEnabled = glass
-        viewBinding.appbarTop.setBackgroundColor(getThemeColor(materialR.attr.colorSurface, if (glass) GLASS_READER_BAR_ALPHA else TOP_READER_BAR_ALPHA))
+        readerGlass?.blurRadius = READER_GLASS_RADIUS * glassBlurScale()
+        viewBinding.appbarTop.setBackgroundColor(getThemeColor(materialR.attr.colorSurface, if (glass) glassAlpha(GLASS_READER_BAR_ALPHA) else TOP_READER_BAR_ALPHA))
         viewBinding.toolbar.background = null
         viewBinding.toolbarDocked?.background = viewBinding.toolbarDocked?.background?.mutate()?.apply {
-            alpha = if (glass) 0xD0 else 0xFF
+            alpha = if (glass) (glassAlpha(0xD0 / 255f) * 255).roundToInt() else 0xFF
             (this as? com.google.android.material.shape.MaterialShapeDrawable)?.setStroke(
                 if (glass) resources.displayMetrics.density else 0f,
                 0x3DFFFFFF,
@@ -1049,5 +1054,6 @@ class ReaderActivity :
 
         private const val TOP_READER_BAR_ALPHA = 0.7f
         private const val GLASS_READER_BAR_ALPHA = 0.85f
+        private const val READER_GLASS_RADIUS = 18f
     }
 }

@@ -3,6 +3,8 @@ package org.koitharu.kotatsu.core.ui.sheet
 import android.os.Build
 import org.koitharu.kotatsu.core.ui.blur.isGlassLookOn
 import org.koitharu.kotatsu.core.ui.blur.applyGlassBlur
+import kotlin.math.roundToInt
+import org.koitharu.kotatsu.core.ui.blur.glassAlpha
 import android.app.Dialog
 import android.content.Context
 import android.graphics.drawable.ColorDrawable
@@ -116,7 +118,7 @@ abstract class BaseAdaptiveSheet<B : ViewBinding> : AppCompatDialogFragment(),
 		val context = context ?: return
 		if (sheetView == null || Build.VERSION.SDK_INT < Build.VERSION_CODES.S || !context.isGlassLookOn()) return
 		val background = sheetView.background?.mutate() ?: return
-		background.alpha = GLASS_ALPHA
+		background.alpha = (context.glassAlpha(GLASS_ALPHA / 255f) * 255).roundToInt()
 		if (background is MaterialShapeDrawable) {
 			background.setStroke(context.resources.displayMetrics.density, 0x29FFFFFF)
 		}

@@ -306,6 +306,7 @@ private fun AppearanceScreen(
 	var navLegacy by rememberBooleanPref(AppSettings.KEY_NAV_LEGACY, false)
 	var barBlur by rememberBooleanPref(AppSettings.KEY_BAR_BLUR, true)
 	var glassBlur by rememberBooleanPref(AppSettings.KEY_FROSTED_GLASS, true)
+	var glassLevel by rememberIntPref(AppSettings.KEY_FROSTED_GLASS_LEVEL, 3)
 	var exitConfirm by rememberBooleanPref(AppSettings.KEY_EXIT_CONFIRM, false)
 	var dynamicShortcuts by rememberBooleanPref(AppSettings.KEY_SHORTCUTS, true)
 
@@ -648,6 +649,28 @@ private fun AppearanceScreen(
 						onCheckedChange = { glassBlur = it },
 						icon = R.drawable.ic_blur,
 						shape = pos.shape,
+					)
+				}
+				item { pos ->
+					val levelLabels = listOf(
+						R.string.frosted_glass_level_1,
+						R.string.frosted_glass_level_2,
+						R.string.frosted_glass_level_3,
+						R.string.frosted_glass_level_4,
+						R.string.frosted_glass_level_5,
+					)
+					SliderSettingsItem(
+						title = stringResource(R.string.frosted_glass_level),
+						subtitle = stringResource(R.string.frosted_glass_level_summary),
+						value = glassLevel.coerceIn(1, 5),
+						valueFrom = 1,
+						valueTo = 5,
+						stepSize = 1,
+						valueLabel = { v -> ctx.getString(levelLabels[(v - 1).coerceIn(0, 4)]) },
+						onValueChange = { glassLevel = it },
+						icon = R.drawable.ic_blur,
+						shape = pos.shape,
+						enabled = glassBlur,
 					)
 				}
 				item { pos ->

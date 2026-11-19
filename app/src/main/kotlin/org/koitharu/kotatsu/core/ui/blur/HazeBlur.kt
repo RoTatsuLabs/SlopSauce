@@ -24,6 +24,7 @@ import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 import org.koitharu.kotatsu.core.prefs.AppSettings
 import org.koitharu.kotatsu.settings.compose.rememberBooleanPref
+import org.koitharu.kotatsu.settings.compose.rememberIntPref
 
 // "Frosted glass" is one switch: a surface turns see-through, gets a light edge and blurs what is
 // behind it. It does not depend on "Blur behind bars", which keeps its own meaning.
@@ -32,6 +33,24 @@ import org.koitharu.kotatsu.settings.compose.rememberBooleanPref
 const val FROSTED_ALPHA = 0.82f
 
 const val WINDOW_BLUR_DP = 20
+
+/** The glass strength a freshly installed app starts at: 1 is subtle, 5 is intense. */
+const val GLASS_LEVEL_DEFAULT = 3
+
+/** Scales every glass blur radius: half at level 1, one and a half times at level 5, unchanged at the default. */
+fun glassBlurScaleFor(level: Int): Float = 0.5f + (level.coerceIn(1, 5) - 1) * 0.25f
+
+/** Higher levels let more of the blurred screen through. [base] is the alpha the default level uses. */
+fun glassAlphaFor(level: Int, base: Float): Float =
+	(base + (GLASS_LEVEL_DEFAULT - level.coerceIn(1, 5)) * 0.075f).coerceIn(0.2f, 0.98f)
+
+fun Context.glassLevel(): Int =
+	PreferenceManager.getDefaultSharedPreferences(this)
+		.getInt(AppSettings.KEY_FROSTED_GLASS_LEVEL, GLASS_LEVEL_DEFAULT).coerceIn(1, 5)
+
+fun Context.glassBlurScale(): Float = glassBlurScaleFor(glassLevel())
+
+fun Context.glassAlpha(base: Float): Float = glassAlphaFor(glassLevel(), base)
 
 /** True when the "Frosted glass" switch is on. */
 fun Context.isGlassLookOn(): Boolean =
@@ -62,7 +81,7 @@ fun Window.applyGlassBlur() {
 	if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S || !context.isGlassLookOn()) return
 	addFlags(WindowManager.LayoutParams.FLAG_BLUR_BEHIND)
 	attributes = attributes.apply {
-		blurBehindRadius = (WINDOW_BLUR_DP * context.resources.displayMetrics.density).toInt()
+		blurBehindRadius = (WINDOW_BLUR_DP * context.resources.displayMetrics.density * context.glassBlurScale()).toInt()
 	}
 }
 
@@ -84,8 +103,10 @@ fun rememberGlassWindow(): Boolean {
 
 /** A popup, sheet or row colour that lets the blurred screen show through when [rememberGlassWindow] is true. */
 @Composable
-fun glassColor(color: Color, alpha: Float = FROSTED_ALPHA): Color =
-	if (rememberGlassWindow()) color.copy(alpha = alpha) else color
+fun glassColor(color: Color, alpha: Float = FROSTED_ALPHA): Color {
+	val level by rememberIntPref(AppSettings.KEY_FROSTED_GLASS_LEVEL, GLASS_LEVEL_DEFAULT)
+	return if (rememberGlassWindow()) color.copy(alpha = glassAlphaFor(level, alpha)) else color
+}
 
 /** The thin light edge that makes a translucent surface read as glass, or null when glass is off. */
 @Composable

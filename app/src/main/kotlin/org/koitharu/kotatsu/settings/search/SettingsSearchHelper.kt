@@ -110,6 +110,7 @@ class SettingsSearchHelper @Inject constructor(
 				addItem(AppSettings.KEY_NAV_LEGACY, R.string.use_legacy_navigation_bar, R.string.use_legacy_navigation_bar_summary, crumbs, AppearanceSettingsFragment::class.java)
 				addItem(AppSettings.KEY_BAR_BLUR, R.string.bar_blur, R.string.bar_blur_summary, crumbs, AppearanceSettingsFragment::class.java)
 				addItem(AppSettings.KEY_FROSTED_GLASS, R.string.frosted_glass, R.string.frosted_glass_summary, crumbs, AppearanceSettingsFragment::class.java)
+				addItem(AppSettings.KEY_FROSTED_GLASS_LEVEL, R.string.frosted_glass_level, R.string.frosted_glass_level_summary, crumbs, AppearanceSettingsFragment::class.java)
 				addItem(AppSettings.KEY_NAV_PINNED, R.string.pin_navigation_ui, R.string.pin_navigation_ui_summary, crumbs, AppearanceSettingsFragment::class.java)
 				addItem(AppSettings.KEY_EXIT_CONFIRM, R.string.exit_confirmation, R.string.exit_confirmation_summary, crumbs, AppearanceSettingsFragment::class.java)
 				addItem(AppSettings.KEY_SHORTCUTS, R.string.history_shortcuts, R.string.history_shortcuts_summary, crumbs, AppearanceSettingsFragment::class.java)

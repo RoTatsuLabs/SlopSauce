@@ -22,6 +22,15 @@ class ReaderGlass(
 	private val shader = RuntimeShader(SHADER)
 	private var last = FloatArray(9) { Float.NaN }
 
+	/** Blur radius in shader pixels; changing it redraws the bars' glass right away. */
+	var blurRadius = DEFAULT_RADIUS
+		set(value) {
+			if (field == value) return
+			field = value
+			last.fill(Float.NaN)
+			content.invalidate()
+		}
+
 	var isEnabled = false
 		set(value) {
 			if (field == value) return
@@ -52,6 +61,7 @@ class ReaderGlass(
 				shader.setFloatUniform("rectA", a[0], a[1], a[2], a[3])
 				shader.setFloatUniform("rectB", b[0], b[1], b[2], b[3])
 				shader.setFloatUniform("radB", radiusB)
+				shader.setFloatUniform("blurRadius", blurRadius)
 				RenderEffect.createRuntimeShaderEffect(shader, "content")
 			},
 		)
@@ -73,6 +83,8 @@ class ReaderGlass(
 
 	private companion object {
 
+		const val DEFAULT_RADIUS = 18f
+
 		val EMPTY = floatArrayOf(0f, 0f, 0f, 0f)
 
 		val SHADER = """
@@ -80,8 +92,8 @@ class ReaderGlass(
 			uniform float4 rectA;
 			uniform float4 rectB;
 			uniform float radB;
+			uniform float blurRadius;
 
-			const float BLUR_RADIUS = 18.0;
 			const int SAMPLES = 4;
 
 			float inside(float2 p, float4 r, float rad) {
@@ -101,8 +113,8 @@ class ReaderGlass(
 				}
 				float dither = fract(sin(dot(fragCoord, float2(12.9898, 78.233))) * 43758.5453);
 				float2 jitter = float2(dither - 0.5, fract(dither * 1.618) - 0.5);
-				float offsetScale = BLUR_RADIUS / float(SAMPLES);
-				float radiusSq = BLUR_RADIUS * BLUR_RADIUS;
+				float offsetScale = blurRadius / float(SAMPLES);
+				float radiusSq = blurRadius * blurRadius;
 				half4 accum = half4(0.0);
 				float weightSum = 0.0;
 				for (int x = -SAMPLES; x <= SAMPLES; x++) {
