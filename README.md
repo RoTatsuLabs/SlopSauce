@@ -71,20 +71,14 @@ ShotenSauce is a personal fork, built for my own use and shared as is. It takes 
 <details>
 <summary><strong>ShotenSauce Features</strong></summary>
 
-- Secret space: a separate library, history, bookmarks and downloads behind a PIN or fingerprint. Hold Incognito in the ⋮ menu to open it. It locks when you leave the app and leaves nothing behind in the main app.
-- Telegram backup: send backups to your own Telegram chat with the built-in bot.
-- Backup contents: pick what goes into a backup, such as only your library. Restore reads what is inside, and periodic and Telegram backups each keep their own choice.
-- Download ahead: queue the next chapters while you read, with a count you set. It stays off in incognito mode.
-- Hide favourites: hide titles you already favourited from source lists, in Settings > Appearance.
-- Blur sensitive covers: covers of 18+ comics and novels, plus any genres you list, are blurred everywhere. Hold a cover to peek. Turn it on in Settings > Appearance.
-- Faster downloads: several pages download at once, with a limit per website. Pick how many pages and how many manga download together in Settings > Downloads.
-- Download manager: sections and filters, sorting, a queue you can reorder by dragging or step by step, charging-only downloads, retries that wait longer each time, per-source speed and auto-delete, a storage summary, one history entry per manga, "download missing chapters", live speed, time left, pause and resume for one or all, retry for all failed, and a notification that shows the total.
-- Parallel page progress: the progress bar shows each page of the chapter being downloaded, with the ones in progress moving.
-- Tracker import: when editing a manga, import the cover, title, description, alternative names, genres, authors, status, content rating and score from a tracker. You choose per field whether to replace, append or fill if empty. Nothing changes until you save.
-- Same-title favourites: a title you already favourited from another source gets a badge on its cover in source lists and a note on its details page. Hide favourites is also in the list display options.
-- Auto-track favourites: titles you add to favourites are tracked on every tracker you are signed in to, with your reading progress. Only clear matches are linked and the rest wait in a needs-review list. A button tracks the favourites that are not tracked yet. Requests are spaced out and follow each tracker's rate limit.
-- Frosted glass: dialogs, sheets, menus, the reader bars, the Downloads bar and the navigation bar turn see-through with a blurred background and a light edge. One switch in Settings > Appearance, with a five-step strength slider from Subtle to Intense.
-- Custom fonts: add .ttf or .otf files in Settings > Appearance > Font, keep as many as you like and switch between them. The whole app uses the one you pick, including novels until you choose a font in the reader. Chips and system notifications keep the default font.
+- Secret space: a hidden library, history, bookmarks and downloads behind a PIN or fingerprint.
+- Download manager: queue, filters, drag to reorder, parallel pages, charging-only, smart retries, per-source speed, and download-ahead while you read.
+- Auto-track favourites: favourites are tracked on every tracker you use, with your reading progress. Unsure matches wait for your review.
+- Tracker import: pull covers, titles, descriptions, genres and more from a tracker into a manga, field by field.
+- Blur sensitive covers: 18+ titles and genres you pick are blurred everywhere. Hold a cover to peek.
+- Frosted glass: see-through dialogs, sheets, menus and bars with an adjustable blur strength.
+- Custom fonts: import your own .ttf or .otf fonts and use them across the whole app.
+- Telegram and selective backups: send backups to your own Telegram chat and choose what goes in them.
 
 </details>
 
