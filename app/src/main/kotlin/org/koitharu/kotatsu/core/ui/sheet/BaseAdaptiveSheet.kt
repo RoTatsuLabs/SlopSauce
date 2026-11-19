@@ -1,10 +1,5 @@
 package org.koitharu.kotatsu.core.ui.sheet
 
-import android.os.Build
-import org.koitharu.kotatsu.core.ui.blur.isGlassLookOn
-import org.koitharu.kotatsu.core.ui.blur.applyGlassBlur
-import kotlin.math.roundToInt
-import org.koitharu.kotatsu.core.ui.blur.glassAlpha
 import android.app.Dialog
 import android.content.Context
 import android.graphics.drawable.ColorDrawable
@@ -39,8 +34,6 @@ import org.koitharu.kotatsu.core.ui.BaseActivityEntryPoint
 import org.koitharu.kotatsu.core.ui.util.ActionModeDelegate
 import org.koitharu.kotatsu.core.util.ext.getThemeColor
 import com.google.android.material.R as materialR
-
-private const val GLASS_ALPHA = 0xD0
 
 abstract class BaseAdaptiveSheet<B : ViewBinding> : AppCompatDialogFragment(),
 	OnApplyWindowInsetsListener {
@@ -109,20 +102,6 @@ abstract class BaseAdaptiveSheet<B : ViewBinding> : AppCompatDialogFragment(),
 		val sheetView = dialog?.findViewById<View>(materialR.id.m3_side_sheet)
 			?: dialog?.findViewById<View>(materialR.id.design_bottom_sheet)
 		sheetView?.clipToOutline = true
-		applyGlass(sheetView)
-	}
-
-	// "Frosted glass": lets the blurred screen behind the sheet show through its panel (the window blur
-	// itself comes from applyGlassBlur) and gives it a thin light edge.
-	private fun applyGlass(sheetView: View?) {
-		val context = context ?: return
-		if (sheetView == null || Build.VERSION.SDK_INT < Build.VERSION_CODES.S || !context.isGlassLookOn()) return
-		val background = sheetView.background?.mutate() ?: return
-		background.alpha = (context.glassAlpha(GLASS_ALPHA / 255f) * 255).roundToInt()
-		if (background is MaterialShapeDrawable) {
-			background.setStroke(context.resources.displayMetrics.density, 0x29FFFFFF)
-		}
-		sheetView.background = background
 	}
 
 	override fun onDestroyView() {
@@ -147,7 +126,6 @@ abstract class BaseAdaptiveSheet<B : ViewBinding> : AppCompatDialogFragment(),
 		).also {
 			dialog.onBackPressedDispatcher.addCallback(it)
 		}
-		dialog.window?.applyGlassBlur()
 		return dialog
 	}
 

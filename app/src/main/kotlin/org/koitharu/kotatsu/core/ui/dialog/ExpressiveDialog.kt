@@ -1,8 +1,5 @@
 package org.koitharu.kotatsu.core.ui.dialog
 
-import org.koitharu.kotatsu.core.ui.blur.glassColor
-import org.koitharu.kotatsu.core.ui.blur.glassBorder
-import org.koitharu.kotatsu.core.ui.blur.applyGlassBlur
 import android.app.Dialog
 import android.content.Context
 import android.graphics.Color as AndroidColor
@@ -130,7 +127,6 @@ fun showComposeDialog(
 	dialog.window?.run {
 		setBackgroundDrawable(ColorDrawable(AndroidColor.TRANSPARENT))
 		setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
-		applyGlassBlur()
 	}
 	// Plain dialog, not a DialogFragment — dismiss with the host to avoid a leaked window.
 	val owner = context.findActivity() as? LifecycleOwner
@@ -219,9 +215,9 @@ fun ExpressiveDialogCard(
 		Surface(
 			// Concentric with the round corner button: its radius plus the card padding.
 			shape = RoundedCornerShape(CornerButtonSize / 2 + CardPadding),
-			color = glassColor(colors.surfaceContainer),
-			// Same outline as the floating nav bar; frosted glass swaps it for a light edge
-			border = glassBorder() ?: BorderStroke(1.dp, colors.outlineVariant),
+			color = colors.surfaceContainer,
+			// Same outline as the floating nav bar
+			border = BorderStroke(1.dp, colors.outlineVariant),
 			modifier = Modifier
 				.fillMaxWidth()
 				.widthIn(max = DialogMaxWidth)
@@ -593,7 +589,7 @@ fun ExpressiveOptionGroupItem(
 			.fillMaxWidth()
 			.heightIn(min = 52.dp)
 			.clip(shape)
-			.then(if (isSingle) Modifier else Modifier.background(glassColor(colors.background, 0.45f)))
+			.then(if (isSingle) Modifier else Modifier.background(colors.background))
 			.then(
 				if (onClick != null) {
 					Modifier.clickable(enabled = enabled, onClick = onClick)

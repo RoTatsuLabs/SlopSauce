@@ -1,7 +1,5 @@
 package org.koitharu.kotatsu.core.ui.widgets
 
-import org.koitharu.kotatsu.core.ui.blur.glassAlpha
-import android.graphics.drawable.LayerDrawable
 import android.content.Context
 import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.Drawable
@@ -51,27 +49,7 @@ class FloatingBottomNavigationView @JvmOverloads constructor(
 	private val sourceItems = mutableListOf<NavItem>()
 	private val hiddenIds = mutableSetOf<Int>()
 	private val badgeCounts = mutableMapOf<Int, Int>()
-	private val glassState = MutableStateFlow(false)
-	// Layer 0 is the bar surface, layer 1 a thin light line along its top edge (only drawn as glass).
-	private val legacyBackground: LayerDrawable = LayerDrawable(
-		arrayOf(
-			ColorDrawable(context.getThemeColor(materialR.attr.colorSurfaceContainer)),
-			ColorDrawable(0x29FFFFFF).apply { alpha = 0 },
-		),
-	).apply {
-		setLayerHeight(1, resources.displayMetrics.density.toInt().coerceAtLeast(1))
-		setLayerGravity(1, android.view.Gravity.TOP)
-	}
-
-	/** "Frosted glass": a see-through bar with a light edge, over the blurred content behind it. */
-	var isGlass: Boolean
-		get() = glassState.value
-		set(value) {
-			glassState.value = value
-			legacyBackground.getDrawable(0).alpha =
-				if (value) (context.glassAlpha(LEGACY_GLASS_ALPHA / 255f) * 255).toInt() else 0xFF
-			legacyBackground.getDrawable(1).alpha = if (value) 0xFF else 0
-		}
+	private val legacyBackground: Drawable = ColorDrawable(context.getThemeColor(materialR.attr.colorSurfaceContainer))
 	private val legacyElevation = elevation
 	// The legacy bar's items sit too close to its top edge. Nudging them down with translationY
 	// (rather than padding) keeps the bar and the items themselves exactly the same size.
@@ -92,7 +70,6 @@ class FloatingBottomNavigationView @JvmOverloads constructor(
 				val labeled by labeledState.collectAsState()
 				val navColors by navColorsState.collectAsState()
 				val showContinue by continueVisibleState.collectAsState()
-				val glass by glassState.collectAsState()
 				Box(
 					modifier = Modifier
 						.fillMaxWidth()
@@ -104,7 +81,6 @@ class FloatingBottomNavigationView @JvmOverloads constructor(
 						selectedId = selectedId,
 						showLabels = labeled,
 						colors = navColors,
-						glass = glass,
 						onItemSelected = { id -> this@FloatingBottomNavigationView.selectedItemId = id },
 						onItemReselected = { id ->
 							val menuItem = menu.findItem(id) ?: return@FloatingNavBar
@@ -267,6 +243,5 @@ class FloatingBottomNavigationView @JvmOverloads constructor(
 	companion object {
 		const val MAX_RENDERED_ITEMS = 6
 		private const val LEGACY_ITEM_OFFSET_DP = 8f
-		private const val LEGACY_GLASS_ALPHA = 0xD0
 	}
 }

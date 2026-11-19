@@ -1,7 +1,5 @@
 package org.koitharu.kotatsu.favourites.ui.categories.edit
 
-import org.koitharu.kotatsu.core.ui.blur.glassColor
-import org.koitharu.kotatsu.core.ui.blur.GlassWindowEffect
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -162,9 +160,8 @@ private fun SortOrderSheet(
 		onDismissRequest = onDismiss,
 		sheetState = rememberBottomSheetState(SheetValue.Hidden, setOf(SheetValue.Hidden, SheetValue.Expanded)),
 		shape = RoundedCornerShape(topStart = SHEET_CORNER, topEnd = SHEET_CORNER),
-		containerColor = glassColor(MaterialTheme.colorScheme.surfaceContainerLow),
+		containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
 	) {
-		GlassWindowEffect()
 		Column(Modifier.padding(bottom = 24.dp)) {
 			Text(
 				text = stringResource(R.string.sort_order),

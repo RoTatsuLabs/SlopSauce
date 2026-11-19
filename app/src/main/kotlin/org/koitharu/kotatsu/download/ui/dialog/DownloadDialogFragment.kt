@@ -57,7 +57,6 @@ import org.koitharu.kotatsu.core.nav.router
 import org.koitharu.kotatsu.core.prefs.DownloadFormat
 import org.koitharu.kotatsu.core.ui.ComposeAlertDialogFragment
 import org.koitharu.kotatsu.core.ui.dialog.DialogCornerAction
-import org.koitharu.kotatsu.core.ui.blur.glassColor
 import org.koitharu.kotatsu.core.ui.dialog.ExpressiveDialogCard
 import org.koitharu.kotatsu.core.ui.dialog.ExpressiveOptionGroupItem
 import org.koitharu.kotatsu.core.ui.dialog.ExpressivePillButton
@@ -266,7 +265,7 @@ class DownloadDialogFragment : ComposeAlertDialogFragment() {
 						.fillMaxWidth()
 						.heightIn(min = 52.dp)
 						.clip(expressiveGroupItemShape(0, 2))
-						.background(glassColor(colors.background, 0.45f))
+						.background(colors.background)
 						.clickable { startNow = !startNow }
 						.padding(horizontal = 14.dp, vertical = 4.dp),
 					verticalAlignment = Alignment.CenterVertically,
@@ -285,7 +284,7 @@ class DownloadDialogFragment : ComposeAlertDialogFragment() {
 						.padding(top = 2.dp)
 						.fillMaxWidth()
 						.clip(expressiveGroupItemShape(1, 2))
-						.background(glassColor(colors.background, 0.45f)),
+						.background(colors.background),
 				) {
 					Row(
 						modifier = Modifier

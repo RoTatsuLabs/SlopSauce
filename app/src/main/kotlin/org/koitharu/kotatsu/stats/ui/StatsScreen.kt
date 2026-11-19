@@ -1,7 +1,5 @@
 package org.koitharu.kotatsu.stats.ui
 
-import org.koitharu.kotatsu.core.ui.blur.glassColor
-import org.koitharu.kotatsu.core.ui.blur.GlassWindowEffect
 import android.content.res.Resources
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -368,9 +366,8 @@ private fun OtherMangaSheet(
 		onDismissRequest = onDismiss,
 		sheetState = rememberBottomSheetState(SheetValue.Hidden, setOf(SheetValue.Hidden, SheetValue.Expanded)),
 		shape = RoundedCornerShape(topStart = STATS_CARD_CORNER, topEnd = STATS_CARD_CORNER),
-		containerColor = glassColor(MaterialTheme.colorScheme.surfaceContainerLow),
+		containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
 	) {
-		GlassWindowEffect()
 		LazyColumn(
 			contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 32.dp),
 		) {

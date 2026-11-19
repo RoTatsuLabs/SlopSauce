@@ -381,7 +381,6 @@ fun FloatingNavBar(
 	selectedId: Int,
 	showLabels: Boolean,
 	colors: FloatingNavBarColors,
-	glass: Boolean = false,
 	onItemSelected: (Int) -> Unit,
 	onItemReselected: (Int) -> Unit,
 	modifier: Modifier = Modifier,
@@ -391,7 +390,7 @@ fun FloatingNavBar(
 ) {
 	if (items.isEmpty()) return
 	val cs = MaterialTheme.colorScheme
-	val barColor = Color(colors.container).let { if (glass) it.copy(alpha = 0.72f) else it }
+	val barColor = Color(colors.container)
 	val pillColor by animateColorAsState(
 		targetValue = Color(colors.selectedContainer),
 		animationSpec = MotionColorSpec,
@@ -964,25 +963,8 @@ fun FloatingNavBar(
 						modifier = Modifier
 							.matchParentSize()
 							.background(color = barColor, shape = BarShape)
-							.border(
-								width = 1.dp,
-								color = if (glass) Color.White.copy(alpha = 0.22f) else cs.outlineVariant,
-								shape = BarShape,
-							),
+							.border(width = 1.dp, color = cs.outlineVariant, shape = BarShape),
 					)
-					if (glass) {
-						// A faint sheen from the top edge, so the pill reads as a pane of glass.
-						Spacer(
-							modifier = Modifier
-								.matchParentSize()
-								.background(
-									brush = androidx.compose.ui.graphics.Brush.verticalGradient(
-										listOf(Color.White.copy(alpha = 0.12f), Color.Transparent),
-									),
-									shape = BarShape,
-								),
-						)
-					}
 					Row(
 						modifier = Modifier
 							.heightIn(min = 64.dp)

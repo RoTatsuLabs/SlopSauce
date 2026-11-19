@@ -2,7 +2,6 @@ package org.koitharu.kotatsu.core.ui.menu
 
 import android.annotation.SuppressLint
 import android.graphics.Rect
-import android.os.Build
 import android.graphics.drawable.Drawable
 import android.view.Menu
 import android.view.MenuInflater
@@ -42,15 +41,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import org.koitharu.kotatsu.core.ui.blur.isGlassLookOn
-import org.koitharu.kotatsu.core.ui.blur.WINDOW_BLUR_DP
-import org.koitharu.kotatsu.core.ui.blur.RegionBlur
-import org.koitharu.kotatsu.core.ui.blur.FROSTED_ALPHA
-import org.koitharu.kotatsu.core.ui.blur.glassBlurScale
-import org.koitharu.kotatsu.core.ui.blur.glassAlpha
-import androidx.compose.ui.layout.boundsInWindow
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.foundation.border
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
@@ -205,21 +195,6 @@ fun showExpressiveMenu(
 		// @color/selector_overlay, the old row selector.
 		highlight = Color(ColorUtils.setAlphaComponent(context.getThemeColor(materialR.attr.colorOnSurface), 69)),
 	)
-	// Frosted glass: a see-through card over a blurred page (the blur needs Android 13+).
-	val glass = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && context.isGlassLookOn()
-	val glassColors = if (glass) {
-		MenuColors(colors.content, colors.surface.copy(alpha = context.glassAlpha(FROSTED_ALPHA)), colors.highlight, glass = true)
-	} else {
-		colors
-	}
-	val regionBlur = if (glass) {
-		root.getChildAt(0)?.takeIf { it !== root }?.let {
-			val density = context.resources.displayMetrics.density
-			RegionBlur(it, CardCorner.value * density, WINDOW_BLUR_DP / 2f * density * context.glassBlurScale())
-		}
-	} else {
-		null
-	}
 	fun tinted(drawable: Drawable?) = drawable?.mutate()?.apply { setTint(colors.content.toArgb()) }?.let(::DrawablePainter)
 	fun toEntries(owner: MenuBuilder, items: List<MenuItemImpl>, forceIcons: Boolean): List<MenuEntry> =
 		items.mapIndexed { index, item ->
@@ -259,8 +234,7 @@ fun showExpressiveMenu(
 				backIcon = backIcon,
 				anchor = bounds,
 				safeArea = safeArea?.let { Rect(it.left, it.top, it.right, it.bottom) } ?: Rect(),
-				colors = glassColors,
-				onGlassBounds = { b -> regionBlur?.rect = b?.let { floatArrayOf(it.left, it.top, it.right, it.bottom) } },
+				colors = colors,
 				// The menu is closed on dismiss instead, so tapping outside notifies its owner too, like before.
 				onItemClick = { menu.performItemAction(it, MenuBuilder.FLAG_PERFORM_NO_CLOSE) },
 				onItemHold = { it.action() },
@@ -270,7 +244,6 @@ fun showExpressiveMenu(
 				},
 				onClosed = { wasKeyboard ->
 					overlay.post {
-						regionBlur?.release()
 						root.removeView(overlay)
 						if (wasKeyboard && anchor.isAttachedToWindow) anchor.requestFocus()
 					}
@@ -281,7 +254,7 @@ fun showExpressiveMenu(
 	root.addView(overlay, ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
 }
 
-private class MenuColors(val content: Color, val surface: Color, val highlight: Color, val glass: Boolean = false)
+private class MenuColors(val content: Color, val surface: Color, val highlight: Color)
 
 private enum class CheckMark { NONE, BOX, RADIO }
 
@@ -347,7 +320,6 @@ private fun ExpressiveMenuOverlay(
 	anchor: Rect,
 	safeArea: Rect,
 	colors: MenuColors,
-	onGlassBounds: (androidx.compose.ui.geometry.Rect?) -> Unit,
 	onItemClick: (MenuItem) -> Unit,
 	onItemHold: (MenuHold) -> Unit,
 	onDismiss: () -> Unit,
@@ -412,7 +384,6 @@ private fun ExpressiveMenuOverlay(
 		Layout(
 			content = {
 				MenuCard(
-					onGlassBounds = onGlassBounds,
 					entries = rows,
 					// The row that opened a sub-menu comes back on top of it with a back arrow
 					header = page.opener?.let { opener ->
@@ -511,7 +482,6 @@ private fun ExpressiveMenuOverlay(
 
 @Composable
 private fun MenuCard(
-	onGlassBounds: (androidx.compose.ui.geometry.Rect?) -> Unit,
 	entries: List<MenuEntry>,
 	header: MenuEntry?,
 	onHeaderClick: () -> Unit,
@@ -526,20 +496,6 @@ private fun MenuCard(
 	onItemHold: (MenuHold) -> Unit,
 ) {
 	var cardCoordinates by remember { mutableStateOf<LayoutCoordinates?>(null) }
-	if (colors.glass) {
-		// Blur the page behind the card only once it is fully open, and stop as soon as it starts to fold.
-		LaunchedEffect(Unit) {
-			snapshotFlow {
-				val c = cardCoordinates
-				if (c != null && c.isAttached && widthProgress() >= 0.999f && heightProgress() >= 0.999f && surfaceAlpha() >= 0.99f) {
-					c.boundsInWindow()
-				} else {
-					null
-				}
-			}.collect(onGlassBounds)
-		}
-		DisposableEffect(Unit) { onDispose { onGlassBounds(null) } }
-	}
 	val focusRequester = remember { FocusRequester() }
 	val firstFocusable = entries.indexOfFirst { it.isEnabled }
 	// The old rows' text resolved to the theme's textAppearanceBodyLarge (gflex_body 16sp), same as this.
@@ -559,7 +515,6 @@ private fun MenuCard(
 				alpha = surfaceAlpha()
 			}
 			.background(colors.surface)
-			.then(if (colors.glass) Modifier.border(1.dp, Color.White.copy(alpha = 0.16f), RoundedCornerShape(CardCorner)) else Modifier)
 			// Opening a sub-menu shrinks the card to its rows; inside the layer so its shadow is never clipped.
 			.animateContentSize(openHeightSpec())
 			.pointerInput(Unit) {}, // taps on the padding must not reach the dismiss layer

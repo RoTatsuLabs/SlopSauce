@@ -245,8 +245,6 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), AppBarOwner, BottomNav
 			barBlur = BarBlur(viewBinding.container, viewBinding.bottomNav)
 		}
 		settings.observe(AppSettings.KEY_BAR_BLUR).observe(this) { onBarBlurChanged() }
-		settings.observe(AppSettings.KEY_FROSTED_GLASS).observe(this) { onBarBlurChanged() }
-		settings.observe(AppSettings.KEY_FROSTED_GLASS_LEVEL).observe(this) { onBarBlurChanged() }
 		setupContainerInsetsListener()
 		viewBinding.searchView.addTransitionListener(this)
 		viewBinding.searchView.addTransitionListener(exitCallback)
@@ -674,16 +672,9 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), AppBarOwner, BottomNav
 
 	private fun onBarBlurChanged() {
 		val blur = barBlur
-		val bars = settings.isBarBlurEnabled
-		val frosted = settings.isFrostedGlassEnabled
-		// Two separate switches share the blur: "Blur behind bars" (status bar and the nav pill) and
-		// "Frosted glass" (the nav bar as a see-through pane). Either one needs it running.
-		blur?.statusEnabled = bars
-		blur?.legacyBarBlur = frosted
-		blur?.isEnabled = bars || frosted
+		blur?.isEnabled = settings.isBarBlurEnabled
 		// The blur brings its own status bar fade; the plain scrim is the fallback.
-		viewBinding.statusBarScrim.isVisible = blur == null || !bars
-		viewBinding.bottomNav?.isGlass = frosted && blur != null
+		viewBinding.statusBarScrim.isVisible = blur?.isEnabled != true
 	}
 
 	private fun updateContainerBottomMargin() {

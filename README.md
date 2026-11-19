@@ -76,7 +76,6 @@ ShotenSauce is a personal fork, built for my own use and shared as is. It takes 
 - Auto-track favourites: favourites are tracked on every tracker you use, with your reading progress. Unsure matches wait for your review.
 - Tracker import: pull covers, titles, descriptions, genres and more from a tracker into a manga, field by field.
 - Blur sensitive covers: 18+ titles and genres you pick are blurred everywhere. Hold a cover to peek.
-- Frosted glass: see-through dialogs, sheets, menus and bars with an adjustable blur strength.
 - Custom fonts: import your own .ttf or .otf fonts and use them across the whole app.
 - Telegram and selective backups: send backups to your own Telegram chat and choose what goes in them.
 
