@@ -56,6 +56,9 @@ import org.koitharu.kotatsu.settings.compose.BaseComposeSettingsFragment
 import org.koitharu.kotatsu.settings.compose.DropSauceTheme
 import org.koitharu.kotatsu.settings.compose.ListSettingsItem
 import org.koitharu.kotatsu.settings.compose.SettingsGroup
+import org.koitharu.kotatsu.core.model.FavouriteCategory
+import org.koitharu.kotatsu.settings.compose.rememberStringSetPref
+import org.koitharu.kotatsu.settings.compose.MultiSelectSettingsItem
 import org.koitharu.kotatsu.settings.compose.SettingsScaffold
 import org.koitharu.kotatsu.settings.compose.SliderSettingsItem
 import org.koitharu.kotatsu.settings.compose.SwitchSettingsItem
@@ -117,6 +120,7 @@ class DownloadsSettingsFragment :
 	private val storageSummary = MutableStateFlow<String?>(null)
 	private val directoryCount = MutableStateFlow(0)
 	private val pagesDirSummary = MutableStateFlow<String?>(null)
+	private val categories = MutableStateFlow<List<FavouriteCategory>>(emptyList())
 	private val dozeAvailable = MutableStateFlow(false)
 
 	private val pickFileTreeLauncher = OpenDocumentTreeHelper(this) {
@@ -142,6 +146,8 @@ class DownloadsSettingsFragment :
 					directoryCount = directoryCount.asStateFlow(),
 					pagesDirSummary = pagesDirSummary.asStateFlow(),
 					dozeAvailable = dozeAvailable.asStateFlow(),
+					categories = categories.asStateFlow(),
+					onDownloadCategoriesChange = ::setNewChaptersDownloadCategories,
 					onPickLocalManga = { router.openDirectoriesSettings() },
 					onPickLocalStorage = { router.showDirectorySelectDialog() },
 					onMeteredChanged = { updateDownloadsConstraints() },
@@ -158,6 +164,15 @@ class DownloadsSettingsFragment :
 		settings.subscribe(this)
 		refreshAsync()
 		dozeAvailable.value = isDozeIgnoreAvailable()
+		viewLifecycleOwner.lifecycleScope.launch {
+			favouritesRepository.observeCategories().collect { categories.value = it }
+		}
+	}
+
+	private fun setNewChaptersDownloadCategories(ids: Set<Long>) {
+		viewLifecycleOwner.lifecycleScope.launch(Dispatchers.Default) {
+			favouritesRepository.setNewChaptersDownloadCategories(ids)
+		}
 	}
 
 	override fun onDestroyView() {
@@ -509,6 +524,8 @@ private fun DownloadsScreen(
 	directoryCount: StateFlow<Int>,
 	pagesDirSummary: StateFlow<String?>,
 	dozeAvailable: StateFlow<Boolean>,
+	categories: StateFlow<List<FavouriteCategory>>,
+	onDownloadCategoriesChange: (Set<Long>) -> Unit,
 	onPickLocalManga: () -> Unit,
 	onPickLocalStorage: () -> Unit,
 	onMeteredChanged: () -> Unit,
@@ -521,6 +538,16 @@ private fun DownloadsScreen(
 	val dirCount by directoryCount.collectAsState()
 	val pagesDir by pagesDirSummary.collectAsState()
 	val showDoze by dozeAvailable.collectAsState()
+	val favouriteCategories by categories.collectAsState()
+	val categoryEntries = remember(favouriteCategories) { favouriteCategories.map { it.title } }
+	val categoryValues = remember(favouriteCategories) { favouriteCategories.map { it.id.toString() } }
+	val selectedDownloadValues = remember(favouriteCategories) {
+		favouriteCategories
+			.filter { it.isNewChaptersDownloadEnabled }
+			.mapTo(LinkedHashSet()) { it.id.toString() }
+	}
+	val trackerEnabled by rememberBooleanPref(AppSettings.KEY_TRACKER_ENABLED, true)
+	val trackSources by rememberStringSetPref(AppSettings.KEY_TRACK_SOURCES, setOf(AppSettings.TRACK_FAVOURITES))
 	val downloadFormats = remember {
 		ctx.resources.getStringArray(R.array.download_formats).toList()
 	}
@@ -708,6 +735,27 @@ private fun DownloadsScreen(
 						icon = R.drawable.ic_wifi,
 						enabled = autoDownloadNext,
 						shape = pos.shape,
+					)
+				}
+				item { pos ->
+					MultiSelectSettingsItem(
+						title = stringResource(R.string.download_new_chapters),
+						entries = categoryEntries,
+						entryValues = categoryValues,
+						selectedValues = selectedDownloadValues,
+						onValuesChange = { values ->
+							onDownloadCategoriesChange(values.mapNotNull { it.toLongOrNull() }.toSet())
+						},
+						icon = R.drawable.ic_download,
+						shape = pos.shape,
+						enabled = trackerEnabled &&
+							AppSettings.TRACK_FAVOURITES in trackSources &&
+							favouriteCategories.isNotEmpty(),
+						emptySummary = if (trackerEnabled && AppSettings.TRACK_FAVOURITES in trackSources) {
+							null
+						} else {
+							stringResource(R.string.download_new_chapters_needs_tracker)
+						},
 					)
 				}
 			}

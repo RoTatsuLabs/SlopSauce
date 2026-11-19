@@ -35,12 +35,6 @@ class TrackerSettingsViewModel @Inject constructor(
 		}
 	}
 
-	fun setNewChaptersDownloadCategories(ids: Set<Long>) {
-		launchJob(Dispatchers.Default) {
-			favouritesRepository.setNewChaptersDownloadCategories(ids)
-		}
-	}
-
 	private fun migrateLegacyDownloadStrategy() {
 		if (settings.consumeLegacyTrackerDownloadStrategy()) {
 			launchJob(Dispatchers.Default) {

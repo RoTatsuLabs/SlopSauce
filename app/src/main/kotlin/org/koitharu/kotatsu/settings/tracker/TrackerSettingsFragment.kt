@@ -86,7 +86,6 @@ class TrackerSettingsFragment : BaseComposeSettingsFragment(R.string.check_for_n
 					categories = categories,
 					dozeAvailable = dozeAvailable,
 					onTrackCategoriesChange = viewModel::setTrackingCategories,
-					onDownloadCategoriesChange = viewModel::setNewChaptersDownloadCategories,
 					onNotificationsSettings = ::openNotificationsSettings,
 					onTrackerDebug = {
 						startActivity(Intent(requireContext(), TrackerDebugActivity::class.java))
@@ -142,7 +141,6 @@ private fun TrackerScreen(
 	categories: List<FavouriteCategory>,
 	dozeAvailable: Boolean,
 	onTrackCategoriesChange: (Set<Long>) -> Unit,
-	onDownloadCategoriesChange: (Set<Long>) -> Unit,
 	onNotificationsSettings: () -> Unit,
 	onTrackerDebug: () -> Unit,
 	onIgnoreDoze: () -> Unit,
@@ -176,11 +174,6 @@ private fun TrackerScreen(
 	val selectedTrackValues = remember(categories) {
 		categories
 			.filter { it.isTrackingEnabled }
-			.mapTo(LinkedHashSet()) { it.id.toString() }
-	}
-	val selectedDownloadValues = remember(categories) {
-		categories
-			.filter { it.isNewChaptersDownloadEnabled }
 			.mapTo(LinkedHashSet()) { it.id.toString() }
 	}
 
@@ -318,21 +311,6 @@ private fun TrackerScreen(
 
 						shape = pos.shape,
 						enabled = enabled,
-					)
-				}
-				item { pos ->
-					MultiSelectSettingsItem(
-						title = stringResource(R.string.download_new_chapters),
-						entries = categoryEntries,
-						entryValues = categoryValues,
-						selectedValues = selectedDownloadValues,
-						onValuesChange = { values ->
-							onDownloadCategoriesChange(values.mapNotNull { it.toLongOrNull() }.toSet())
-						},
-						icon = R.drawable.ic_download,
-						
-						shape = pos.shape,
-						enabled = categoriesEnabled && categories.isNotEmpty(),
 					)
 				}
 				item { pos ->
