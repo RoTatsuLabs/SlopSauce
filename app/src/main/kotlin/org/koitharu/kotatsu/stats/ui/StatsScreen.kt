@@ -56,6 +56,7 @@ import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.crossfade
 import org.koitharu.kotatsu.R
+import org.koitharu.kotatsu.core.ui.image.coverBlur
 import org.koitharu.kotatsu.core.ui.util.RoundedTopShape
 import org.koitharu.kotatsu.core.model.FavouriteCategory
 import org.koitharu.kotatsu.core.util.ext.mangaSourceExtra
@@ -436,7 +437,8 @@ private fun MangaCover(manga: Manga, imageLoader: ImageLoader) {
 		contentScale = ContentScale.Crop,
 		modifier = Modifier
 			.fillMaxSize()
-			.clip(RoundedCornerShape(14.dp)),
+			.clip(RoundedCornerShape(14.dp))
+			.coverBlur(manga),
 	)
 }
 

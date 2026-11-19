@@ -1,6 +1,7 @@
 package org.koitharu.kotatsu.favourites.ui.duplicates
 
 import android.view.View
+import org.koitharu.kotatsu.core.ui.image.coverBlur
 import org.koitharu.kotatsu.core.ui.menu.MenuPopup
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -313,7 +314,8 @@ private fun Cover(card: DuplicateCardModel, imageLoader: ImageLoader) {
 			modifier = Modifier
 				.width(92.dp)
 				.aspectRatio(CoverRatio)
-				.clip(RoundedCornerShape(18.dp)),
+				.clip(RoundedCornerShape(18.dp))
+				.coverBlur(card.manga),
 		)
 		val progress = card.duplicate.progress
 		if (ReadingProgress.isValid(progress) && progress > 0f) {

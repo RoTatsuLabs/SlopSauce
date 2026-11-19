@@ -84,6 +84,7 @@ fun feedItemAD(
 			}
 		}
 		binding.imageViewCover.setImageAsync(item.imageUrl, item.manga.source)
+		binding.imageViewCover.setBlurSubject(item.manga)
 		binding.textViewTitle.text = item.title
 		val chapters = item.chapters
 		// a single chapter always shows its name; multiple collapse into a "N new chapters" summary

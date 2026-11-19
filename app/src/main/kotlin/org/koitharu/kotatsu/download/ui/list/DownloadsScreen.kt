@@ -4,6 +4,7 @@ import android.text.format.Formatter
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
+import org.koitharu.kotatsu.core.ui.image.coverBlur
 import org.koitharu.kotatsu.core.ui.menu.PopupEntry
 import org.koitharu.kotatsu.core.ui.menu.PopupMenuBox
 import androidx.compose.foundation.background
@@ -535,7 +536,7 @@ private fun DownloadRow(
 						imageLoader = imageLoader,
 						contentDescription = null,
 						contentScale = ContentScale.Crop,
-						modifier = Modifier.fillMaxSize(),
+						modifier = Modifier.fillMaxSize().coverBlur(manga),
 					)
 				}
 				if (isSelected) {

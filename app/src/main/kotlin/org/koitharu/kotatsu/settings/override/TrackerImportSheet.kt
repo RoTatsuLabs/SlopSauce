@@ -53,6 +53,7 @@ import coil3.request.crossfade
 import android.content.Context
 import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.core.model.titleResId
+import org.koitharu.kotatsu.core.ui.image.coverBlur
 import org.koitharu.kotatsu.parsers.model.ContentRating
 import org.koitharu.kotatsu.parsers.model.MangaState
 import org.koitharu.kotatsu.scrobbling.common.domain.model.ScrobblerMangaStatus
@@ -270,7 +271,8 @@ private fun FieldRow(
 						modifier = Modifier
 							.size(width = 34.dp, height = 48.dp)
 							.clip(RoundedCornerShape(8.dp))
-							.background(MaterialTheme.colorScheme.surfaceContainerHighest),
+							.background(MaterialTheme.colorScheme.surfaceContainerHighest)
+							.coverBlur(manga),
 					)
 					Spacer(Modifier.width(12.dp))
 				}

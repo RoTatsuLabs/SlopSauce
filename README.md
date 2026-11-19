@@ -76,6 +76,7 @@ SlopSauce is a personal fork, built for my own use and shared as is. It takes no
 - Backup contents: pick what goes into a backup, such as only your library. Restore reads what is inside, and periodic and Telegram backups each keep their own choice.
 - Download ahead: queue the next chapters while you read, with a count you set. It stays off in incognito mode.
 - Hide favourites: hide titles you already favourited from source lists, in Settings > Appearance.
+- Blur sensitive covers: covers of 18+ comics and novels, plus any genres you list, are blurred everywhere. Hold a cover to peek. Turn it on in Settings > Appearance.
 - Faster downloads: several pages download at once, with a limit per website. Pick how many pages and how many manga download together in Settings > Downloads.
 - Download manager: sections and filters, sorting, a queue you can reorder by dragging or step by step, charging-only downloads, retries that wait longer each time, per-source speed and auto-delete, a storage summary, one history entry per manga, "download missing chapters", live speed, time left, pause and resume for one or all, retry for all failed, and a notification that shows the total.
 - Parallel page progress: the progress bar shows each page of the chapter being downloaded, with the ones in progress moving.

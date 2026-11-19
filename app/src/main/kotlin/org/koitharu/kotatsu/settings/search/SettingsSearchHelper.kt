@@ -89,6 +89,8 @@ class SettingsSearchHelper @Inject constructor(
 				addItem(AppSettings.KEY_GRID_SIZE, R.string.grid_size, breadcrumbs = crumbs, fragmentClass = AppearanceSettingsFragment::class.java)
 				addItem(AppSettings.KEY_QUICK_FILTER, R.string.show_quick_filters, R.string.show_quick_filters_summary, crumbs, AppearanceSettingsFragment::class.java)
 				addItem(AppSettings.KEY_HIDE_FAVOURITES_IN_BROWSE, R.string.hide_favourites, R.string.hide_favourites_summary, crumbs, AppearanceSettingsFragment::class.java)
+				addItem(AppSettings.KEY_BLUR_SENSITIVE_COVERS, R.string.blur_sensitive_covers, R.string.blur_sensitive_covers_summary, crumbs, AppearanceSettingsFragment::class.java)
+				addItem(AppSettings.KEY_BLUR_COVER_GENRES, R.string.blur_cover_genres, R.string.blur_cover_genres_summary, crumbs, AppearanceSettingsFragment::class.java)
 				addItem(AppSettings.KEY_LIST_CHECKPOINT, R.string.list_checkpoint_settings, R.string.list_checkpoint_settings_summary, crumbs, AppearanceSettingsFragment::class.java)
 				addItem(AppSettings.KEY_PROGRESS_INDICATORS, R.string.show_reading_indicators, breadcrumbs = crumbs, fragmentClass = AppearanceSettingsFragment::class.java)
 				addItem(AppSettings.KEY_MANGA_LIST_BADGES, R.string.badges_in_lists, breadcrumbs = crumbs, fragmentClass = AppearanceSettingsFragment::class.java, keywordArrayRes = intArrayOf(R.array.list_badges))

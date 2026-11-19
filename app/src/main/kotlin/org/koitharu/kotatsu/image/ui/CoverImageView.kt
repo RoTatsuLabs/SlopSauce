@@ -1,7 +1,11 @@
 package org.koitharu.kotatsu.image.ui
 
 import android.content.Context
+import android.content.SharedPreferences
+import android.graphics.RenderEffect
+import android.graphics.Shader
 import android.graphics.drawable.LayerDrawable
+import android.os.Build
 import android.util.AttributeSet
 import android.view.Gravity
 import android.view.ViewGroup
@@ -12,6 +16,8 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.withStyledAttributes
 import androidx.core.graphics.ColorUtils
 import androidx.core.graphics.drawable.toDrawable
+import androidx.preference.PreferenceManager
+import coil3.request.Disposable
 import coil3.network.HttpException
 import coil3.request.ErrorResult
 import coil3.request.ImageRequest
@@ -28,7 +34,9 @@ import org.koitharu.kotatsu.bookmarks.domain.Bookmark
 import org.koitharu.kotatsu.core.exceptions.CloudFlareProtectedException
 import org.koitharu.kotatsu.core.exceptions.UnsupportedSourceException
 import org.koitharu.kotatsu.core.image.CoilImageView
+import org.koitharu.kotatsu.core.prefs.AppSettings
 import org.koitharu.kotatsu.core.ui.image.AnimatedPlaceholderDrawable
+import org.koitharu.kotatsu.core.ui.image.CoverBlur
 import org.koitharu.kotatsu.core.ui.image.TextDrawable
 import org.koitharu.kotatsu.core.ui.image.TrimTransformation
 import org.koitharu.kotatsu.core.util.ext.bookmarkExtra
@@ -85,6 +93,70 @@ class CoverImageView @JvmOverloads constructor(
 		addImageRequestListener(ErrorForegroundListener())
 	}
 
+	// "Blur sensitive covers": the manga this cover shows, whether it is blurred now, and whether a
+	// held finger is letting it through for the moment.
+	private var blurSubject: Manga? = null
+	private var isBlurred = false
+	private var isPeeking = false
+	private val peekRunnable = Runnable {
+		isPeeking = true
+		refreshBlur()
+	}
+	private val blurPrefListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+		if (key == AppSettings.KEY_BLUR_SENSITIVE_COVERS || key == AppSettings.KEY_BLUR_COVER_GENRES) {
+			refreshBlur()
+		}
+	}
+
+	/** Sets which manga the cover belongs to, for covers loaded some other way than from a manga. */
+	fun setBlurSubject(manga: Manga?) {
+		blurSubject = manga
+		isPeeking = false
+		removeCallbacks(peekRunnable)
+		refreshBlur()
+	}
+
+	private fun refreshBlur() {
+		val blur = !isPeeking && CoverBlur.shouldBlur(context, blurSubject)
+		if (blur == isBlurred) return
+		isBlurred = blur
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+			val radius = CoverBlur.RADIUS_DP * resources.displayMetrics.density
+			setRenderEffect(if (blur) RenderEffect.createBlurEffect(radius, radius, Shader.TileMode.CLAMP) else null)
+		} else if (blur) {
+			setColorFilter(0xF2202020.toInt(), android.graphics.PorterDuff.Mode.SRC_ATOP)
+		} else {
+			clearColorFilter()
+		}
+	}
+
+	// A parent that is pressed passes the state to children that cannot be pressed themselves, so
+	// this fires for a hold anywhere on the item without taking the touch away from it.
+	override fun setPressed(pressed: Boolean) {
+		super.setPressed(pressed)
+		if (pressed && isBlurred) {
+			postDelayed(peekRunnable, CoverBlur.PEEK_DELAY_MS)
+		} else if (!pressed) {
+			removeCallbacks(peekRunnable)
+			if (isPeeking) {
+				isPeeking = false
+				refreshBlur()
+			}
+		}
+	}
+
+	override fun onAttachedToWindow() {
+		super.onAttachedToWindow()
+		PreferenceManager.getDefaultSharedPreferences(context).registerOnSharedPreferenceChangeListener(blurPrefListener)
+		refreshBlur()
+	}
+
+	override fun onDetachedFromWindow() {
+		PreferenceManager.getDefaultSharedPreferences(context).unregisterOnSharedPreferenceChangeListener(blurPrefListener)
+		removeCallbacks(peekRunnable)
+		super.onDetachedFromWindow()
+	}
+
 	override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
 		super.onMeasure(widthMeasureSpec, heightMeasureSpec)
 		if (!hasAspectRatio) {
@@ -120,33 +192,42 @@ class CoverImageView @JvmOverloads constructor(
 			.build(),
 	)
 
-	fun setImageAsync(cover: Cover?) = enqueueRequest(
-		newRequestBuilder()
-			.data(cover?.url)
-			.mangaSourceExtra(cover?.mangaSource)
-			.build(),
-	)
+	fun setImageAsync(cover: Cover?): Disposable {
+		setBlurSubject(null)
+		return enqueueRequest(
+			newRequestBuilder()
+				.data(cover?.url)
+				.mangaSourceExtra(cover?.mangaSource)
+				.build(),
+		)
+	}
 
 	fun setImageAsync(
 		coverUrl: String?,
 		manga: Manga?,
-	) = enqueueRequest(
-		newRequestBuilder()
-			.data(coverUrl)
-			.mangaExtra(manga)
-			.stableMangaCoverKey(manga, coverUrl)
-			.build(),
-	)
+	): Disposable {
+		setBlurSubject(manga)
+		return enqueueRequest(
+			newRequestBuilder()
+				.data(coverUrl)
+				.mangaExtra(manga)
+				.stableMangaCoverKey(manga, coverUrl)
+				.build(),
+		)
+	}
 
 	fun setImageAsync(
 		coverUrl: String?,
 		source: MangaSource,
-	) = enqueueRequest(
-		newRequestBuilder()
-			.data(coverUrl)
-			.mangaSourceExtra(source)
-			.build(),
-	)
+	): Disposable {
+		setBlurSubject(null)
+		return enqueueRequest(
+			newRequestBuilder()
+				.data(coverUrl)
+				.mangaSourceExtra(source)
+				.build(),
+		)
+	}
 
 	fun setImageAsync(
 		bookmark: Bookmark

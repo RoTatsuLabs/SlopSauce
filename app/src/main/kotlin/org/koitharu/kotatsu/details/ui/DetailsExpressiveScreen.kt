@@ -37,6 +37,7 @@ import coil3.request.ImageRequest
 import coil3.request.crossfade
 import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.core.prefs.DetailsUiMode
+import org.koitharu.kotatsu.core.ui.image.coverBlur
 import org.koitharu.kotatsu.core.ui.widgets.ChipsView
 import org.koitharu.kotatsu.core.util.ext.mangaSourceExtra
 import org.koitharu.kotatsu.details.data.MangaDetails
@@ -287,7 +288,8 @@ private fun ExpressiveBackdrop(
 			contentScale = ContentScale.Crop,
 			modifier = Modifier
 				.fillMaxSize()
-				.then(blurMod),
+				.then(blurMod)
+				.coverBlur(manga),
 		)
 		Box(
 			modifier = Modifier

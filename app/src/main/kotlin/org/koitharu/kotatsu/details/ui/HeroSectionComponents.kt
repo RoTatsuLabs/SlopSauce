@@ -5,6 +5,7 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.runtime.getValue
 import org.koitharu.kotatsu.core.prefs.AppSettings
+import org.koitharu.kotatsu.core.ui.image.coverBlur
 import org.koitharu.kotatsu.settings.compose.rememberBooleanPref
 import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.layout.Arrangement
@@ -267,7 +268,8 @@ internal fun CoverCard(
 				contentScale = ContentScale.Crop,
 				modifier = Modifier
 					.fillMaxSize()
-					.clickable { actions.onCoverClick(manga) },
+					.clickable { actions.onCoverClick(manga) }
+					.coverBlur(manga),
 			)
 			if (nsfwLabel != null) {
 				Surface(

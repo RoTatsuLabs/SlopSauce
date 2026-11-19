@@ -589,6 +589,10 @@
     <string name="epub_text_size">Text size</string>
 	<string name="epub_font_family">Font</string>
 	<string name="epub_font_app">App</string>
+	<string name="blur_sensitive_covers">Blur sensitive covers</string>
+	<string name="blur_sensitive_covers_summary">Blur the covers of 18+ comics and novels and of the genres you pick. Hold a cover to peek.</string>
+	<string name="blur_cover_genres">Blurred genres</string>
+	<string name="blur_cover_genres_summary">Also blur covers with these genres, like Gore or Horror</string>
 	<string name="download_new_chapters_needs_tracker">Needs Check for new chapters on, with favourites tracked</string>
 	<string name="epub_font_serif">Serif</string>
 	<string name="epub_font_sans">Sans</string>

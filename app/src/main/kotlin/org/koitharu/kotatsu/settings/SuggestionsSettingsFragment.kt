@@ -236,11 +236,12 @@ private fun SuggestionsScreen(
 }
 
 @Composable
-private fun TagsInputDialog(
+internal fun TagsInputDialog(
 	initialValue: String,
 	provider: AutoCompleteProvider,
 	onConfirm: (String) -> Unit,
 	onDismiss: () -> Unit,
+	title: String = stringResource(R.string.suggestions_excluded_genres),
 ) {
 	var editText by remember { mutableStateOf<MultiAutoCompleteTextView?>(null) }
 	Dialog(
@@ -249,7 +250,7 @@ private fun TagsInputDialog(
 	) {
 		ExpressiveDialogCard(
 			icon = painterResource(R.drawable.ic_tag),
-			title = stringResource(R.string.suggestions_excluded_genres),
+			title = title,
 			cornerAction = DialogCornerAction(
 				icon = painterResource(R.drawable.ic_check),
 				label = stringResource(android.R.string.ok),

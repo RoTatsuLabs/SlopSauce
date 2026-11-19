@@ -6,6 +6,7 @@ All notable changes to SlopSauce are listed here, newest version first. Entries 
 
 ### Additions
 
+- Blur sensitive covers: covers of 18+ titles and the genres you choose are blurred in lists, history, the feed and details, and holding a cover lets you peek.
 - Frosted glass has a strength slider, from Subtle to Intense, that sets how much the glass blurs and how much shows through.
 - Hold "Track untracked favourites" to link the titles that need review to their nearest tracker entry.
 - Downloads redesign: filter chips, sections, sorting, a menu on every row, move up and down in the queue, and retry all failed.

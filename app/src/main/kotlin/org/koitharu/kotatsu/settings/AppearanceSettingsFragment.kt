@@ -51,6 +51,7 @@ import org.koitharu.kotatsu.parsers.util.toTitleCase
 import org.koitharu.kotatsu.settings.appearance.FontSettingsFragment
 import org.koitharu.kotatsu.settings.appearance.PreviewSettingsFragment
 import org.koitharu.kotatsu.settings.compose.ActionSettingsItem
+import org.koitharu.kotatsu.settings.utils.TagsAutoCompleteProvider
 import org.koitharu.kotatsu.settings.compose.BaseComposeSettingsFragment
 import org.koitharu.kotatsu.settings.compose.ColorSchemePickerRow
 import org.koitharu.kotatsu.settings.compose.DropSauceTheme
@@ -86,6 +87,9 @@ class AppearanceSettingsFragment : BaseComposeSettingsFragment(R.string.appearan
 	@Inject
 	lateinit var appShortcutManager: AppShortcutManager
 
+	@Inject
+	lateinit var tagsCompletionProvider: TagsAutoCompleteProvider
+
 	private var pendingProtectState: Boolean? = null
 
 	// Mirror the legacy fragment behavior: theme / AMOLED toggles must trigger an activity
@@ -118,6 +122,7 @@ class AppearanceSettingsFragment : BaseComposeSettingsFragment(R.string.appearan
 		setContent {
 			DropSauceTheme {
 				AppearanceScreen(
+					tagsProvider = tagsCompletionProvider,
 					dynamicShortcutsAvailable = appShortcutManager.isDynamicShortcutsAvailable(),
 					onOpenLocaleSettings = ::openSystemLocaleSettings,
 					onOpenDetailsAppearance = {
@@ -229,6 +234,7 @@ class AppearanceSettingsFragment : BaseComposeSettingsFragment(R.string.appearan
 
 @Composable
 private fun AppearanceScreen(
+	tagsProvider: TagsAutoCompleteProvider,
 	dynamicShortcutsAvailable: Boolean,
 	onOpenLocaleSettings: () -> Unit,
 	onOpenDetailsAppearance: () -> Unit,
@@ -281,6 +287,9 @@ private fun AppearanceScreen(
 	var amoled by rememberBooleanPref(AppSettings.KEY_THEME_AMOLED, false)
 	var uiScale by rememberIntPref(AppSettings.KEY_UI_SCALE, 100)
 	val fontName by rememberStringPref(AppSettings.KEY_APP_FONT_NAME, "")
+	var blurCovers by rememberBooleanPref(AppSettings.KEY_BLUR_SENSITIVE_COVERS, false)
+	var blurGenres by rememberStringPref(AppSettings.KEY_BLUR_COVER_GENRES, "")
+	var showBlurGenres by remember { mutableStateOf(false) }
 	var hapticFeedback by rememberBooleanPref(AppSettings.KEY_HAPTIC_FEEDBACK, true)
 	var hideStatusBar by rememberBooleanPref(AppSettings.KEY_HIDE_STATUS_BAR, false)
 	var locale by rememberStringPref(AppSettings.KEY_APP_LOCALE, "")
@@ -325,6 +334,17 @@ private fun AppearanceScreen(
 	val protectAppSummary = stringResource(R.string.require_unlock_summary)
 
 	SettingsScaffold {
+		item {
+			if (showBlurGenres) {
+				TagsInputDialog(
+					initialValue = blurGenres,
+					provider = tagsProvider,
+					onConfirm = { blurGenres = it },
+					onDismiss = { showBlurGenres = false },
+					title = stringResource(R.string.blur_cover_genres),
+				)
+			}
+		}
 		// The color scheme picker is its own inline widget (horizontal cards), rendered
 		// directly here rather than via a SettingsGroup row.
 		item {
@@ -498,6 +518,28 @@ private fun AppearanceScreen(
 						onCheckedChange = { hideFavourites = it },
 						icon = R.drawable.ic_heart,
 						shape = pos.shape,
+					)
+				}
+				item { pos ->
+					SwitchSettingsItem(
+						title = stringResource(R.string.blur_sensitive_covers),
+						subtitle = stringResource(R.string.blur_sensitive_covers_summary),
+						checked = blurCovers,
+						onCheckedChange = { blurCovers = it },
+						icon = R.drawable.ic_eye_off,
+						shape = pos.shape,
+					)
+				}
+				item { pos ->
+					ActionSettingsItem(
+						title = stringResource(R.string.blur_cover_genres),
+						subtitle = blurGenres.trimEnd(' ', ',').ifBlank {
+							stringResource(R.string.blur_cover_genres_summary)
+						},
+						icon = R.drawable.ic_tag,
+						shape = pos.shape,
+						enabled = blurCovers,
+						onClick = { showBlurGenres = true },
 					)
 				}
 				item { pos ->

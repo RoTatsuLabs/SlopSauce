@@ -1675,6 +1675,8 @@ class AppSettings @Inject constructor(@ApplicationContext context: Context) {
 		const val KEY_BAR_BLUR = "bar_blur"
 		const val KEY_FROSTED_GLASS = "frosted_glass"
 		const val KEY_FROSTED_GLASS_LEVEL = "frosted_glass_level"
+		const val KEY_BLUR_SENSITIVE_COVERS = "blur_sensitive_covers"
+		const val KEY_BLUR_COVER_GENRES = "blur_cover_genres"
 		const val KEY_MAIN_FAB = "main_fab"
 		const val KEY_UPDATE_PROMPT_DISMISSED = "update_prompt_dismissed"
 		const val KEY_32BIT_COLOR = "enhanced_colors"
