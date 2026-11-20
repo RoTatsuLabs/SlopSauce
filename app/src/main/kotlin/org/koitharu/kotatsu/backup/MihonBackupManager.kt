@@ -501,7 +501,20 @@ class MihonBackupManager @Inject constructor(
     private fun restorePreferences(preferences: List<MihonBackupPreference>) {
         val prefs = PreferenceManager.getDefaultSharedPreferences(context)
         prefs.edit {
+            val existing = prefs.all
             preferences.forEach { pref ->
+                if (pref.key in PROTECTED_PREF_KEYS) return@forEach
+                val current = existing[pref.key]
+                val incoming: Any = when (val v = pref.value) {
+                    is MihonBooleanPreferenceValue -> v.value
+                    is MihonFloatPreferenceValue -> v.value
+                    is MihonIntPreferenceValue -> v.value
+                    is MihonLongPreferenceValue -> v.value
+                    is MihonStringPreferenceValue -> v.value
+                    is MihonStringSetPreferenceValue -> v.value
+                }
+                // Same key, different type: writing it would break our own typed reads.
+                if (current != null && current::class != incoming::class && current !is Set<*>) return@forEach
                 when (val value = pref.value) {
                     is MihonBooleanPreferenceValue -> putBoolean(pref.key, value.value)
                     is MihonFloatPreferenceValue -> putFloat(pref.key, value.value)
@@ -613,6 +626,14 @@ class MihonBackupManager @Inject constructor(
 
   private companion object {
     const val DEFAULT_CATEGORY_TITLE = "Default"
+
+    // Our keys that Mihon also uses, with a different type or meaning.
+    val PROTECTED_PREF_KEYS = setOf(
+      AppSettings.KEY_SHIZUKU_INSTALLER,
+      AppSettings.KEY_PRIVATE_INSTALLER,
+      AppSettings.KEY_AUTO_UPDATE_EXTENSIONS,
+      AppSettings.KEY_EXTENSION_UPDATE_NOTIFICATIONS,
+    )
   }
 }
 

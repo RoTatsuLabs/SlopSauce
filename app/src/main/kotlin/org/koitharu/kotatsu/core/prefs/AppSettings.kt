@@ -753,8 +753,12 @@ class AppSettings @Inject constructor(@ApplicationContext context: Context) {
 		get() = prefs.getBoolean(KEY_SEARCH_LOCAL_ONLY, false)
 		set(value) = prefs.edit { putBoolean(KEY_SEARCH_LOCAL_ONLY, value) }
 
+	// A backup restored from another app can leave a value of the wrong type under one of our keys.
+	private fun safeBoolean(key: String, default: Boolean): Boolean =
+		runCatching { prefs.getBoolean(key, default) }.getOrDefault(default)
+
 	var isShizukuInstallerEnabled: Boolean
-		get() = prefs.getBoolean(KEY_SHIZUKU_INSTALLER, false)
+		get() = safeBoolean(KEY_SHIZUKU_INSTALLER, false)
 		set(value) = prefs.edit {
 			putBoolean(KEY_SHIZUKU_INSTALLER, value)
 			if (!value) putBoolean(KEY_AUTO_UPDATE_EXTENSIONS, false)
@@ -762,14 +766,14 @@ class AppSettings @Inject constructor(@ApplicationContext context: Context) {
 		}
 
 	var isPrivateInstallEnabled: Boolean
-		get() = prefs.getBoolean(KEY_PRIVATE_INSTALLER, false)
+		get() = safeBoolean(KEY_PRIVATE_INSTALLER, false)
 		set(value) = prefs.edit {
 			putBoolean(KEY_PRIVATE_INSTALLER, value)
 			if (value) putBoolean(KEY_SHIZUKU_INSTALLER, false)
 		}
 
 	var isAutoUpdateExtensionsEnabled: Boolean
-		get() = prefs.getBoolean(KEY_AUTO_UPDATE_EXTENSIONS, false)
+		get() = safeBoolean(KEY_AUTO_UPDATE_EXTENSIONS, false)
 		set(value) = prefs.edit { putBoolean(KEY_AUTO_UPDATE_EXTENSIONS, value) }
 
 	/**
@@ -781,7 +785,7 @@ class AppSettings @Inject constructor(@ApplicationContext context: Context) {
 		set(value) = prefs.edit { putBoolean(KEY_EXTENSION_UPDATES_AVAILABLE, value) }
 
 	var isExtensionUpdateNotificationsEnabled: Boolean
-		get() = prefs.getBoolean(KEY_EXTENSION_UPDATE_NOTIFICATIONS, true)
+		get() = safeBoolean(KEY_EXTENSION_UPDATE_NOTIFICATIONS, true)
 		set(value) = prefs.edit { putBoolean(KEY_EXTENSION_UPDATE_NOTIFICATIONS, value) }
 
 	var lastExtensionUpdateNotificationTime: Long
