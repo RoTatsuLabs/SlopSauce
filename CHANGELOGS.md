@@ -16,6 +16,7 @@ All notable changes to ShotenSauce are listed here, newest version first. Entrie
 ### Changes
 
 - The app is now called ShotenSauce.
+- Refreshing a comic also sends your progress to trackers that are behind.
 - Frosted glass is removed, along with its switch and strength slider in Appearance.
 - "Download new chapters" moved from Check new chapters to Downloads, and the page, manga and retry limits sit on their own Speed and retries screen.
 - Plainer wording across downloads. Notifications show the state (downloading, waiting, paused, failed) and download settings are grouped into Storage and Network and speed.
