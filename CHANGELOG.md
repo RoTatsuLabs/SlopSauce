@@ -27,6 +27,7 @@
 - Frosted glass is removed, along with its switch and strength slider in Appearance.
 - "Download new chapters" moved from Check new chapters to Downloads, and the page, manga and retry limits sit on their own Speed and retries screen.
 - Plainer wording across downloads. Notifications show the state (downloading, waiting, paused, failed) and download settings are grouped into Storage and Network and speed.
+- Synced with DropSauce 1.1.5
 
 ### Fixed
 - Restoring a Mihon backup no longer crashes by overwriting settings with the wrong type.
