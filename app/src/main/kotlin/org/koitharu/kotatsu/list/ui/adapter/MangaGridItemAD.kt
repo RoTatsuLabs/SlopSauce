@@ -79,9 +79,10 @@ fun mangaGridItemAD(
 		binding.corners.progressView.setProgress(item.progress, PAYLOAD_PROGRESS_CHANGED in payloads)
 		binding.corners.imageViewPin.isVisible = item.isPinned
 		binding.corners.iconsView.setMangaBadges(item.isSaved, item.isFavorite)
-		binding.textViewFavouriteElsewhere.apply {
+		binding.layoutFavouriteElsewhere.apply {
 			isVisible = item.favouriteElsewhere != null
-			text = item.favouriteElsewhere?.let { context.getString(R.string.in_favourites_from, it) }
+			contentDescription = item.favouriteElsewhere?.let { context.getString(R.string.in_favourites_from, it) }
+			item.favouriteElsewhereSource?.let { binding.imageViewFavouriteElsewhere.setImageAsync(it) }
 			// Sits above the overlaid title so the two never cover each other.
 			updateLayoutParams<FrameLayout.LayoutParams> {
 				bottomMargin = if (isTitleOverCover) overlayBadgeMargin else plainBadgeMargin

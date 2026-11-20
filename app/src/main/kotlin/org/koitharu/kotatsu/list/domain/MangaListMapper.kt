@@ -16,6 +16,7 @@ import org.koitharu.kotatsu.core.prefs.ListMode
 import org.koitharu.kotatsu.core.ui.model.MangaOverride
 import org.koitharu.kotatsu.core.ui.widgets.ChipsView
 import org.koitharu.kotatsu.core.model.MangaSource
+import org.koitharu.kotatsu.parsers.model.MangaSource as ParsersMangaSource
 import org.koitharu.kotatsu.core.model.getTitle
 import org.koitharu.kotatsu.favourites.domain.FavouriteTitleIndex
 import org.koitharu.kotatsu.favourites.domain.FavouritesRepository
@@ -169,6 +170,7 @@ class MangaListMapper @Inject constructor(
 		isTitleOverCover = settings.isTitleOverCover,
 		isGridSpacingIncreased = settings.isGridSpacingIncreased,
 		favouriteElsewhere = favouriteElsewhere(manga, sameTitles),
+		favouriteElsewhereSource = favouriteElsewhereSource(manga, sameTitles),
 	)
 
 	private suspend fun toListModelImpl(
@@ -193,6 +195,11 @@ class MangaListMapper @Inject constructor(
 		if (sameTitles.isEmpty) return null
 		val found = sameTitles.find(manga.id, manga.title, manga.altTitles) ?: return null
 		return MangaSource(found.sourceName).getTitle(context)
+	}
+
+	private fun favouriteElsewhereSource(manga: Manga, sameTitles: FavouriteTitleIndex.Snapshot): ParsersMangaSource? {
+		if (sameTitles.isEmpty) return null
+		return sameTitles.find(manga.id, manga.title, manga.altTitles)?.let { MangaSource(it.sourceName) }
 	}
 
 	private suspend fun getCounter(mangaId: Long, @Options options: Int): Int {

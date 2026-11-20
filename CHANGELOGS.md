@@ -21,6 +21,7 @@ All notable changes to ShotenSauce are listed here, newest version first. Entrie
 - Refreshing a comic also sends your progress to trackers that are behind.
 - The tracker sheet shows your score in the tracker's own scale (like 10/10) next to the stars, and AniList score format changes are picked up on refresh.
 - Tap the score number in the tracker sheet to type an exact score in the tracker's scale.
+- The "In favorites" badge on covers is now a small heart with the source logo instead of text.
 - Frosted glass is removed, along with its switch and strength slider in Appearance.
 - "Download new chapters" moved from Check new chapters to Downloads, and the page, manga and retry limits sit on their own Speed and retries screen.
 - Plainer wording across downloads. Notifications show the state (downloading, waiting, paused, failed) and download settings are grouped into Storage and Network and speed.

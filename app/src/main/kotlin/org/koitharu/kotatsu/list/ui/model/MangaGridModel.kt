@@ -5,6 +5,7 @@ import org.koitharu.kotatsu.list.domain.ReadingProgress
 import org.koitharu.kotatsu.list.ui.ListModelDiffCallback.Companion.PAYLOAD_ANYTHING_CHANGED
 import org.koitharu.kotatsu.list.ui.ListModelDiffCallback.Companion.PAYLOAD_PROGRESS_CHANGED
 import org.koitharu.kotatsu.parsers.model.Manga
+import org.koitharu.kotatsu.parsers.model.MangaSource
 
 data class MangaGridModel(
 	override val manga: Manga,
@@ -19,6 +20,7 @@ data class MangaGridModel(
 	val isPinned: Boolean = false,
 	/** Name of the source this title is already favourited from, when that is not this one. */
 	val favouriteElsewhere: String? = null,
+	val favouriteElsewhereSource: MangaSource? = null,
 ) : MangaListModel() {
 
 	override fun getChangePayload(previousState: ListModel): Any? = when {
@@ -31,7 +33,8 @@ data class MangaGridModel(
 			previousState.isTitleOverCover != isTitleOverCover ||
 			previousState.isGridSpacingIncreased != isGridSpacingIncreased ||
 			previousState.isPinned != isPinned ||
-			previousState.favouriteElsewhere != favouriteElsewhere -> PAYLOAD_ANYTHING_CHANGED
+			previousState.favouriteElsewhere != favouriteElsewhere ||
+			previousState.favouriteElsewhereSource != favouriteElsewhereSource -> PAYLOAD_ANYTHING_CHANGED
 
 		else -> super.getChangePayload(previousState)
 	}
