@@ -90,6 +90,17 @@ jobs:
           java-version: '25'
           cache: gradle
 
+      # The runner sometimes drops the NDK download halfway ("Premature EOF"), so fetch it with retries.
+      # If sdkmanager is missing or still fails, Gradle falls back to its own install.
+      - name: Install NDK
+        run: |
+          NDK="$(sed -nE "s/^[[:space:]]*ndkVersion = '([^']+)'.*/\1/p" app/build.gradle | head -n1)"
+          for attempt in 1 2 3 4; do
+            yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "ndk;${NDK}" && break
+            echo "NDK install attempt ${attempt} failed, retrying"
+            sleep $((attempt * 10))
+          done || true
+
       - name: Build APKs
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
