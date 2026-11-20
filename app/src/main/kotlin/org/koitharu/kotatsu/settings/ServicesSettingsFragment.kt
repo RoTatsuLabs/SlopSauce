@@ -3,6 +3,7 @@ package org.koitharu.kotatsu.settings
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
+import androidx.annotation.StringRes
 import android.view.ViewGroup
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -164,6 +165,17 @@ class ServicesSettingsFragment : BaseComposeSettingsFragment(R.string.services) 
 		}
 	}
 
+	private fun showInfo(@StringRes title: Int, message: String) {
+		val context = context ?: return
+		showConfirmDialog(
+			context = context,
+			icon = R.drawable.ic_sync,
+			title = context.getString(title),
+			message = message,
+			onConfirm = {},
+		)
+	}
+
 	private fun confirmTrackUntracked() {
 		val context = context ?: return
 		viewLifecycleOwner.lifecycleScope.launch {
@@ -171,8 +183,8 @@ class ServicesSettingsFragment : BaseComposeSettingsFragment(R.string.services) 
 			val pending = withContext(Dispatchers.Default) { autoTracker.findPending() }
 			val titles = pending.map { it.mangaId }.distinct().size
 			when {
-				active.isEmpty() -> Snackbar.make(requireView(), R.string.auto_track_no_trackers, Snackbar.LENGTH_LONG).show()
-				titles == 0 -> Snackbar.make(requireView(), R.string.auto_track_nothing, Snackbar.LENGTH_LONG).show()
+				active.isEmpty() -> showInfo(R.string.auto_track_untracked, getString(R.string.auto_track_no_trackers))
+				titles == 0 -> showInfo(R.string.auto_track_untracked, getString(R.string.auto_track_nothing))
 				else -> showConfirmDialog(
 					context = context,
 					icon = R.drawable.ic_sync,
@@ -193,7 +205,7 @@ class ServicesSettingsFragment : BaseComposeSettingsFragment(R.string.services) 
 		viewLifecycleOwner.lifecycleScope.launch {
 			val count = withContext(Dispatchers.Default) { autoTracker.findReviewPending().map { it.mangaId }.distinct().size }
 			if (count == 0) {
-				Snackbar.make(requireView(), R.string.auto_track_no_trackers, Snackbar.LENGTH_LONG).show()
+				showInfo(R.string.auto_track_review, getString(R.string.auto_track_no_trackers))
 				return@launch
 			}
 			showConfirmDialog(
@@ -210,12 +222,12 @@ class ServicesSettingsFragment : BaseComposeSettingsFragment(R.string.services) 
 		val context = context ?: return
 		viewLifecycleOwner.lifecycleScope.launch {
 			if (autoTracker.enabledScrobblers.isEmpty()) {
-				Snackbar.make(requireView(), R.string.auto_track_no_trackers, Snackbar.LENGTH_LONG).show()
+				showInfo(R.string.sync_report, getString(R.string.auto_track_no_trackers))
 				return@launch
 			}
 			val items = withContext(Dispatchers.Default) { syncReport.load() }
 			if (items.isEmpty()) {
-				Snackbar.make(requireView(), R.string.sync_report_empty, Snackbar.LENGTH_LONG).show()
+				showInfo(R.string.sync_report, getString(R.string.sync_report_empty))
 				return@launch
 			}
 			val shown = items.take(SYNC_REPORT_LIMIT)
@@ -255,9 +267,7 @@ class ServicesSettingsFragment : BaseComposeSettingsFragment(R.string.services) 
 					}
 				}
 			}
-			view?.let {
-				Snackbar.make(it, getString(R.string.sync_report_done, done, items.size), Snackbar.LENGTH_LONG).show()
-			}
+			showInfo(R.string.sync_report, getString(R.string.sync_report_done, done, items.size))
 		}
 	}
 
