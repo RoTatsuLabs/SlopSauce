@@ -27,7 +27,6 @@ class DownloadsMenuProvider(
 			R.id.action_cancel_all -> confirmCancelAll()
 			R.id.action_remove_completed -> confirmRemoveCompleted()
 			R.id.action_settings -> activity.router.openDownloadsSetting()
-			R.id.action_retry_failed -> viewModel.models.value.orEmpty().filter { it.canRetry }.forEach { viewModel.retry(it.id) }
 			R.id.action_sort -> viewModel.sort.update { DownloadSort.entries[(it.ordinal + 1) % DownloadSort.entries.size] }
 			else -> return false
 		}
@@ -38,7 +37,7 @@ class DownloadsMenuProvider(
 		super.onPrepareMenu(menu)
 		menu.findItem(R.id.action_pause)?.isVisible = viewModel.hasActiveWorks.value == true
 		menu.findItem(R.id.action_resume)?.isVisible = viewModel.hasPausedWorks.value == true
-		menu.findItem(R.id.action_retry_failed)?.isVisible = viewModel.models.value.orEmpty().any { it.canRetry }
+		menu.findItem(R.id.action_retry_failed)?.isVisible = viewModel.hasFailedWorks.value == true
 		menu.findItem(R.id.action_sort)?.title = activity.getString(
 			R.string.downloads_sort_current,
 			activity.getString(viewModel.sort.value.title),
