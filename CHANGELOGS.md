@@ -16,6 +16,7 @@ All notable changes to ShotenSauce are listed here, newest version first. Entrie
 ### Changes
 
 - The app is now called ShotenSauce.
+- The Themed and Mono app icons (and every themed colour) now use the ShotenSauce logo.
 - Refreshing a comic also sends your progress to trackers that are behind.
 - The tracker sheet shows your score in the tracker's own scale (like 10/10) next to the stars, and AniList score format changes are picked up on refresh.
 - Tap the score number in the tracker sheet to type an exact score in the tracker's scale.
