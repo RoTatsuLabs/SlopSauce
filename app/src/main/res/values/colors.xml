@@ -30,6 +30,7 @@
 	<!-- Icons in the frosted saved/favourite pill over covers -->
 	<color name="list_badge_favourite">#FF8FAB</color>
 	<color name="list_badge_saved">#8FD0FF</color>
+	<color name="list_badge_duplicate">#FFD27A</color>
 
 	<!-- Widget chart label — explicit so the bitmap renderer always gets the right color -->
 </resources>

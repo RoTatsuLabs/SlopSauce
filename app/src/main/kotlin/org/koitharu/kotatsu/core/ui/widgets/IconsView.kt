@@ -13,6 +13,8 @@ import androidx.core.view.isNotEmpty
 import androidx.core.view.isVisible
 import androidx.core.view.updateLayoutParams
 import org.koitharu.kotatsu.R
+import org.koitharu.kotatsu.core.ui.image.FaviconView
+import org.koitharu.kotatsu.parsers.model.MangaSource
 import org.koitharu.kotatsu.history.ui.util.ReadingProgressView
 import kotlin.math.roundToInt
 
@@ -28,8 +30,10 @@ class IconsView @JvmOverloads constructor(
 	private var iconSpacing = 0
 	private var isSmall = false
 	private var iconSize = 0
+	private var sourceView: FaviconView? = null
 	private val savedTint = ContextCompat.getColor(context, R.color.list_badge_saved)
 	private val favouriteTint = ContextCompat.getColor(context, R.color.list_badge_favourite)
+	private val duplicateTint = ContextCompat.getColor(context, R.color.list_badge_duplicate)
 
 	init {
 		context.withStyledAttributes(attrs, R.styleable.IconsView) {
@@ -38,11 +42,18 @@ class IconsView @JvmOverloads constructor(
 		applySize()
 	}
 
-	fun setMangaBadges(isSaved: Boolean, isFavorite: Boolean) {
+	fun setMangaBadges(
+		isSaved: Boolean,
+		isFavorite: Boolean,
+		isDuplicate: Boolean = false,
+		duplicateSource: MangaSource? = null,
+	) {
 		repeat(childCount) { i -> getChildAt(i).isVisible = false }
 		if (isFavorite) addIcon(R.drawable.ic_heart, favouriteTint)
 		if (isSaved) addIcon(R.drawable.ic_storage_filled, savedTint)
-		isVisible = isSaved || isFavorite
+		if (isDuplicate) addIcon(R.drawable.ic_duplicate, duplicateTint)
+		if (isDuplicate && duplicateSource != null) showSource(duplicateSource)
+		isVisible = isSaved || isFavorite || isDuplicate
 	}
 
 	/** Mirrors [ReadingProgressView.setSmall] for compact grid cells. */
@@ -73,10 +84,22 @@ class IconsView @JvmOverloads constructor(
 		imageView.isVisible = true
 	}
 
+	/** The logo of the source the title is already favourited from, always the last icon. */
+	private fun showSource(source: MangaSource) {
+		val view = sourceView ?: FaviconView(context).also {
+			it.importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_NO
+			sourceView = it
+		}
+		if (view.parent != null) removeView(view)
+		addView(view, LayoutParams(iconSize, iconSize).apply { marginStart = iconSpacing })
+		view.setImageAsync(source)
+		view.isVisible = true
+	}
+
 	private fun getNextImageView(): ImageView {
 		repeat(childCount) { i ->
 			val child = getChildAt(i)
-			if (child is ImageView && !child.isVisible) {
+			if (child is ImageView && child !== sourceView && !child.isVisible) {
 				return child
 			}
 		}

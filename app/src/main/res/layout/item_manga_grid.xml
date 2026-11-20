@@ -54,38 +54,6 @@
 			android:textAppearance="@style/TextAppearance.Kotatsu.GridTitle.Overlay"
 			tools:text="@tools:sample/lorem" />
 
-		<LinearLayout
-			android:id="@+id/layout_favourite_elsewhere"
-			android:layout_width="wrap_content"
-			android:layout_height="wrap_content"
-			android:layout_gravity="bottom|start"
-			android:layout_marginStart="8dp"
-			android:layout_marginEnd="8dp"
-			android:layout_marginBottom="8dp"
-			android:background="@drawable/bg_favourite_elsewhere"
-			android:gravity="center_vertical"
-			android:orientation="horizontal"
-			android:paddingHorizontal="6dp"
-			android:paddingVertical="4dp"
-			android:visibility="gone"
-			tools:visibility="visible">
-
-			<ImageView
-				android:layout_width="12dp"
-				android:layout_height="12dp"
-				android:layout_marginEnd="4dp"
-				android:importantForAccessibility="no"
-				android:src="@drawable/ic_heart"
-				app:tint="?attr/colorOnTertiaryContainer" />
-
-			<org.koitharu.kotatsu.core.ui.image.FaviconView
-				android:id="@+id/imageView_favourite_elsewhere"
-				android:layout_width="14dp"
-				android:layout_height="14dp"
-				android:importantForAccessibility="no" />
-
-		</LinearLayout>
-
 		<include
 			android:id="@+id/corners"
 			layout="@layout/layout_cover_corners"
