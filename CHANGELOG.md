@@ -7,6 +7,18 @@
 - Up to 6 sections can be added to the navigation bar
 - App icon picker in settings > appearance: default, mono, or themed to the app's color scheme, following light, dark and black mode
 - Explore can show only manga or only novels (hold the tab)
+- Smart reading status: a tracker title moves to Reading when you read it, resumes from On hold or Dropped, and becomes Completed when you reach the last chapter. Turn it off in Services.
+- Smart reading status also restarts a Completed title as Re-reading when you start it over from chapter 1.
+- Tracker dates: Completed sets the finish date, and finishing a title never started also sets its start date (AniList, MyAnimeList, Kitsu, MangaBaka).
+- Pause stale titles: Reading titles you have not opened for 30 to 180 days move to On hold on your trackers (off by default).
+- Tracker sync report in Services: lists titles whose progress differs between the app and your trackers, with Sync all.
+- Indonesian translations for the tracker, auto-track and favourites strings.
+- Blur sensitive covers: covers of 18+ titles and the genres you choose are blurred in lists, history, the feed and details, and holding a cover lets you peek.
+- Open "Needs review" and tap "Link all to nearest entry" to link the titles that need review to their closest tracker entry.
+- Downloads redesign: filter chips, sections, sorting, a menu on every row, move up and down in the queue, and retry all failed.
+- Downloads can wait for the charger, retry failed pages with growing delays, and each source can set its own download speed and whether read chapters are deleted.
+- Downloads shows how much space your manga use, with the biggest ones to delete in a tap. Drag the handle on a waiting download to reorder the queue. The Downloads screen is rebuilt with swipeable Active, Failed and Completed tabs, a progress ring on each download and a storage card, using the same toolbar, menus, dialogs and cards as the rest of the app. Finished downloads are one history entry per manga, and "Download missing chapters" queues what you don't have yet.
+- Pick your own font: add .ttf or .otf files in Settings > Appearance > Font, switch between them anytime, and the app uses the one you pick everywhere.
 
 ### Improved
 - In landscape and on wide screens the details page shows the chapters list next to the details
@@ -15,12 +27,24 @@
 - Continue reading button now shows on every tab in landscape and on tablets, with the same rounder shape everywhere
 - "Migrate broken sources" is now "Migrate extensions": works on any extension, lets you pick and order the extensions to search in, and can show every match for review first
 - Global search options are a 3-dot menu, with the search type in a submenu
+- The app is now called ShotenSauce.
+- The Themed and Mono app icons (and every themed colour) now use the ShotenSauce logo.
+- Secret space no longer adds manga shortcuts to the launcher, and leftovers from earlier are removed.
+- Refreshing a comic also sends your progress to trackers that are behind.
+- The tracker sheet shows your score in the tracker's own scale (like 10/10) next to the stars, and AniList score format changes are picked up on refresh.
+- Tap the score number in the tracker sheet to type an exact score in the tracker's scale.
+- The "In favorites" badge on covers is now a small heart with the source logo instead of text.
+- Frosted glass is removed, along with its switch and strength slider in Appearance.
+- "Download new chapters" moved from Check new chapters to Downloads, and the page, manga and retry limits sit on their own Speed and retries screen.
+- Plainer wording across downloads. Notifications show the state (downloading, waiting, paused, failed) and download settings are grouped into Storage and Network and speed.
 
 ### Fixed
 - Sort button and filter chips missing when browsing a source in landscape
 - Large PDFs failing to import
 - Manga from Kotatsu backups showing no chapters or errors on about 90 sources (MangaDex, Webtoons, MANGA Plus, MangaLib, MangaTaro, Asura, Flame, Vortex and more), and duplicating when found through search
 - Kotatsu backups no longer move manga from a few sites onto an unrelated extension
+- Auto-track now finds titles with quotes, backticks and other symbols by also searching a cleaned-up version of the name.
+- "Sync progress from tracking services" no longer shows as an oversized highlighted card in Services.
 
 ## 1.1.4 (2026-11-15)
 

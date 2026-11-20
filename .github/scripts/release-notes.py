@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Builds version-specific release notes from an app changelog.
 
-Uses the [<version>] section, or the [Unreleased] section when the version has
-not been written down yet. Fails when that section is missing, empty, malformed,
+Uses the "## <version> (<date>)" section, or the "## Unreleased" section when the
+version has not been written down yet. Fails when that section is missing, empty, malformed,
 or does not match the version of the APK that was built, so an unverified
 release never goes out. A short summary may sit above the first category.
 """
@@ -12,8 +12,11 @@ import re
 import sys
 from pathlib import Path
 
-CATEGORIES = ("Additions", "Changes", "Fixes", "Other")
-HEADING = re.compile(r"^## \[([^\]]+)\](?: - (\d{4}-\d{2}-\d{2}))?\s*$")
+CATEGORIES = ("New", "Improved", "Fixed", "Additions", "Changes", "Fixes", "Other")
+# "## Unreleased", "## 1.1.4 (2026-11-15)", and the older "## [1.1.4] - 2026-11-15" are all accepted
+HEADING = re.compile(
+    r"^## (?:\[([^\]]+)\]|(\S+))(?: - (\d{4}-\d{2}-\d{2})| \((\d{4}-\d{2}-\d{2})\))?\s*$"
+)
 ENTRY = re.compile(r"^\s*[-*] \S")
 
 
@@ -30,10 +33,10 @@ def split_sections(text):
             match = HEADING.match(line)
             if not match:
                 fail(f"Unrecognised changelog heading: {line}")
-            current = match.group(1)
+            current = match.group(1) or match.group(2)
             if current in sections:
                 fail(f"Changelog has two sections for {current}.")
-            sections[current] = {"date": match.group(2), "lines": []}
+            sections[current] = {"date": match.group(3) or match.group(4), "lines": []}
         elif current is not None:
             sections[current]["lines"].append(line)
     return sections
@@ -87,8 +90,8 @@ def main():
     if section is None:
         pending = sections.get("Unreleased")
         if pending is None or not any(ENTRY.match(line) for line in pending["lines"]):
-            fail(f"{path} has no [{args.version}] section and nothing under [Unreleased].")
-        print(f"No [{args.version}] section yet; using the [Unreleased] entries.")
+            fail(f"{path} has no {args.version} section and nothing under Unreleased.")
+        print(f"No {args.version} section yet; using the Unreleased entries.")
         section = {"date": datetime.date.today().isoformat(), "lines": pending["lines"]}
     body = check_body(args.version, section["lines"])
 

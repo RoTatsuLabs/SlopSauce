@@ -3,8 +3,8 @@ name: Build and Release
 # Builds the signed release APKs (one per ABI plus a universal one) and publishes them as a GitHub Release.
 # The version is the versionName already in app/build.gradle (it comes from the upstream merge), so the
 # workflow never changes it.
-# Release notes come from CHANGELOGS.md: the [<version>] section, or [Unreleased] when the version is not
-# written down yet. [Unreleased] is then moved under the version.
+# Release notes come from CHANGELOG.md: the <version> section, or Unreleased when the version is not
+# written down yet. Unreleased is then moved under the version.
 on:
   workflow_dispatch:
     inputs:
@@ -27,7 +27,7 @@ concurrency:
 
 env:
   APP_NAME: ShotenSauce
-  CHANGELOG: CHANGELOGS.md
+  CHANGELOG: CHANGELOG.md
 
 jobs:
   release:
@@ -126,7 +126,7 @@ jobs:
             cp "${FILES[0]}" "dist/${APP_NAME}-v${VERSION_NAME}-${ABI}.apk"
           done
 
-      # Uses the [<version>] changelog section, or [Unreleased] when the version is not written down yet.
+      # Uses the <version> changelog section, or Unreleased when the version is not written down yet.
       - name: Release notes
         env:
           SOURCE_SHA: ${{ github.sha }}
@@ -142,7 +142,7 @@ jobs:
             --changelog-out "$RUNNER_TEMP/changelog.md"
           (cd dist && sha256sum *.apk > manifest.sha256)
 
-      # Every upload, draft included, moves the [Unreleased] entries under the version, so [Unreleased]
+      # Every upload, draft included, moves the Unreleased entries under the version, so Unreleased
       # starts empty again. The release is created as a draft, its assets are checked, then it is
       # published unless release_type is draft. A failed run leaves the draft in place for inspection.
       - name: Publish

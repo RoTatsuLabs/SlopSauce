@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Moves the [Unreleased] entries of an app changelog under the released version.
+"""Moves the "Unreleased" entries of an app changelog under the released version.
 
-Leaves an empty [Unreleased] section on top and every older version untouched.
+Leaves an empty Unreleased section on top and every older version untouched.
 A changelog that already has the version section is left as it is.
 """
 import argparse
@@ -30,21 +30,21 @@ def main():
         fail(f"Changelog not found: {path}")
     lines = path.read_text(encoding="utf-8").splitlines()
 
-    marker = f"## [{args.version}]"
+    marker = f"## {args.version}"
     if any(line.strip() == marker or line.startswith(marker + " ") for line in lines):
         print(f"{path} already has {marker}; nothing to move.")
         return
 
-    start = next((i for i, line in enumerate(lines) if line.strip() == "## [Unreleased]"), None)
+    start = next((i for i, line in enumerate(lines) if line.strip() in ("## Unreleased", "## [Unreleased]")), None)
     if start is None:
-        fail(f"{path} has no [Unreleased] section.")
+        fail(f"{path} has no Unreleased section.")
     end = next((i for i in range(start + 1, len(lines)) if lines[i].startswith("## ")), len(lines))
     if not any(ENTRY.match(line) for line in lines[start + 1:end]):
-        fail(f"Nothing under [Unreleased] in {path}.")
+        fail(f"Nothing under Unreleased in {path}.")
 
-    rolled = lines[:start + 1] + ["", f"{marker} - {args.date}"] + lines[start + 1:]
+    rolled = lines[:start + 1] + ["", f"{marker} ({args.date})"] + lines[start + 1:]
     path.write_text("\n".join(rolled) + "\n", encoding="utf-8")
-    print(f"Moved [Unreleased] to {marker} - {args.date}.")
+    print(f"Moved Unreleased to {marker} ({args.date}).")
 
 
 if __name__ == "__main__":
