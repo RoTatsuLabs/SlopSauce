@@ -224,6 +224,7 @@ class ReaderConfigSheet : BaseAdaptiveSheet<SheetReaderConfigBinding>() {
         savedInstanceState: Bundle?,
     ) {
         super.onViewBindingCreated(binding, savedInstanceState)
+        binding.headerBar.setCompactDragHandle()
         binding.composeView.setViewCompositionStrategy(
             ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed,
         )

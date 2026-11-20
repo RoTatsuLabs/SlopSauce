@@ -170,6 +170,10 @@ class DownloadsViewModel @Inject constructor(
 		it?.any { x -> x.canResume } == true
 	}.stateIn(viewModelScope + Dispatchers.Default, SharingStarted.WhileSubscribed(5000), false)
 
+	val hasFailedWorks = works.map {
+		it?.any { x -> x.canRetry } == true
+	}.stateIn(viewModelScope + Dispatchers.Default, SharingStarted.WhileSubscribed(5000), false)
+
 	val hasActiveWorks = works.map {
 		it?.any { x -> x.canPause } == true
 	}.stateIn(viewModelScope + Dispatchers.Default, SharingStarted.WhileSubscribed(5000), false)
@@ -211,6 +215,16 @@ class DownloadsViewModel @Inject constructor(
 	private fun reorderable(ids: Set<Long>): List<UUID> = works.value.orEmpty()
 		.filter { it.canReorder && it.id.mostSignificantBits in ids }
 		.map { it.id }
+
+	fun retryAllFailed() {
+		launchJob(Dispatchers.Default) {
+			works.value?.forEach { work ->
+				if (work.canRetry) {
+					workScheduler.retry(work.id)
+				}
+			}
+		}
+	}
 
 	fun cancel(ids: Set<Long>) {
 		launchJob(Dispatchers.Default) {

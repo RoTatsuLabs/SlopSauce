@@ -3,10 +3,6 @@
 ## Unreleased
 
 ### New
-- Option to hide the line between chapters when reading novels in scroll mode
-- Up to 6 sections can be added to the navigation bar
-- App icon picker in settings > appearance: default, mono, or themed to the app's color scheme, following light, dark and black mode
-- Explore can show only manga or only novels (hold the tab)
 - Smart reading status: a tracker title moves to Reading when you read it, resumes from On hold or Dropped, and becomes Completed when you reach the last chapter. Turn it off in Services.
 - Smart reading status also restarts a Completed title as Re-reading when you start it over from chapter 1.
 - Tracker dates: Completed sets the finish date, and finishing a title never started also sets its start date (AniList, MyAnimeList, Kitsu, MangaBaka).
@@ -21,30 +17,47 @@
 - Pick your own font: add .ttf or .otf files in Settings > Appearance > Font, switch between them anytime, and the app uses the one you pick everywhere.
 
 ### Improved
-- In landscape and on wide screens the details page shows the chapters list next to the details
-- PDF imports are much faster and take far less space
-- Reader chapter arrows dim when there is no previous or next chapter
-- Continue reading button now shows on every tab in landscape and on tablets, with the same rounder shape everywhere
-- "Migrate broken sources" is now "Migrate extensions": works on any extension, lets you pick and order the extensions to search in, and can show every match for review first
-- Global search options are a 3-dot menu, with the search type in a submenu
 - The app is now called ShotenSauce.
 - The Themed and Mono app icons (and every themed colour) now use the ShotenSauce logo.
 - Secret space no longer adds manga shortcuts to the launcher, and leftovers from earlier are removed.
 - Refreshing a comic also sends your progress to trackers that are behind.
 - The tracker sheet shows your score in the tracker's own scale (like 10/10) next to the stars, and AniList score format changes are picked up on refresh.
 - Tap the score number in the tracker sheet to type an exact score in the tracker's scale.
-- The "In favorites" badge on covers is now a small heart with the source logo instead of text.
+- Titles you already favourited from another source get a duplicate icon and that source's logo in the top-left pill of the cover.
 - Frosted glass is removed, along with its switch and strength slider in Appearance.
 - "Download new chapters" moved from Check new chapters to Downloads, and the page, manga and retry limits sit on their own Speed and retries screen.
 - Plainer wording across downloads. Notifications show the state (downloading, waiting, paused, failed) and download settings are grouped into Storage and Network and speed.
 
 ### Fixed
-- Sort button and filter chips missing when browsing a source in landscape
-- Large PDFs failing to import
-- Manga from Kotatsu backups showing no chapters or errors on about 90 sources (MangaDex, Webtoons, MANGA Plus, MangaLib, MangaTaro, Asura, Flame, Vortex and more), and duplicating when found through search
-- Kotatsu backups no longer move manga from a few sites onto an unrelated extension
+- Restoring a Mihon backup no longer crashes by overwriting settings with the wrong type.
+- Tracker messages in Services show in a dialog instead of a snackbar.
 - Auto-track now finds titles with quotes, backticks and other symbols by also searching a cleaned-up version of the name.
 - "Sync progress from tracking services" no longer shows as an oversized highlighted card in Services.
+
+## 1.1.5 (2026-11-20)
+
+### New
+- Pick your app icon: default, mono, or one that matches your theme (settings > appearance)
+- Search several genres at once, and add your own genre chips
+- Up to 6 sections in the bottom bar
+- Show only manga or only novels in Explore (just hold the tab)
+- Sleep timer for text to speech
+- Retry all failed downloads in one go
+
+### Improved
+- PDFs open instantly, even huge ones, and don't take up extra space
+- Genre search gives much better results, the same way Mihon does it
+- Migrate any extension, not just broken ones, and choose where to look
+- Alternatives finds a lot more matches
+- Better on tablets and in landscape: chapters sit next to the details, and the continue button shows everywhere
+- The favorite button is back to one simple tap
+
+### Fixed
+- Kotatsu backups restore properly from around 90 sources like MangaDex, Webtoons and Asura
+- Deleting one chapter of an imported folder no longer deletes the whole thing
+- Folders with both comics and EPUBs now import both
+- Search suggestions are back
+- Plenty of download, reader and other small fixes
 
 ## 1.1.4 (2026-11-15)
 

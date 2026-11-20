@@ -1,12 +1,7 @@
 package org.koitharu.kotatsu.local.data.importer
 
 import android.content.Context
-import android.graphics.Bitmap
-import android.graphics.Color
-import android.graphics.Matrix
-import android.graphics.pdf.PdfRenderer
 import android.net.Uri
-import android.os.ParcelFileDescriptor
 import androidx.documentfile.provider.DocumentFile
 import dagger.Reusable
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -23,8 +18,11 @@ import org.koitharu.kotatsu.core.util.ext.openSource
 import org.koitharu.kotatsu.core.util.ext.printStackTraceDebug
 import org.koitharu.kotatsu.core.util.ext.resolveName
 import org.koitharu.kotatsu.core.util.ext.writeAllCancellable
+import org.koitharu.kotatsu.local.data.hasImageExtension
 import org.koitharu.kotatsu.local.data.hasPdfExtension
 import org.koitharu.kotatsu.local.data.hasRarExtension
+import org.koitharu.kotatsu.local.data.hasZipExtension
+import org.koitharu.kotatsu.local.data.isEpubFile
 import org.koitharu.kotatsu.local.data.LocalStorageChanges
 import org.koitharu.kotatsu.local.data.LocalStorageManager
 import org.koitharu.kotatsu.local.data.isSupportedArchive
@@ -33,11 +31,6 @@ import org.koitharu.kotatsu.local.domain.model.LocalManga
 import org.koitharu.kotatsu.parsers.util.runCatchingCancellable
 import java.io.File
 import java.io.IOException
-import java.util.Locale
-import java.util.zip.Deflater
-import java.util.zip.ZipEntry
-import java.util.zip.ZipOutputStream
-import kotlin.math.roundToInt
 import javax.inject.Inject
 
 @Reusable
@@ -67,66 +60,19 @@ class SingleMangaImporter @Inject constructor(
 		if (!isSupportedArchive(name)) {
 			throw UnsupportedFileException("Unsupported file $name on $uri")
 		}
-		val dest = if (hasPdfExtension(name)) {
-			importPdfAsCbz(uri, name)
-		} else {
-			File(getOutputDir(), name).also { outputFile ->
-				if (outputFile.isDirectory && outputFile.listFiles()?.isEmpty() == true && !outputFile.delete()) {
-					throw IOException("Cannot remove empty import directory: $outputFile")
+		val dest = File(getOutputDir(), name).also { outputFile ->
+			if (outputFile.isDirectory && outputFile.listFiles()?.isEmpty() == true && !outputFile.delete()) {
+				throw IOException("Cannot remove empty import directory: $outputFile")
+			}
+			runInterruptible {
+				contentResolver.openSource(uri)
+			}.use { source ->
+				outputFile.sink().buffer().use { output ->
+					output.writeAllCancellable(source)
 				}
-				runInterruptible {
-					contentResolver.openSource(uri)
-				}.use { source ->
-					outputFile.sink().buffer().use { output ->
-						output.writeAllCancellable(source)
-					}
-				}
-			}.let { if (hasRarExtension(name)) runInterruptible { it.repackRarToCbz() } else it }
-		}
+			}
+		}.let { if (hasRarExtension(name)) runInterruptible { it.repackRarToCbz() } else it }
 		LocalMangaParser(dest).getManga(withDetails = false)
-	}
-
-	private suspend fun importPdfAsCbz(uri: Uri, sourceName: String): File {
-		val outputName = sourceName.substringBeforeLast('.', sourceName) + ".cbz"
-		val outputFile = File(getOutputDir(), outputName)
-		try {
-			contentResolver.openFileDescriptor(uri, "r")?.use { pfd ->
-				renderPdfToCbz(pfd, outputFile)
-			} ?: throw IOException("Cannot open descriptor for uri: $uri")
-			return outputFile
-		} catch (e: Exception) {
-			outputFile.delete()
-			throw e
-		}
-	}
-
-	private fun renderPdfToCbz(pfd: ParcelFileDescriptor, outputFile: File) {
-		PdfRenderer(pfd).use { renderer ->
-			if (renderer.pageCount <= 0) {
-				throw IOException("PDF has no pages")
-			}
-			ZipOutputStream(outputFile.outputStream().buffered()).use { zip ->
-				zip.setLevel(Deflater.NO_COMPRESSION) // JPEGs don't shrink, deflating them only costs time
-				for (index in 0 until renderer.pageCount) {
-					renderer.openPage(index).use { page ->
-						// Every page at screen-level size: tiny vector pages get sharper, huge scans get smaller
-						val maxPageSize = maxOf(page.width, page.height).coerceAtLeast(1)
-						val scale = PDF_PAGE_LONG_SIDE / maxPageSize.toFloat()
-						val matrix = Matrix().apply { setScale(scale, scale) }
-						val width = (page.width * scale).roundToInt().coerceAtLeast(1)
-						val height = (page.height * scale).roundToInt().coerceAtLeast(1)
-						val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
-						bitmap.eraseColor(Color.WHITE)
-						page.render(bitmap, null, matrix, PdfRenderer.Page.RENDER_MODE_FOR_PRINT)
-						val entryName = String.format(Locale.US, "%04d.jpg", index + 1)
-						zip.putNextEntry(ZipEntry(entryName))
-						bitmap.compress(Bitmap.CompressFormat.JPEG, PDF_JPEG_QUALITY, zip)
-						zip.closeEntry()
-						bitmap.recycle()
-					}
-				}
-			}
-		}
 	}
 
 	/**
@@ -163,41 +109,27 @@ class SingleMangaImporter @Inject constructor(
 			// One unreadable title must not cost the rest of the batch; only an all-failed batch fails.
 			val results = mangaDirs.map { runCatchingCancellable { importMangaDirectory(it, unique = true) } }
 			results.forEach { it.exceptionOrNull()?.printStackTraceDebug() }
-			results.mapNotNull { it.getOrNull() }.ifEmpty { listOf(results.first().getOrThrow()) }
+			results.mapNotNull { it.getOrNull() }.ifEmpty { listOf(results.first().getOrThrow()) }.flatten()
 		} else {
-			listOf(importMangaDirectory(root, unique = false))
+			importMangaDirectory(root, unique = false)
 		}
 	}
 
-	private suspend fun importMangaDirectory(root: DocumentFile, unique: Boolean): LocalManga {
+	private suspend fun importMangaDirectory(root: DocumentFile, unique: Boolean): List<LocalManga> {
 		val allFiles = root.listFiles().filterNot { isImportJunk(it.name.orEmpty()) }
-		val pdfFiles = allFiles
-			.filter { it.isFile && hasPdfExtension(it.name ?: "") }
-			.sortedBy { it.name }
 		val dest = destinationDir(root.requireName(), unique)
 		dest.mkdirs()
 		try {
-			if (pdfFiles.isNotEmpty()) {
-				for (pdfFile in pdfFiles) {
-					val chapterName = pdfFile.requireName().substringBeforeLast('.')
-					val cbzFile = File(dest, "$chapterName.cbz")
-					try {
-						contentResolver.openFileDescriptor(pdfFile.uri, "r")?.use { pfd ->
-							renderPdfToCbz(pfd, cbzFile)
-						} ?: throw IOException("Cannot open PDF: ${pdfFile.requireName()}")
-					} catch (e: Exception) {
-						cbzFile.delete()
-						throw e
-					}
-				}
-			} else {
-				for (docFile in allFiles) {
-					docFile.copyTo(dest)
-				}
-				// No-op unless the folder came from Mihon and carries ComicInfo.xml
-				runInterruptible { writeMihonIndex(dest) }
+			for (docFile in allFiles) {
+				docFile.copyTo(dest)
 			}
-			return LocalMangaParser(dest).getManga(withDetails = false)
+			// No-op unless the folder came from Mihon and carries ComicInfo.xml
+			runInterruptible { writeMihonIndex(dest) }
+			val novel = splitOffNovels(dest)
+			return listOfNotNull(
+				LocalMangaParser(dest).getManga(withDetails = false),
+				novel?.let { LocalMangaParser(it).getManga(withDetails = false) },
+			)
 		} catch (e: Exception) {
 			// A half-copied fresh folder would show up as a broken title. A re-import merges into an
 			// existing folder, which must never be wiped.
@@ -229,6 +161,51 @@ class SingleMangaImporter @Inject constructor(
 				runInterruptible { file.repackRarToCbz() }
 			}
 		}
+	}
+
+	/**
+	 * A folder with EPUBs reads as a novel and would hide its comics, so when it holds both the EPUBs
+	 * move out to an entry of their own: a lone book as its own file, several in a "(novel)" folder.
+	 * Returns where they went, or null when nothing was split.
+	 */
+	private suspend fun splitOffNovels(dest: File): File? {
+		val epubs = dest.listFiles { f -> f.isEpubFile }.orEmpty()
+		val hasManga = epubs.isNotEmpty() && runInterruptible(Dispatchers.IO) {
+			// Loose images next to the books are a cover (Calibre keeps cover.jpg there), not a chapter
+			dest.walkTopDown().any { f ->
+				f.isFile && (hasZipExtension(f.name) || hasPdfExtension(f.name) ||
+					(hasImageExtension(f.name) && f.parentFile != dest))
+			}
+		}
+		if (!hasManga) {
+			return null
+		}
+		val target = if (epubs.size == 1) {
+			uniqueFile(getOutputDir(), epubs.single().name)
+		} else {
+			destinationDir("${dest.name} (novel)", unique = true).also { it.mkdirs() }
+		}
+		runInterruptible(Dispatchers.IO) {
+			for (epub in epubs) {
+				val to = if (target.isDirectory) File(target, epub.name) else target
+				if (!epub.renameTo(to)) {
+					throw IOException("Cannot move ${epub.name} to $to")
+				}
+			}
+		}
+		return target
+	}
+
+	private fun uniqueFile(dir: File, name: String): File {
+		val base = name.substringBeforeLast('.')
+		val ext = name.substringAfterLast('.', "")
+		var file = File(dir, name)
+		var i = 1
+		while (file.exists()) {
+			file = File(dir, "${base}_$i.$ext")
+			i++
+		}
+		return file
 	}
 
 	/**
@@ -270,8 +247,6 @@ class SingleMangaImporter @Inject constructor(
 	}
 
 	private companion object {
-		private const val PDF_PAGE_LONG_SIDE = 2560
-		private const val PDF_JPEG_QUALITY = 90
 		private val ZIP_MAGIC = "504b0304".decodeHex()
 	}
 }

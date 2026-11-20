@@ -8,6 +8,7 @@ import android.os.Bundle
 import android.os.Process
 import android.os.SystemClock
 import androidx.activity.result.contract.ActivityResultContracts
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup.MarginLayoutParams
 import android.widget.LinearLayout
@@ -51,6 +52,7 @@ import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -369,9 +371,12 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), AppBarOwner, BottomNav
 		viewBinding.statusBarScrim.updateLayoutParams { height = statusBarZone }
 		barBlur?.statusBarZone = statusBarZone.toFloat()
 		updateContainerBottomMargin()
-		return insets.consume(v, typeMask, start = viewBinding.navRail != null).also {
-			handleSearchSuggestionsInsets(it)
-		}
+		// The rail sits at the start edge, so nothing next to it needs the start insets. The cutout one
+		// too: SearchView pads its back button by it, a gap in landscape with the camera on that side.
+		val hasRail = viewBinding.navRail != null
+		return insets.consume(v, typeMask, start = hasRail)
+			.consume(v, WindowInsetsCompat.Type.displayCutout(), start = hasRail)
+			.also { handleSearchSuggestionsInsets(it) }
 	}
 
 	override fun onLayoutChange(
@@ -403,6 +408,9 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), AppBarOwner, BottomNav
 		val isOpened = newState >= SearchView.TransitionState.SHOWING
 		if (isOpened != wasOpened) {
 			adjustSearchUI(isOpened)
+			if (!isOpened) {
+				searchSuggestionViewModel.clearTags()
+			}
 		}
 		isSearchFullyShown = (newState == SearchView.TransitionState.SHOWN)
 	}
@@ -596,15 +604,23 @@ class MainActivity : BaseActivity<ActivityMainBinding>(), AppBarOwner, BottomNav
 		viewBinding.searchView.editText.setOnEditorActionListener(listener)
 
 		viewBinding.searchView.observeState()
-			.map { it >= SearchView.TransitionState.SHOWING }
+			.map { if (it >= SearchView.TransitionState.SHOWING) SearchView.TransitionState.SHOWING else it }
 			.distinctUntilChanged()
-			.flatMapLatest { isShowing ->
-				if (isShowing) {
-					searchSuggestionViewModel.suggestion
-				} else {
-					emptyFlow()
+			.flatMapLatest { state ->
+				when {
+					state >= SearchView.TransitionState.SHOWING -> searchSuggestionViewModel.suggestion
+					// Emptied once fully closed, so reopening never flashes the last list (ticked genres and all).
+					state == SearchView.TransitionState.HIDDEN -> flowOf(emptyList())
+					else -> emptyFlow()
 				}
 			}.observe(this, adapter)
+		// Tapping the bar goes back to a text search: the ticked genres are dropped.
+		viewBinding.searchView.editText.setOnTouchListener { _, event ->
+			if (event.actionMasked == MotionEvent.ACTION_UP) {
+				searchSuggestionViewModel.clearTags()
+			}
+			false
+		}
 		searchSuggestionViewModel.onError.observeEvent(
 			this,
 			SnackbarErrorObserver(viewBinding.recyclerViewSearch, null),

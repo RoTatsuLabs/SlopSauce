@@ -259,7 +259,7 @@ class DownloadWorker @AssistedInject constructor(
 						publishState(currentState.copy(downloadedChapters = currentState.downloadedChapters + 1))
 						continue
 					}
-					try {
+					val downloaded = try {
 						coroutineScope {
 							val next = (chapterIndex + 1 until chapters.size).firstOrNull {
 								chapters[it].value.id !in chaptersToSkip
@@ -286,7 +286,9 @@ class DownloadWorker @AssistedInject constructor(
 						chapterError = e
 						continue
 					}
-					publishState(currentState.copy(downloadedChapters = currentState.downloadedChapters + 1))
+					if (downloaded) {
+						publishState(currentState.copy(downloadedChapters = currentState.downloadedChapters + 1))
+					}
 				}
 				publishState(currentState.copy(isIndeterminate = true, eta = -1L, isStuck = false))
 				output.mergeWithExisting()
@@ -352,12 +354,16 @@ class DownloadWorker @AssistedInject constructor(
 		chapterIndex: Int,
 		chaptersCount: Int,
 		prefetchedPages: Deferred<List<MangaPage>?>? = null,
-	) {
+	): Boolean {
 		val pages = prefetchedPages?.await() ?: runFailsafe {
 			repo.getPages(manga, chapter.value)
-		} ?: return
+		}
+		if (pages.isNullOrEmpty()) {
+			return false
+		}
 		val pageCounter = AtomicInteger(0)
 		val pageStates = CharArray(pages.size) { PAGE_WAITING }
+		val savedPages = AtomicInteger(0)
 		channelFlow {
 			val semaphore = Semaphore(sourceThrottler.connectionsFor(manga.source))
 			for ((pageIndex, page) in pages.withIndex()) {
@@ -378,6 +384,7 @@ class DownloadWorker @AssistedInject constructor(
 							if (file.extension == "tmp") {
 								file.deleteAwait()
 							}
+							savedPages.incrementAndGet()
 						}
 						pageStates[pageIndex] = PAGE_DONE
 						send(pageIndex)
@@ -405,11 +412,17 @@ class DownloadWorker @AssistedInject constructor(
 				),
 			)
 		}
+		if (savedPages.get() == 0) {
+			// every page was skipped: don't leave an empty chapter file behind
+			output.discardChapter(chapter.value)
+			return false
+		}
 		if (output.flushChapter(chapter.value)) {
 			runCatchingCancellable {
 				localStorageChanges.emit(LocalMangaParser(output.rootFile).getManga(withDetails = false))
 			}.onFailure(Throwable::printStackTraceDebug)
 		}
+		return true
 	}
 
 	/** Squeezes a long chapter into at most [MAX_PAGE_SEGMENTS] chars so it fits the work data. */
@@ -753,10 +766,15 @@ class DownloadWorker @AssistedInject constructor(
 				}
 				val metered = allowMeteredNetwork
 					?: (work.constraints.requiredNetworkType != NetworkType.UNMETERED)
+				// updateWork replaces the whole spec, so the task data and policies must be carried over
+				val inputData = workManager.getWorkInputData(work.id) ?: continue
 				val request = OneTimeWorkRequestBuilder<DownloadWorker>()
 					.setConstraints(createConstraints(metered))
 					.addTag(TAG)
 					.setId(work.id)
+					.keepResultsForAtLeast(30, TimeUnit.DAYS)
+					.setBackoffCriteria(BackoffPolicy.LINEAR, 10, TimeUnit.SECONDS)
+					.setInputData(inputData)
 					.apply { if (canExpedite()) setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST) }
 					.build()
 				workManager.awaitUpdateWork(request)

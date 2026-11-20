@@ -72,6 +72,7 @@ sealed interface SearchSuggestionItem : ListModel {
 
 	data class Tags(
 		val tags: List<ChipsView.ChipModel>,
+		val selectedCount: Int,
 	) : SearchSuggestionItem {
 
 		override fun areItemsTheSame(other: ListModel): Boolean {
@@ -81,6 +82,9 @@ sealed interface SearchSuggestionItem : ListModel {
 		override fun getChangePayload(previousState: ListModel): Any {
 			return ListModelDiffCallback.PAYLOAD_NESTED_LIST_CHANGED
 		}
+
+		/** Chip data of the trailing chip that adds a quick tag. */
+		data object AddChip
 	}
 
 	data class Text(

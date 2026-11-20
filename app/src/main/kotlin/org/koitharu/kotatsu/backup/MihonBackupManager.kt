@@ -513,7 +513,7 @@ class MihonBackupManager @Inject constructor(
                     is MihonStringPreferenceValue -> v.value
                     is MihonStringSetPreferenceValue -> v.value
                 }
-                // Same key, different type: writing it would break our own typed reads.
+                // Same key, different type: writing it would break typed reads of that setting.
                 if (current != null && current::class != incoming::class && current !is Set<*>) return@forEach
                 when (val value = pref.value) {
                     is MihonBooleanPreferenceValue -> putBoolean(pref.key, value.value)
@@ -627,7 +627,7 @@ class MihonBackupManager @Inject constructor(
   private companion object {
     const val DEFAULT_CATEGORY_TITLE = "Default"
 
-    // Our keys that Mihon also uses, with a different type or meaning.
+    // Settings keys that Mihon also uses, with a different type or meaning.
     val PROTECTED_PREF_KEYS = setOf(
       AppSettings.KEY_SHIZUKU_INSTALLER,
       AppSettings.KEY_PRIVATE_INSTALLER,
