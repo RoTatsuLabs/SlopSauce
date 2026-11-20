@@ -41,6 +41,7 @@ import org.koitharu.kotatsu.parsers.util.ifNullOrEmpty
 import org.koitharu.kotatsu.parsers.util.mapNotNullToSet
 import org.koitharu.kotatsu.parsers.util.nullIfEmpty
 import org.koitharu.kotatsu.parsers.util.runCatchingCancellable
+import org.koitharu.kotatsu.secret.SecretSpace
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -62,10 +63,15 @@ class AppShortcutManager @Inject constructor(
 
 	init {
 		settings.subscribe(this)
+		// Shortcuts live in the launcher, shared by both spaces: sweep any a secret session left behind
+		if (!SecretSpace.isActive && settings.isDynamicShortcutsEnabled) {
+			onInvalidated(emptySet())
+		}
 	}
 
 	override fun onInvalidated(tables: Set<String>) {
-		if (!settings.isDynamicShortcutsEnabled) {
+		// The launcher shows shortcuts outside the secret space too, so it never gets any from inside it
+		if (SecretSpace.isActive || !settings.isDynamicShortcutsEnabled) {
 			return
 		}
 		val prevJob = shortcutsUpdateJob
@@ -85,7 +91,9 @@ class AppShortcutManager @Inject constructor(
 		}
 	}
 
-	suspend fun requestPinShortcut(manga: Manga): Boolean = try {
+	suspend fun requestPinShortcut(manga: Manga): Boolean = if (SecretSpace.isActive) {
+		false
+	} else try {
 		ShortcutManagerCompat.requestPinShortcut(context, buildShortcutInfo(manga), null)
 	} catch (e: IllegalStateException) {
 		e.printStackTraceDebug()
@@ -100,6 +108,7 @@ class AppShortcutManager @Inject constructor(
 	}
 
 	fun getMangaShortcuts(): Set<Long> {
+		if (SecretSpace.isActive) return emptySet()
 		val shortcuts = ShortcutManagerCompat.getShortcuts(
 			context,
 			ShortcutManagerCompat.FLAG_MATCH_CACHED or ShortcutManagerCompat.FLAG_MATCH_PINNED or ShortcutManagerCompat.FLAG_MATCH_DYNAMIC,
@@ -113,6 +122,7 @@ class AppShortcutManager @Inject constructor(
 	}
 
 	fun notifyMangaOpened(mangaId: Long) {
+		if (SecretSpace.isActive) return
 		ShortcutManagerCompat.reportShortcutUsed(context, mangaId.toString())
 	}
 
@@ -169,6 +179,7 @@ class AppShortcutManager @Inject constructor(
 
 	/** Sends the new picture after a pull-to-refresh replaced the cover behind the same link. */
 	suspend fun onCoverRefreshed(manga: Manga) {
+		if (SecretSpace.isActive) return
 		val id = manga.id.toString()
 		val shortcut = ShortcutManagerCompat.getShortcuts(
 			context,

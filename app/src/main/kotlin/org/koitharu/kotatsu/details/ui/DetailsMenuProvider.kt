@@ -22,6 +22,7 @@ import org.koitharu.kotatsu.core.model.LocalMangaSource
 import org.koitharu.kotatsu.core.nav.AppRouter
 import org.koitharu.kotatsu.core.nav.router
 import org.koitharu.kotatsu.core.os.AppShortcutManager
+import org.koitharu.kotatsu.secret.SecretSpace
 import org.koitharu.kotatsu.core.ui.dialog.showConfirmDialog
 import org.koitharu.kotatsu.core.util.ext.isHttpUrl
 import org.koitharu.kotatsu.core.util.ext.toFileNameSafe
@@ -58,7 +59,7 @@ class DetailsMenuProvider(
 		menu.findItem(R.id.action_delete).isVisible = manga?.source == LocalMangaSource
 		menu.findItem(R.id.action_browser).isVisible = manga?.publicUrl?.isHttpUrl() == true
 		menu.findItem(R.id.action_alternatives).isVisible = manga?.source != LocalMangaSource
-		menu.findItem(R.id.action_shortcut).isVisible = ShortcutManagerCompat.isRequestPinShortcutSupported(activity)
+		menu.findItem(R.id.action_shortcut).isVisible = !SecretSpace.isActive && ShortcutManagerCompat.isRequestPinShortcutSupported(activity)
 		menu.findItem(R.id.action_scrobbling).isVisible = viewModel.isScrobblingAvailable
 		menu.findItem(R.id.action_online).isVisible = viewModel.remoteManga.value != null
 		menu.findItem(R.id.action_stats).isVisible = viewModel.isStatsAvailable.value
