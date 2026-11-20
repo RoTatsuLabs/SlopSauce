@@ -107,7 +107,6 @@ class ServicesSettingsFragment : BaseComposeSettingsFragment(R.string.services) 
 					reviewCount = reviewTotal,
 					onTrackUntracked = ::confirmTrackUntracked,
 					onOpenReview = ::showReviewList,
-					onTrackReview = ::confirmTrackReview,
 					onOpenSuggestions = {
 						(activity as? SettingsActivity)?.openFragment(
 							SuggestionsSettingsFragment::class.java,
@@ -216,7 +215,9 @@ class ServicesSettingsFragment : BaseComposeSettingsFragment(R.string.services) 
 				context = context,
 				icon = R.drawable.ic_sync_problem,
 				title = context.getString(R.string.auto_track_review),
-				actions = items.map { (manga, service, label) ->
+				actions = listOf(
+					DialogAction(label = context.getString(R.string.auto_track_link_all)) { confirmTrackReview() },
+				) + items.map { (manga, service, label) ->
 					DialogAction(label = label) { router.showScrobblingSelectorSheet(manga, service) }
 				},
 			)
@@ -292,7 +293,6 @@ private fun ServicesScreen(
 	reviewCount: Int,
 	onTrackUntracked: () -> Unit,
 	onOpenReview: () -> Unit,
-	onTrackReview: () -> Unit,
 	onOpenSuggestions: () -> Unit,
 	onOpenStatistics: () -> Unit,
 	onScrobblerClick: (ScrobblerService) -> Unit,
@@ -444,7 +444,6 @@ private fun ServicesScreen(
 							icon = R.drawable.ic_sync_alt,
 							shape = pos.shape,
 							onClick = onTrackUntracked,
-							onLongClick = if (reviewCount > 0) onTrackReview else null,
 						)
 					}
 					if (reviewCount > 0) {

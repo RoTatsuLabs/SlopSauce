@@ -20,6 +20,8 @@ internal object TitleMatch {
 
 	private val diacritics = Regex("\\p{InCombiningDiacriticalMarks}+")
 	private val brackets = Regex("[(\\[{][^)\\]}]*[)\\]}]")
+	private val searchSymbols = Regex("[^\\p{L}\\p{N}\\s]+")
+	private val spaces = Regex("\\s+")
 	private val separators = Regex("[^\\p{L}\\p{N}]+")
 
 	private val boysLove = setOf("boys love", "boys' love", "boyslove", "bl", "yaoi", "shounen ai", "shonen ai", "danmei")
@@ -120,6 +122,26 @@ internal object TitleMatch {
 			.map { it to bestScore(names, namesOf(it)) }
 			.maxByOrNull { it.second } ?: return null
 		return best.first.takeIf { best.second >= CLOSEST_MIN }
+	}
+
+	/**
+	 * The searches to try for a favourite, in order. Trackers match poorly on a title full of quotes,
+	 * backticks and other symbols, so after the title as written come a version with those turned
+	 * into spaces and, for a long title, just its opening words. The alternative titles follow.
+	 */
+	fun searchQueries(manga: Manga): List<String> {
+		val title = manga.title.trim()
+		val queries = LinkedHashSet<String>()
+		if (title.isNotEmpty()) queries.add(title)
+		val plain = title.replace(searchSymbols, " ").replace(spaces, " ").trim()
+		if (plain.length >= 3) queries.add(plain)
+		val words = plain.split(' ')
+		if (words.size > 6) queries.add(words.take(5).joinToString(" "))
+		val seen = queries.mapTo(hashSetOf()) { normalize(it) }
+		for (alt in extraQueries(manga)) {
+			if (seen.add(normalize(alt))) queries.add(alt)
+		}
+		return queries.toList()
 	}
 
 	/** Alternative titles worth a search of their own, when the main title found nothing clear. */

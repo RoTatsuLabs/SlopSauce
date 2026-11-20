@@ -97,7 +97,7 @@ class AutoTracker @Inject constructor(
 		// The title first; the alternative titles only when it found nothing clear, to spare requests
 		val found = LinkedHashMap<Long, ScrobblerManga>()
 		var match: ScrobblerManga? = null
-		for ((index, query) in (listOf(manga.title) + TitleMatch.extraQueries(manga)).withIndex()) {
+		for ((index, query) in TitleMatch.searchQueries(manga).withIndex()) {
 			if (index > 0) limiter.awaitBackground(service)
 			scrobbler.findManga(query, 0, type).forEach { found.putIfAbsent(it.id, it) }
 			match = TitleMatch.pick(manga, found.values.toList())
