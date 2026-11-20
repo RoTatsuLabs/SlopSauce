@@ -1374,6 +1374,20 @@ class AppSettings @Inject constructor(@ApplicationContext context: Context) {
 		get() = prefs.getBoolean(KEY_AUTO_TRACK_FAVOURITES, false)
 		set(value) = prefs.edit { putBoolean(KEY_AUTO_TRACK_FAVOURITES, value) }
 
+	/** Moves a title's tracker status (reading, on hold, completed) on its own as it is read. */
+	var isSmartReadingStatus: Boolean
+		get() = prefs.getBoolean(KEY_SMART_READING_STATUS, true)
+		set(value) = prefs.edit { putBoolean(KEY_SMART_READING_STATUS, value) }
+
+	/** Marks Reading titles on the trackers as On hold once they have not been read for [autoPauseDays]. */
+	var isAutoPauseStale: Boolean
+		get() = prefs.getBoolean(KEY_AUTO_PAUSE_STALE, false)
+		set(value) = prefs.edit { putBoolean(KEY_AUTO_PAUSE_STALE, value) }
+
+	var autoPauseDays: Int
+		get() = prefs.getInt(KEY_AUTO_PAUSE_DAYS, AUTO_PAUSE_DEFAULT_DAYS)
+		set(value) = prefs.edit { putInt(KEY_AUTO_PAUSE_DAYS, value) }
+
 	/** Hides favourited manga from source browse lists. */
 	var isHideFavouritesInBrowse: Boolean
 		get() = prefs.getBoolean(KEY_HIDE_FAVOURITES_IN_BROWSE, false)
@@ -1857,6 +1871,10 @@ class AppSettings @Inject constructor(@ApplicationContext context: Context) {
 		const val KEY_BACKUP_SECTIONS = "backup_sections"
 		const val KEY_HIDE_FAVOURITES_IN_BROWSE = "hide_favourites_in_browse"
 		const val KEY_AUTO_TRACK_FAVOURITES = "auto_track_favourites"
+		const val KEY_SMART_READING_STATUS = "smart_reading_status"
+		const val KEY_AUTO_PAUSE_STALE = "auto_pause_stale"
+		const val KEY_AUTO_PAUSE_DAYS = "auto_pause_days"
+		const val AUTO_PAUSE_DEFAULT_DAYS = 60
 		const val KEY_BACKUP_TELEGRAM_SECTIONS = "backup_telegram_sections"
 		const val KEY_BACKUP_TELEGRAM_ENABLED = "backup_telegram"
 		const val KEY_BACKUP_TELEGRAM_CHAT_ID = "backup_telegram_chat_id"

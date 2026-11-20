@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.snackbar.Snackbar
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -48,6 +49,8 @@ import org.koitharu.kotatsu.core.ui.dialog.showActionChoiceDialog
 import org.koitharu.kotatsu.core.ui.dialog.showConfirmDialog
 import org.koitharu.kotatsu.core.util.ext.getDisplayMessage
 import org.koitharu.kotatsu.core.util.ext.printStackTraceDebug
+import org.koitharu.kotatsu.scrobbling.autotrack.TrackerRateLimitedException
+import org.koitharu.kotatsu.scrobbling.common.domain.ScrobblerSyncReport
 import org.koitharu.kotatsu.scrobbling.common.domain.model.ScrobblerService
 import org.koitharu.kotatsu.scrobbling.common.ui.ScrobblerAuthHelper
 import org.koitharu.kotatsu.reader.ui.eyeReminderDuration
@@ -64,6 +67,8 @@ import org.koitharu.kotatsu.settings.compose.rememberBooleanPref
 import org.koitharu.kotatsu.settings.compose.rememberIntPref
 import org.koitharu.kotatsu.settings.discord.DiscordSettingsFragment
 import javax.inject.Inject
+
+private const val SYNC_REPORT_LIMIT = 50
 
 @AndroidEntryPoint
 class ServicesSettingsFragment : BaseComposeSettingsFragment(R.string.services) {
@@ -86,6 +91,9 @@ class ServicesSettingsFragment : BaseComposeSettingsFragment(R.string.services) 
 	@Inject
 	lateinit var database: MangaDatabase
 
+	@Inject
+	lateinit var syncReport: ScrobblerSyncReport
+
 	private val scrobblerSummary = MutableStateFlow<Map<ScrobblerService, String?>>(emptyMap())
 	private val autoTrackStatus = MutableStateFlow<String?>(null)
 	private val reviewCount = MutableStateFlow(0)
@@ -107,6 +115,7 @@ class ServicesSettingsFragment : BaseComposeSettingsFragment(R.string.services) 
 					reviewCount = reviewTotal,
 					onTrackUntracked = ::confirmTrackUntracked,
 					onOpenReview = ::showReviewList,
+					onOpenSyncReport = ::showSyncReport,
 					onOpenSuggestions = {
 						(activity as? SettingsActivity)?.openFragment(
 							SuggestionsSettingsFragment::class.java,
@@ -194,6 +203,61 @@ class ServicesSettingsFragment : BaseComposeSettingsFragment(R.string.services) 
 				message = context.getString(R.string.auto_track_closest_confirm, count),
 				confirmLabel = context.getString(R.string.auto_track_start),
 			) { autoTrackScheduler.start(closest = true) }
+		}
+	}
+
+	private fun showSyncReport() {
+		val context = context ?: return
+		viewLifecycleOwner.lifecycleScope.launch {
+			if (autoTracker.enabledScrobblers.isEmpty()) {
+				Snackbar.make(requireView(), R.string.auto_track_no_trackers, Snackbar.LENGTH_LONG).show()
+				return@launch
+			}
+			val items = withContext(Dispatchers.Default) { syncReport.load() }
+			if (items.isEmpty()) {
+				Snackbar.make(requireView(), R.string.sync_report_empty, Snackbar.LENGTH_LONG).show()
+				return@launch
+			}
+			val shown = items.take(SYNC_REPORT_LIMIT)
+			showActionChoiceDialog(
+				context = context,
+				icon = R.drawable.ic_sync_problem,
+				title = context.getString(R.string.sync_report),
+				actions = listOf(
+					DialogAction(label = context.getString(R.string.sync_report_all, items.size)) { syncAll(items) },
+				) + shown.map { item ->
+					val label = context.getString(
+						R.string.sync_report_item,
+						item.manga.title,
+						context.getString(item.scrobbler.scrobblerService.titleResId),
+						item.app,
+						item.tracker,
+					)
+					DialogAction(label = label) { syncAll(listOf(item)) }
+				},
+			)
+		}
+	}
+
+	private fun syncAll(items: List<ScrobblerSyncReport.Item>) {
+		viewLifecycleOwner.lifecycleScope.launch {
+			var done = 0
+			withContext(Dispatchers.Default) {
+				for (item in items) {
+					try {
+						if (syncReport.sync(item)) done++
+					} catch (e: CancellationException) {
+						throw e
+					} catch (e: TrackerRateLimitedException) {
+						break
+					} catch (e: Exception) {
+						e.printStackTraceDebug()
+					}
+				}
+			}
+			view?.let {
+				Snackbar.make(it, getString(R.string.sync_report_done, done, items.size), Snackbar.LENGTH_LONG).show()
+			}
 		}
 	}
 
@@ -293,6 +357,7 @@ private fun ServicesScreen(
 	reviewCount: Int,
 	onTrackUntracked: () -> Unit,
 	onOpenReview: () -> Unit,
+	onOpenSyncReport: () -> Unit,
 	onOpenSuggestions: () -> Unit,
 	onOpenStatistics: () -> Unit,
 	onScrobblerClick: (ScrobblerService) -> Unit,
@@ -304,6 +369,10 @@ private fun ServicesScreen(
 	var readingTime by rememberBooleanPref(AppSettings.KEY_READING_TIME, true)
 	var syncTrackingProgress by rememberBooleanPref(AppSettings.KEY_SCROBBLING_PROGRESS_SYNC, true)
 	var autoTrack by rememberBooleanPref(AppSettings.KEY_AUTO_TRACK_FAVOURITES, false)
+	var smartStatus by rememberBooleanPref(AppSettings.KEY_SMART_READING_STATUS, true)
+	var autoPause by rememberBooleanPref(AppSettings.KEY_AUTO_PAUSE_STALE, false)
+	var autoPauseDays by rememberIntPref(AppSettings.KEY_AUTO_PAUSE_DAYS, AppSettings.AUTO_PAUSE_DEFAULT_DAYS)
+	val dialogContext = LocalContext.current
 
 	var eyeReminder by rememberBooleanPref(AppSettings.KEY_EYE_REMINDER, false)
 	var eyeReminderInterval by rememberIntPref(
@@ -435,6 +504,57 @@ private fun ServicesScreen(
 							onCheckedChange = { autoTrack = it },
 							icon = R.drawable.ic_heart_outline,
 							shape = pos.shape,
+						)
+					}
+					item { pos ->
+						SwitchSettingsItem(
+							title = stringResource(R.string.smart_reading_status),
+							subtitle = stringResource(R.string.smart_reading_status_summary),
+							checked = smartStatus,
+							onCheckedChange = { smartStatus = it },
+							icon = R.drawable.ic_eye_check,
+							shape = pos.shape,
+						)
+					}
+					item { pos ->
+						SwitchSettingsItem(
+							title = stringResource(R.string.auto_pause_stale),
+							subtitle = stringResource(R.string.auto_pause_stale_summary),
+							checked = autoPause,
+							onCheckedChange = { autoPause = it },
+							icon = R.drawable.ic_eye_off,
+							shape = pos.shape,
+						)
+					}
+					if (autoPause) {
+						item { pos ->
+							ActionSettingsItem(
+								title = stringResource(R.string.auto_pause_after),
+								subtitle = stringResource(R.string.auto_pause_days, autoPauseDays),
+								icon = R.drawable.ic_history,
+								shape = pos.shape,
+								onClick = {
+									showActionChoiceDialog(
+										context = dialogContext,
+										icon = R.drawable.ic_history,
+										title = dialogContext.getString(R.string.auto_pause_after),
+										actions = listOf(30, 60, 90, 180).map { days ->
+											DialogAction(label = dialogContext.getString(R.string.auto_pause_days, days)) {
+												autoPauseDays = days
+											}
+										},
+									)
+								},
+							)
+						}
+					}
+					item { pos ->
+						ActionSettingsItem(
+							title = stringResource(R.string.sync_report),
+							subtitle = stringResource(R.string.sync_report_summary),
+							icon = R.drawable.ic_sync_problem,
+							shape = pos.shape,
+							onClick = onOpenSyncReport,
 						)
 					}
 					item { pos ->

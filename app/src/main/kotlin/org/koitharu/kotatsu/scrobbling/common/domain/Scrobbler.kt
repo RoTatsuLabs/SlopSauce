@@ -13,10 +13,12 @@ import kotlinx.coroutines.flow.map
 import org.koitharu.kotatsu.core.db.MangaDatabase
 import org.koitharu.kotatsu.core.model.trackerProgress
 import org.koitharu.kotatsu.core.parser.MangaRepository
+import org.koitharu.kotatsu.core.prefs.AppSettings
 import org.koitharu.kotatsu.core.util.ext.findKeyByValue
 import org.koitharu.kotatsu.core.util.ext.printStackTraceDebug
 import org.koitharu.kotatsu.core.util.ext.sanitize
 import org.koitharu.kotatsu.parsers.model.Manga
+import org.koitharu.kotatsu.parsers.model.MangaState
 import org.koitharu.kotatsu.parsers.util.findById
 import org.koitharu.kotatsu.parsers.util.runCatchingCancellable
 import org.koitharu.kotatsu.scrobbling.common.data.ScrobblerRepository
@@ -35,6 +37,7 @@ abstract class Scrobbler(
 	val scrobblerService: ScrobblerService,
 	private val repository: ScrobblerRepository,
 	private val mangaRepositoryFactory: MangaRepository.Factory,
+	private val settings: AppSettings,
 	/** Scale applied to the 0..1 rating before it reaches services that expect a wider range. */
 	private val ratingMax: Float = 1f,
 ) {
@@ -105,10 +108,37 @@ abstract class Scrobbler(
 		val entity = db.getScrobblingDao().find(scrobblerService.id, manga.id) ?: return
 		repository.updateRate(entity.id, entity.mangaId, number)
 		// Reading a chapter means it is no longer merely "planned", and no tracker flips that for us.
-		// Only PLANNED is touched, so a manually set "on hold"/"dropped"/"completed" survives.
-		if (isNotStarted(entity.status)) {
-			updateScrobblingInfo(manga.id, entity.rating, ScrobblingStatus.READING, entity.comment)
+		// With smart status on, reading also resumes a paused or dropped title and completes one when
+		// its last chapter is read. A status the user set that reading does not contradict survives.
+		val current = statuses.findKeyByValue(entity.status)
+		val smart = settings.isSmartReadingStatus
+		val needsTotal = smart && current != null && current != ScrobblingStatus.COMPLETED
+		val total = if (needsTotal) infoOrNull(entity.targetId)?.totalChapters ?: 0 else 0
+		val branchChapters = chapters.filter { x -> x.branch == chapter.branch }
+		val lastLocal = branchChapters.lastOrNull()?.trackerProgress(branchChapters) ?: 0
+		val next = SmartStatus.next(
+			current = current,
+			chapter = number,
+			previous = entity.chapter,
+			total = total,
+			lastLocal = lastLocal,
+			localFinished = manga.state == MangaState.FINISHED,
+			smart = smart,
+		)
+		if (next != null) {
+			updateScrobblingInfo(manga.id, entity.rating, next, entity.comment)
 		}
+	}
+
+	private suspend fun infoOrNull(targetId: Long): ScrobblerMangaInfo? {
+		infoCache[targetId]?.let { return it }
+		return runCatchingCancellable {
+			getMangaInfo(targetId)
+		}.onFailure {
+			it.printStackTraceDebug()
+		}.onSuccess {
+			infoCache.put(targetId, it)
+		}.getOrNull()
 	}
 
 	suspend fun getScrobblingInfoOrNull(mangaId: Long): ScrobblingInfo? {
@@ -120,6 +150,9 @@ abstract class Scrobbler(
 		val entity = db.getScrobblingDao().find(scrobblerService.id, mangaId) ?: return null
 		return repository.refreshRate(entity)
 	}
+
+	/** The status the app knows this tracker string as, or null for one it has no counterpart for. */
+	fun statusOf(status: String?): ScrobblingStatus? = statuses.findKeyByValue(status)
 
 	fun isNotStarted(status: String?): Boolean = status == statuses[ScrobblingStatus.PLANNED]
 
@@ -140,13 +173,16 @@ abstract class Scrobbler(
 		val statusString = statuses[status]
 		// The start date marks the day reading began, so it is only rewritten on the way into READING
 		val isStartingToRead = status == ScrobblingStatus.READING && entity.status != statusString
+		// Finishing a title that was never marked as started (a one-shot read in one go) needs a start date too
+		val isFinishing = status == ScrobblingStatus.COMPLETED && entity.status != statusString
 		repository.updateRate(
 			rateId = entity.id,
 			mangaId = entity.mangaId,
 			rating = rating * ratingMax,
 			status = statusString,
 			comment = comment,
-			setStartDate = forceStartDate || isStartingToRead,
+			setStartDate = forceStartDate || isStartingToRead || (isFinishing && isNotStarted(entity.status)),
+			setFinishDate = isFinishing,
 		)
 	}
 

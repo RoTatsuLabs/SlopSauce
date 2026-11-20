@@ -2,6 +2,7 @@ package org.koitharu.kotatsu.scrobbling.kitsu.domain
 
 import org.koitharu.kotatsu.core.db.MangaDatabase
 import org.koitharu.kotatsu.core.parser.MangaRepository
+import org.koitharu.kotatsu.core.prefs.AppSettings
 import org.koitharu.kotatsu.scrobbling.common.domain.Scrobbler
 import org.koitharu.kotatsu.scrobbling.common.domain.model.ScrobblerService
 import org.koitharu.kotatsu.scrobbling.common.domain.model.ScrobblingStatus
@@ -14,7 +15,8 @@ class KitsuScrobbler @Inject constructor(
 	repository: KitsuRepository,
 	db: MangaDatabase,
 	mangaRepositoryFactory: MangaRepository.Factory,
-) : Scrobbler(db, ScrobblerService.KITSU, repository, mangaRepositoryFactory) {
+	settings: AppSettings,
+) : Scrobbler(db, ScrobblerService.KITSU, repository, mangaRepositoryFactory, settings) {
 
 	init {
 		statuses[ScrobblingStatus.PLANNED] = "planned"

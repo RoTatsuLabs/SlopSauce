@@ -240,6 +240,7 @@ class KitsuRepository(
 		status: String?,
 		comment: String?,
 		setStartDate: Boolean,
+		setFinishDate: Boolean,
 	) {
 		val payload = JSONObject()
 		payload.putJO("data") {
@@ -251,6 +252,9 @@ class KitsuRepository(
 				put("notes", comment)
 				if (setStartDate) {
 					put("startedAt", KITSU_DATE_FORMAT.format(Instant.now()))
+				}
+				if (setFinishDate) {
+					put("finishedAt", KITSU_DATE_FORMAT.format(Instant.now()))
 				}
 			}
 		}

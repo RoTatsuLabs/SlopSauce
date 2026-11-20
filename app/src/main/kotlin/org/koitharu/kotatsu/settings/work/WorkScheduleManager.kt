@@ -10,6 +10,7 @@ import org.koitharu.kotatsu.core.prefs.AppSettings
 import org.koitharu.kotatsu.core.util.ext.processLifecycleScope
 import org.koitharu.kotatsu.extensions.install.ExtensionUpdateWorker
 import org.koitharu.kotatsu.lnreader.LnPluginManager
+import org.koitharu.kotatsu.scrobbling.autotrack.AutoPauseWorker
 import org.koitharu.kotatsu.suggestions.ui.SuggestionsWorker
 import org.koitharu.kotatsu.sync.SyncFeature
 import org.koitharu.kotatsu.tracker.work.TrackWorker
@@ -24,6 +25,7 @@ class WorkScheduleManager @Inject constructor(
 	private val backupScheduler: PeriodicalBackupWorker.Scheduler,
 	private val syncFeature: SyncFeature,
 	private val extensionUpdateScheduler: ExtensionUpdateWorker.Scheduler,
+	private val autoPauseScheduler: AutoPauseWorker.Scheduler,
 	@ApplicationContext private val context: Context,
 ) : SharedPreferences.OnSharedPreferenceChangeListener {
 
@@ -55,6 +57,12 @@ class WorkScheduleManager @Inject constructor(
 				force = key != AppSettings.KEY_BACKUP_PERIODICAL_ENABLED,
 			)
 
+			AppSettings.KEY_AUTO_PAUSE_STALE -> updateWorker(
+				scheduler = autoPauseScheduler,
+				isEnabled = settings.isAutoPauseStale,
+				force = false,
+			)
+
 			AppSettings.KEY_AUTO_UPDATE_EXTENSIONS,
 			AppSettings.KEY_SHIZUKU_INSTALLER,
 			AppSettings.KEY_EXTENSION_UPDATE_NOTIFICATIONS,
@@ -76,6 +84,7 @@ class WorkScheduleManager @Inject constructor(
 		processLifecycleScope.launch(Dispatchers.Default) {
 			updateWorkerImpl(trackerScheduler, settings.isTrackerEnabled, true)
 			updateWorkerImpl(suggestionScheduler, settings.isSuggestionsEnabled, true)
+			updateWorkerImpl(autoPauseScheduler, settings.isAutoPauseStale, force = false)
 			updateWorkerImpl(
 				scheduler = backupScheduler,
 				isEnabled = settings.isPeriodicalBackupEnabled && settings.periodicalBackupDirectory != null,

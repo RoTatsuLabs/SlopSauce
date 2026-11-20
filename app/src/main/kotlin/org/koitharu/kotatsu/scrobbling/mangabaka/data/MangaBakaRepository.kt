@@ -219,6 +219,7 @@ class MangaBakaRepository @Inject constructor(
 		status: String?,
 		comment: String?,
 		setStartDate: Boolean,
+		setFinishDate: Boolean,
 	) {
 		val current = requireEntity(mangaId)
 		pushRate(
@@ -229,6 +230,7 @@ class MangaBakaRepository @Inject constructor(
 			rating = rating / RATING_MAX,
 			comment = comment,
 			setStartDate = setStartDate,
+			setFinishDate = setFinishDate,
 		)
 	}
 
@@ -238,7 +240,7 @@ class MangaBakaRepository @Inject constructor(
 
 	/**
 	 * Only the fields we own are sent: MangaBaka nulls out any key present in the PUT body, so
-	 * omitting `is_private`, `finish_date` — and `start_date` unless [setStartDate] — keeps what the
+	 * omitting `is_private`, and `start_date` and `finish_date` unless [setStartDate] or [setFinishDate], keeps what the
 	 * user set on the site.
 	 */
 	private suspend fun pushRate(
@@ -249,6 +251,7 @@ class MangaBakaRepository @Inject constructor(
 		rating: Float,
 		comment: String?,
 		setStartDate: Boolean,
+		setFinishDate: Boolean = false,
 	): ScrobblingEntity {
 		val json = JSONObject()
 			.put("state", status ?: "reading")
@@ -256,6 +259,9 @@ class MangaBakaRepository @Inject constructor(
 			.put("rating", (rating * RATING_MAX).toInt().coerceIn(0, RATING_MAX).takeIf { it > 0 } ?: JSONObject.NULL)
 		if (setStartDate) {
 			json.put("start_date", LocalDate.now().toString())
+		}
+		if (setFinishDate) {
+			json.put("finish_date", LocalDate.now().toString())
 		}
 		val body = json.toString().toJsonBody()
 		val request = Request.Builder()

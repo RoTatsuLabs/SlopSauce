@@ -6,6 +6,12 @@ All notable changes to ShotenSauce are listed here, newest version first. Entrie
 
 ### Additions
 
+- Smart reading status: a tracker title moves to Reading when you read it, resumes from On hold or Dropped, and becomes Completed when you reach the last chapter. Turn it off in Services.
+- Smart reading status also restarts a Completed title as Re-reading when you start it over from chapter 1.
+- Tracker dates: Completed sets the finish date, and finishing a title never started also sets its start date (AniList, MyAnimeList, Kitsu, MangaBaka).
+- Pause stale titles: Reading titles you have not opened for 30 to 180 days move to On hold on your trackers (off by default).
+- Tracker sync report in Services: lists titles whose progress differs between the app and your trackers, with Sync all.
+- Indonesian translations for the tracker, auto-track and favourites strings.
 - Blur sensitive covers: covers of 18+ titles and the genres you choose are blurred in lists, history, the feed and details, and holding a cover lets you peek.
 - Open "Needs review" and tap "Link all to nearest entry" to link the titles that need review to their closest tracker entry.
 - Downloads redesign: filter chips, sections, sorting, a menu on every row, move up and down in the queue, and retry all failed.

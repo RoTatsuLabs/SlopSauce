@@ -47,6 +47,7 @@ interface ScrobblerRepository {
 	/**
 	 * @param setStartDate writes today as the reading start date. Left alone otherwise, so a date the
 	 * user set on the website is never disturbed by an unrelated rating or note edit.
+	 * @param setFinishDate writes today as the date reading finished, on services that keep one.
 	 */
 	suspend fun updateRate(
 		rateId: Int,
@@ -55,5 +56,6 @@ interface ScrobblerRepository {
 		status: String?,
 		comment: String?,
 		setStartDate: Boolean,
+		setFinishDate: Boolean = false,
 	)
 }

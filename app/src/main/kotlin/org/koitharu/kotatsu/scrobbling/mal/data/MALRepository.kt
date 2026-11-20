@@ -193,6 +193,7 @@ class MALRepository @Inject constructor(
 		status: String?,
 		comment: String?,
 		setStartDate: Boolean,
+		setFinishDate: Boolean,
 	) {
 		val body = FormBody.Builder()
 			.add("status", status.toString())
@@ -200,6 +201,9 @@ class MALRepository @Inject constructor(
 			.add("comments", comment.orEmpty())
 		if (setStartDate) {
 			body.add("start_date", LocalDate.now().toString())
+		}
+		if (setFinishDate) {
+			body.add("finish_date", LocalDate.now().toString())
 		}
 		val url = BASE_API_URL.toHttpUrl().newBuilder()
 			.addPathSegment("manga")

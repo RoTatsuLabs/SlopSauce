@@ -183,7 +183,7 @@ class ShikimoriRepository @Inject constructor(
 		saveRate(response, mangaId)
 	}
 
-	/** [setStartDate] is ignored: a Shikimori user rate has no editable reading date. */
+	/** [setStartDate] and [setFinishDate] are ignored: a Shikimori user rate has no editable reading dates. */
 	override suspend fun updateRate(
 		rateId: Int,
 		mangaId: Long,
@@ -191,6 +191,7 @@ class ShikimoriRepository @Inject constructor(
 		status: String?,
 		comment: String?,
 		setStartDate: Boolean,
+		setFinishDate: Boolean,
 	) {
 		val payload = JSONObject()
 		payload.put(

@@ -268,6 +268,7 @@ class AniListRepository @Inject constructor(
 		status: String?,
 		comment: String?,
 		setStartDate: Boolean,
+		setFinishDate: Boolean,
 	) {
 		val scoreRaw = (rating * 100f).roundToInt()
 		val statusString = status?.let { ", status: $it" }.orEmpty()
@@ -278,10 +279,16 @@ class AniListRepository @Inject constructor(
 		} else {
 			""
 		}
+		val completedAtString = if (setFinishDate) {
+			val today = LocalDate.now()
+			", completedAt: { year: ${today.year}, month: ${today.monthValue}, day: ${today.dayOfMonth} }"
+		} else {
+			""
+		}
 		val response = doRequest(
 			REQUEST_MUTATION,
 			"""
-				SaveMediaListEntry(id: $rateId, scoreRaw: $scoreRaw$statusString$notesString$startedAtString) {
+				SaveMediaListEntry(id: $rateId, scoreRaw: $scoreRaw$statusString$notesString$startedAtString$completedAtString) {
 					id
 					mediaId
 					status
