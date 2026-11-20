@@ -12,6 +12,8 @@ data class ScrobblingInfo(
 	val totalChapters: Int,
 	val comment: String?,
 	val rating: Float,
+	val scoreMax: Float = 0f,
+	val scoreDecimals: Int = 0,
 	val title: String,
 	val coverUrl: String,
 	val description: CharSequence?,

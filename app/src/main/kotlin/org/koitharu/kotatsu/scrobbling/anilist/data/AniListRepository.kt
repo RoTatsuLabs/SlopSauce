@@ -10,12 +10,14 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.core.db.MangaDatabase
+import org.koitharu.kotatsu.core.util.ext.printStackTraceDebug
 import org.koitharu.kotatsu.parsers.exception.GraphQLException
 import org.koitharu.kotatsu.parsers.InternalParsersApi
 import org.koitharu.kotatsu.parsers.util.await
 import org.koitharu.kotatsu.parsers.util.json.getStringOrNull
 import org.koitharu.kotatsu.parsers.util.json.mapJSON
 import org.koitharu.kotatsu.parsers.util.parseJson
+import org.koitharu.kotatsu.parsers.util.runCatchingCancellable
 import org.koitharu.kotatsu.parsers.util.toIntUp
 import org.koitharu.kotatsu.scrobbling.common.data.ScrobblerRepository
 import org.koitharu.kotatsu.scrobbling.common.data.ScrobblerStorage
@@ -81,6 +83,37 @@ class AniListRepository @Inject constructor(
 		val response = okHttp.newCall(request.build()).await().parseJson()
 		storage.accessToken = response.getString("access_token")
 		storage.refreshToken = response.getString("refresh_token")
+	}
+
+	override val scoreMax: Float
+		get() = when (ScoreFormat.of(storage[KEY_SCORE_FORMAT])) {
+			ScoreFormat.POINT_100 -> 100f
+			ScoreFormat.POINT_10_DECIMAL, ScoreFormat.POINT_10 -> 10f
+			ScoreFormat.POINT_5 -> 5f
+			ScoreFormat.POINT_3 -> 3f
+		}
+
+	override val scoreDecimals: Int
+		get() = if (ScoreFormat.of(storage[KEY_SCORE_FORMAT]) == ScoreFormat.POINT_10_DECIMAL) 1 else 0
+
+	/** The account's score format can be changed on the site at any time, so it is re-read per refresh. */
+	private suspend fun refreshScoreFormat() {
+		runCatchingCancellable {
+			val response = doRequest(
+				REQUEST_QUERY,
+				"""
+				AniChartUser {
+					user {
+						mediaListOptions {
+							scoreFormat
+						}
+					}
+				}
+			""",
+			)
+			val user = response.getJSONObject("data").getJSONObject("AniChartUser").getJSONObject("user")
+			storage[KEY_SCORE_FORMAT] = user.getJSONObject("mediaListOptions").getString("scoreFormat")
+		}.onFailure { it.printStackTraceDebug() }
 	}
 
 	override suspend fun loadUser(): ScrobblerUser {
@@ -194,6 +227,7 @@ class AniListRepository @Inject constructor(
 	}
 
 	override suspend fun refreshRate(entity: ScrobblingEntity): ScrobblingEntity {
+		refreshScoreFormat()
 		val response = doRequest(
 			REQUEST_QUERY,
 			"""

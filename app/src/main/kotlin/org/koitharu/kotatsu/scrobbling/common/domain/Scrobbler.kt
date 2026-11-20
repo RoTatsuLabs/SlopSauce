@@ -198,6 +198,8 @@ abstract class Scrobbler(
 			totalChapters = mangaInfo.totalChapters,
 			comment = comment,
 			rating = rating,
+			scoreMax = repository.scoreMax.takeIf { it > 0f } ?: ratingMax.takeIf { it > 1f } ?: 0f,
+			scoreDecimals = repository.scoreDecimals,
 			title = mangaInfo.name,
 			coverUrl = mangaInfo.cover,
 			description = mangaInfo.descriptionHtml.parseAsHtml().sanitize(),

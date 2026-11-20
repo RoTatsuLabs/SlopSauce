@@ -40,6 +40,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.input.KeyboardType
+import org.koitharu.kotatsu.core.ui.dialog.showTextInputDialog
+import java.util.Locale
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.clipRect
@@ -68,6 +72,7 @@ import org.koitharu.kotatsu.scrobbling.common.domain.model.ScrobblingInfo
 import org.koitharu.kotatsu.scrobbling.common.domain.model.ScrobblingStatus
 import kotlin.math.abs
 import kotlin.math.ceil
+import kotlin.math.roundToInt
 
 /** Stars the rating row draws; the tracker itself stores a 0f..1f fraction. */
 const val MAX_STARS = 5f
@@ -124,6 +129,11 @@ fun ScrobblingInfoContent(
 				sentRating = localRating
 				onRatingChange(localRating / MAX_STARS)
 			},
+			onScoreEntered = { stars ->
+				localRating = stars
+				sentRating = stars
+				onRatingChange(stars / MAX_STARS)
+			},
 			onCoverClick = onCoverClick,
 			onOpenInBrowser = onOpenInBrowser,
 			onEdit = onEdit,
@@ -169,6 +179,7 @@ private fun HeroRow(
 	rating: Float,
 	onRatingChange: (Float) -> Unit,
 	onRatingCommit: () -> Unit,
+	onScoreEntered: (Float) -> Unit,
 	onCoverClick: () -> Unit,
 	onOpenInBrowser: () -> Unit,
 	onEdit: () -> Unit,
@@ -258,10 +269,45 @@ private fun HeroRow(
 					onRatingCommit = onRatingCommit,
 				)
 				Spacer(Modifier.width(10.dp))
+				val context = LocalContext.current
+				val label = stringResource(R.string.rating)
+				val canType = info.scoreMax > 0f
 				Text(
-					text = formatRating(rating),
+					text = formatRating(rating, info.scoreMax, info.scoreDecimals),
 					style = MaterialTheme.typography.titleMedium,
 					color = MaterialTheme.colorScheme.primary,
+					modifier = if (canType) {
+						// Stars are coarse on a 100-point scale, so the number itself can be tapped and typed
+						Modifier
+							.clip(RoundedCornerShape(8.dp))
+							.clickable {
+								val current = rating / MAX_STARS * info.scoreMax
+								showTextInputDialog(
+									context = context,
+									icon = R.drawable.ic_star_small,
+									title = label,
+									hint = "0 – ${info.scoreMax.toInt()}",
+									initialValue = if (rating <= 0f) {
+										""
+									} else if (info.scoreDecimals > 0) {
+										"%.${info.scoreDecimals}f".format(Locale.ROOT, current)
+									} else {
+										current.roundToInt().toString()
+									},
+									keyboardType = if (info.scoreDecimals > 0) KeyboardType.Decimal else KeyboardType.Number,
+									isValid = { text ->
+										text.replace(',', '.').toFloatOrNull()?.let { it in 0f..info.scoreMax } == true
+									},
+								) { text ->
+									text.replace(',', '.').toFloatOrNull()?.let {
+										onScoreEntered(it.coerceIn(0f, info.scoreMax) / info.scoreMax * MAX_STARS)
+									}
+								}
+							}
+							.padding(horizontal = 6.dp, vertical = 2.dp)
+					} else {
+						Modifier
+					},
 				)
 			}
 		}
@@ -458,8 +504,18 @@ private fun RatingStars(
 	}
 }
 
-private fun formatRating(stars: Float): String = if (stars <= 0f) {
-	"–"
-} else {
-	"%.1f".format(stars)
+/**
+ * The stars stay a fixed five-point control, but the number beside them is in the tracker's own
+ * scale (e.g. "10/10") so it matches what the account shows on the site.
+ */
+internal fun formatRating(stars: Float, scoreMax: Float, decimals: Int): String {
+	if (stars <= 0f) return "–"
+	if (scoreMax <= 0f) return "%.1f".format(stars)
+	val score = stars / MAX_STARS * scoreMax
+	val max = scoreMax.toInt()
+	return if (decimals > 0) {
+		"%.${decimals}f/%d".format(score, max)
+	} else {
+		"%d/%d".format(score.roundToInt(), max)
+	}
 }

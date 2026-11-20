@@ -102,6 +102,8 @@ import org.koitharu.kotatsu.parsers.model.Manga
 import org.koitharu.kotatsu.parsers.model.MangaTag
 import org.koitharu.kotatsu.scrobbling.common.domain.model.ScrobblerService
 import org.koitharu.kotatsu.scrobbling.common.domain.model.ScrobblingInfo
+import org.koitharu.kotatsu.details.ui.scrobbling.MAX_STARS
+import org.koitharu.kotatsu.details.ui.scrobbling.formatRating
 import org.koitharu.kotatsu.details.ui.scrobbling.labelResId
 import java.util.Locale
 
@@ -527,7 +529,7 @@ internal fun ScrobblingSection(
 										)
 										Spacer(Modifier.width(4.dp))
 										Text(
-											text = "${"%.1f".format(info.rating * 5)} / 5",
+											text = formatRating(info.rating * MAX_STARS, info.scoreMax, info.scoreDecimals),
 											style = MaterialTheme.typography.titleSmall,
 											color = MaterialTheme.colorScheme.onSurface,
 										)

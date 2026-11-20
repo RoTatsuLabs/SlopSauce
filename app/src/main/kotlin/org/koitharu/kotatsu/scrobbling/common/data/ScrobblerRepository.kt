@@ -13,6 +13,12 @@ interface ScrobblerRepository {
 
 	val cachedUser: ScrobblerUser?
 
+	/** Top of the score scale the account uses on the service (10, 100, ...), or 0 when unknown. */
+	val scoreMax: Float get() = 0f
+
+	/** How many decimals the service shows in a score. */
+	val scoreDecimals: Int get() = 0
+
 	suspend fun authorize(code: String?)
 
 	suspend fun loadUser(): ScrobblerUser
