@@ -49,7 +49,7 @@ fun SManga.toManga(
 	return Manga(
 		id = stableId(source.name, "manga", safeUrl),
 		title = safeTitle,
-		altTitles = emptySet(),
+		altTitles = altTitles.filterTo(LinkedHashSet()) { it.isNotBlank() },
 		url = safeUrl,
 		publicUrl = resolvedUrl,
 		rating = RATING_UNKNOWN,
@@ -96,6 +96,7 @@ fun Manga.toSManga(): SManga {
 			else -> SManga.UNKNOWN
 		}
 		this.thumbnail_url = this@toSManga.coverUrl
+		this.altTitles = this@toSManga.altTitles.toList()
 		// Mihon only marks a source model initialized after details have actually been persisted.
 		// Search results commonly have neither description nor chapters and must still fetch details.
 		this.initialized = this@toSManga.description != null || this@toSManga.chapters != null

@@ -431,6 +431,7 @@
     <string name="tracking">Tracking</string>
     <string name="tracking_options">Tracking options</string>
     <string name="tracking_options_summary">Auto-track, reading status and review</string>
+    <string name="alternative_titles">Alternative titles</string>
     <string name="tracking_section_progress">Progress</string>
     <string name="tracking_section_actions">Actions</string>
     <string name="auto_pause_stale_after_summary">Marks titles you have not read for %1$d days as On hold on your trackers</string>

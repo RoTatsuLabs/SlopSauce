@@ -215,6 +215,7 @@
     <string name="tracking">Pelacakan</string>
     <string name="tracking_options">Opsi pelacakan</string>
     <string name="tracking_options_summary">Lacak otomatis, status baca, dan tinjauan</string>
+    <string name="alternative_titles">Judul lain</string>
     <string name="tracking_section_progress">Progres</string>
     <string name="tracking_section_actions">Aksi</string>
     <string name="auto_pause_stale_after_summary">Menandai judul yang tidak kamu baca selama %1$d hari sebagai Ditunda di trackermu</string>

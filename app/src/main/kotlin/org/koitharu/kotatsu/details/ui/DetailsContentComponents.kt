@@ -113,9 +113,6 @@ private const val DESCRIPTION_COLLAPSED_LINES = 5
 @Composable
 internal fun DescriptionCard(
 	description: CharSequence?,
-	manga: Manga,
-	details: MangaDetails?,
-	accent: Color,
 ) {
 	val linkColor = MaterialTheme.colorScheme.primary
 	// The appearance setting only decides how a long description *starts*; tapping still toggles it
@@ -144,44 +141,12 @@ internal fun DescriptionCard(
 		label = "descriptionFade",
 	)
 	SectionCard {
-		val locale = details?.getLocale()
-		Row(
-			modifier = Modifier.fillMaxWidth(),
-			verticalAlignment = Alignment.CenterVertically,
-		) {
-			Text(
-				text = stringResource(R.string.description),
-				style = MaterialTheme.typography.titleMedium,
-				fontWeight = FontWeight.SemiBold,
-				color = MaterialTheme.colorScheme.onSurface,
-			)
-			Spacer(modifier = Modifier.weight(1f))
-			locale?.let {
-				Pill(
-					text = it.getDisplayLanguage(it).replaceFirstChar { ch -> ch.titlecase(it) },
-					accent = accent,
-					highlighted = true,
-				) {
-					Icon(
-						painter = painterResource(R.drawable.ic_language),
-						contentDescription = null,
-						tint = accent,
-						modifier = Modifier.size(15.dp),
-					)
-				}
-				Spacer(modifier = Modifier.width(8.dp))
-			}
-			if (manga.hasRating) {
-				Pill(text = String.format(Locale.ROOT, "%.1f", manga.rating * 5f), accent = accent, highlighted = true) {
-					Icon(
-						painter = painterResource(R.drawable.ic_star_small),
-						contentDescription = null,
-						tint = accent,
-						modifier = Modifier.size(15.dp),
-					)
-				}
-			}
-		}
+		Text(
+			text = stringResource(R.string.description),
+			style = MaterialTheme.typography.titleMedium,
+			fontWeight = FontWeight.SemiBold,
+			color = MaterialTheme.colorScheme.onSurface,
+		)
 		Spacer(Modifier.height(10.dp))
 		Box(
 			modifier = Modifier

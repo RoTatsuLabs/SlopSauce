@@ -165,16 +165,20 @@ fun DetailsExpressiveScreen(
 			}
 
 			Spacer(Modifier.height(8.dp))
-			ProgressCard(historyInfo = historyInfo, isLoading = isLoading, accent = accentColor)
-
-			DescriptionCard(
-				description = details.description,
+			InfoGrid(
 				manga = manga,
 				details = details,
+				formats = manga.tags.formatTags(),
 				accent = accentColor,
+				onFormatClick = actions.onTagClick,
 			)
+			ProgressCard(historyInfo = historyInfo, isLoading = isLoading, accent = accentColor)
+
+			DescriptionCard(description = details.description)
 
 			TagsSection(tags = tags, accent = accentColor, onTagClick = actions.onTagClick)
+
+			AltTitlesCard(titles = manga.altTitles)
 
 			if (scrobblings.isNotEmpty()) {
 				ScrobblingSection(

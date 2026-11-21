@@ -3,9 +3,12 @@
 ## Unreleased
 
 ### New
+- Title details show the type (Manga, Manhwa, Manhua, Webtoon...) in an info grid with rating, language and last update, and a card lists every alternative title
 - Track untracked favourites can be run again any time: also search titles that need review again, or send progress for every favourite again
 
 ### Improved
+- Extension titles keep their alternative titles, which also helps duplicate detection, search and tracker matching
+- The type is no longer mixed into the genre chips
 - Tracking settings moved to their own "Tracking options" screen with Progress and Actions sections, and Pause stale titles shows its number of days on the same row
 - The tracker sync report is removed, since progress already follows your reading and refreshes
 - Needs review is a full screen list with covers and full titles, grouped by tracker
