@@ -28,6 +28,7 @@ import org.koitharu.kotatsu.core.prefs.AppSettings
 import org.koitharu.kotatsu.core.prefs.SourceSettings
 import org.koitharu.kotatsu.mihon.model.MihonMangaSource
 import org.koitharu.kotatsu.mihon.model.toManga
+import org.koitharu.kotatsu.mihon.model.parseVolume
 import org.koitharu.kotatsu.mihon.model.toMangaChapter
 import org.koitharu.kotatsu.mihon.model.toMangaPage
 import org.koitharu.kotatsu.mihon.model.toSChapter
@@ -241,14 +242,20 @@ class MihonMangaRepository(
 		// For the number itself,
 		// derive it from the chapter name via ChapterRecognition when the extension left it unset
 		// (chapter_number < 0), instead of inventing a sequential index.
-		val chapters = normalizeMihonChapterOrder(uniqueChapters)
-			.map { sChapter ->
+		val orderedChapters = normalizeMihonChapterOrder(uniqueChapters)
+		// The chapter list groups and sorts by volume first, so a volume is only trusted when every
+		// chapter names one. A few "Vol.2" names among unlabelled ones would split the list in two.
+		val volumes = orderedChapters.map { it.parseVolume() }
+		val useVolumes = volumes.isNotEmpty() && volumes.all { it > 0 }
+		val chapters = orderedChapters
+			.mapIndexed { index, sChapter ->
 				val number = ChapterRecognition.parseChapterNumber(
 					mangaTitle = mangaTitle,
 					chapterName = sChapter.name,
 					chapterNumber = sChapter.chapter_number.toDouble(),
 				).toFloat()
-				sChapter.toMangaChapter(source, number)
+				val chapter = sChapter.toMangaChapter(source, number)
+				if (useVolumes) chapter.copy(volume = volumes[index]) else chapter
 			}
 
 		// Fallback for missing details fields
