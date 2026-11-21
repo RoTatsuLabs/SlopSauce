@@ -20,13 +20,12 @@
 - Show only manga or only novels in Explore (just hold the tab)
 - Sleep timer for text to speech
 - Retry all failed downloads in one go
+- Refreshing a comic also sends your progress to trackers that are behind
+- The tracker sheet shows the score in the tracker's own scale next to the stars, and you can tap it to type an exact score
 
 ### Improved
 - The app is now called ShotenSauce, and the Themed and Mono icons use the new logo
-- Refreshing a comic also sends your progress to trackers that are behind
-- The tracker sheet shows the score in the tracker's own scale next to the stars, and you can tap it to type an exact score
 - Titles already in your favourites under another source get a duplicate icon and that source's logo on the cover
-- Secret space no longer adds manga shortcuts to the launcher
 - Download settings are regrouped into Storage, Network and speed, and Speed and retries
 - Frosted glass is removed
 - More of the app is translated to Indonesian
@@ -39,6 +38,7 @@
 - The favorite button is back to one simple tap
 
 ### Fixed
+- Secret space no longer adds manga shortcuts to the launcher
 - Restoring a Mihon backup no longer crashes
 - Auto-track finds titles with quotes, backticks and other symbols
 - Tracker messages in Services show in a dialog instead of a snackbar
