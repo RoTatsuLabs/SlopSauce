@@ -49,7 +49,8 @@ class AutoTrackWorker @AssistedInject constructor(
 
 	override suspend fun doWork(): Result {
 		val closest = inputData.getBoolean(KEY_CLOSEST, false)
-		val pending = if (closest) autoTracker.findReviewPending() else autoTracker.findPending()
+		val scope = AutoTracker.Scope.entries.getOrElse(inputData.getInt(KEY_SCOPE, 0)) { AutoTracker.Scope.UNTRACKED }
+		val pending = if (closest) autoTracker.findReviewPending() else autoTracker.findPending(scope)
 		if (pending.isEmpty()) {
 			return Result.success()
 		}
@@ -159,9 +160,9 @@ class AutoTrackWorker @AssistedInject constructor(
 	) {
 
 		/** Starts a pass, or queues one behind the pass already running. */
-		fun start(closest: Boolean = false) {
+		fun start(closest: Boolean = false, scope: AutoTracker.Scope = AutoTracker.Scope.UNTRACKED) {
 			val request = OneTimeWorkRequestBuilder<AutoTrackWorker>()
-				.setInputData(workDataOf(KEY_CLOSEST to closest))
+				.setInputData(workDataOf(KEY_CLOSEST to closest, KEY_SCOPE to scope.ordinal))
 				.setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
 				.setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 1, TimeUnit.MINUTES)
 				.addTag(TAG)
@@ -196,5 +197,6 @@ class AutoTrackWorker @AssistedInject constructor(
 		const val KEY_TOTAL = "total"
 		const val KEY_REVIEW = "review"
 		const val KEY_CLOSEST = "closest"
+		const val KEY_SCOPE = "scope"
 	}
 }

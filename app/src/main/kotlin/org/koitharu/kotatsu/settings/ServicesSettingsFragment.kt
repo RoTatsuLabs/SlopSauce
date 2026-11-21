@@ -180,23 +180,39 @@ class ServicesSettingsFragment : BaseComposeSettingsFragment(R.string.services) 
 		val context = context ?: return
 		viewLifecycleOwner.lifecycleScope.launch {
 			val active = autoTracker.enabledScrobblers
-			val pending = withContext(Dispatchers.Default) { autoTracker.findPending() }
-			val titles = pending.map { it.mangaId }.distinct().size
-			when {
-				active.isEmpty() -> showInfo(R.string.auto_track_untracked, getString(R.string.auto_track_no_trackers))
-				titles == 0 -> showInfo(R.string.auto_track_untracked, getString(R.string.auto_track_nothing))
-				else -> showConfirmDialog(
-					context = context,
-					icon = R.drawable.ic_sync,
-					title = context.getString(R.string.auto_track_untracked),
-					message = context.getString(
-						R.string.auto_track_confirm,
-						titles,
-						active.joinToString { context.getString(it.scrobblerService.titleResId) },
-					),
-					confirmLabel = context.getString(R.string.auto_track_start),
-				) { autoTrackScheduler.start() }
+			if (active.isEmpty()) {
+				showInfo(R.string.auto_track_untracked, getString(R.string.auto_track_no_trackers))
+				return@launch
 			}
+			val counts = withContext(Dispatchers.Default) {
+				AutoTracker.Scope.entries.associateWith { scope ->
+					autoTracker.findPending(scope).map { it.mangaId }.distinct().size
+				}
+			}
+			val labels = mapOf(
+				AutoTracker.Scope.UNTRACKED to R.string.auto_track_scope_untracked,
+				AutoTracker.Scope.WITH_REVIEW to R.string.auto_track_scope_review,
+				AutoTracker.Scope.ALL to R.string.auto_track_scope_all,
+			)
+			val actions = AutoTracker.Scope.entries
+				.filter { (counts[it] ?: 0) > 0 }
+				// A scope that covers the same titles as the one before it adds nothing
+				.distinctBy { counts[it] }
+				.map { scope ->
+					DialogAction(label = context.getString(labels.getValue(scope), counts.getValue(scope))) {
+						autoTrackScheduler.start(scope = scope)
+					}
+				}
+			if (actions.isEmpty()) {
+				showInfo(R.string.auto_track_untracked, getString(R.string.auto_track_nothing))
+				return@launch
+			}
+			showActionChoiceDialog(
+				context = context,
+				icon = R.drawable.ic_sync,
+				title = context.getString(R.string.auto_track_untracked),
+				actions = actions,
+			)
 		}
 	}
 

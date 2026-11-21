@@ -822,6 +822,9 @@
     <string name="auto_track_summary">Last run: %1$d tracked, %2$d need review, %3$d failed</string>
     <string name="auto_track_no_trackers">Sign in to a tracker first</string>
     <string name="auto_track_nothing">All your favourites are already tracked</string>
+    <string name="auto_track_scope_untracked">Untracked favourites (%1$d)</string>
+    <string name="auto_track_scope_review">Untracked, and search needs review again (%1$d)</string>
+    <string name="auto_track_scope_all">Every favourite, send progress again (%1$d)</string>
     <string name="auto_track_confirm">%1$d favourites are not on %2$s yet. They are tracked one by one in the background. Only clear matches are linked, your reading progress is added, and trackers limit how fast this can go, so it may take a while.</string>
     <string name="auto_track_start">Start</string>
     <string name="auto_track_review">Needs review</string>

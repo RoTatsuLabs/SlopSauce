@@ -711,6 +711,9 @@
     <string name="auto_track_summary">Terakhir: %1$d terlacak, %2$d perlu ditinjau, %3$d gagal</string>
     <string name="auto_track_no_trackers">Masuk ke tracker terlebih dahulu</string>
     <string name="auto_track_nothing">Semua favoritmu sudah terlacak</string>
+    <string name="auto_track_scope_untracked">Favorit yang belum terlacak (%1$d)</string>
+    <string name="auto_track_scope_review">Belum terlacak, cari ulang yang perlu ditinjau (%1$d)</string>
+    <string name="auto_track_scope_all">Semua favorit, kirim ulang progres (%1$d)</string>
     <string name="auto_track_confirm">%1$d favorit belum ada di %2$s. Judul dilacak satu per satu di latar belakang. Hanya kecocokan yang jelas yang ditautkan, progres bacamu ikut ditambahkan, dan tracker membatasi kecepatannya, jadi mungkin butuh waktu.</string>
     <string name="auto_track_start">Mulai</string>
     <string name="auto_track_review">Perlu ditinjau</string>

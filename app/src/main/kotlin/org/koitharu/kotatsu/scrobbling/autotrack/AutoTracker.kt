@@ -30,15 +30,28 @@ class AutoTracker @Inject constructor(
 	private val store: AutoTrackStore,
 ) {
 
-	class Pending(val mangaId: Long, val scrobbler: Scrobbler)
+	/** [tracked] marks a title that is already linked: a pass over everything only re-sends its progress. */
+	class Pending(val mangaId: Long, val scrobbler: Scrobbler, val tracked: Boolean = false)
+
+	/** Which favourites a pass looks at. */
+	enum class Scope {
+		/** Not on a tracker yet, minus the ones awaiting review. */
+		UNTRACKED,
+
+		/** Not on a tracker yet, including the ones awaiting review, searched again from scratch. */
+		WITH_REVIEW,
+
+		/** Every favourite, so a pass can be repeated even when all of them are already tracked. */
+		ALL,
+	}
 
 	enum class Outcome { TRACKED, NEEDS_REVIEW, SKIPPED }
 
 	val enabledScrobblers: List<Scrobbler>
 		get() = scrobblers.filter { it.isEnabled }
 
-	/** Favourites that are not on a tracker yet, per signed-in tracker, minus the ones awaiting review. */
-	suspend fun findPending(): List<Pending> {
+	/** Favourites a pass of the given [scope] covers, per signed-in tracker. */
+	suspend fun findPending(scope: Scope = Scope.UNTRACKED): List<Pending> {
 		val active = enabledScrobblers
 		if (active.isEmpty()) return emptyList()
 		val favourites = db.getFavouritesDao().findMangaIds()
@@ -50,7 +63,8 @@ class AutoTracker @Inject constructor(
 				// Picked by hand since the last run: no longer waiting for review
 				if (id in tracked) {
 					store.removeReview(id, service)
-				} else if (!store.isReview(id, service)) {
+					if (scope == Scope.ALL) result.add(Pending(id, scrobbler, tracked = true))
+				} else if (scope != Scope.UNTRACKED || !store.isReview(id, service)) {
 					result.add(Pending(id, scrobbler))
 				}
 			}
@@ -92,6 +106,13 @@ class AutoTracker @Inject constructor(
 		val scrobbler = pending.scrobbler
 		val service = scrobbler.scrobblerService
 		val manga = db.getMangaDao().find(pending.mangaId)?.toManga() ?: return Outcome.SKIPPED
+		if (pending.tracked) {
+			// Already linked: nothing to search, only send the reading progress again
+			val last = historyRepository.getOne(manga) ?: return Outcome.SKIPPED
+			limiter.awaitBackground(service)
+			scrobbler.scrobble(manga, last.chapterId)
+			return Outcome.TRACKED
+		}
 		limiter.awaitBackground(service)
 		val type = if (manga.source.isNovelSource) ScrobblerMangaType.NOVEL else ScrobblerMangaType.MANGA
 		// The title first; the alternative titles only when it found nothing clear, to spare requests
