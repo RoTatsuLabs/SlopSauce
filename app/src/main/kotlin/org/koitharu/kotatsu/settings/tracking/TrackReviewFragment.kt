@@ -61,7 +61,6 @@ import org.koitharu.kotatsu.scrobbling.common.domain.model.ScrobblerService
 import org.koitharu.kotatsu.settings.compose.BaseComposeSettingsFragment
 import org.koitharu.kotatsu.settings.compose.DropSauceTheme
 import org.koitharu.kotatsu.settings.compose.GroupItemPosition
-import org.koitharu.kotatsu.settings.compose.InfoSettingsItem
 import org.koitharu.kotatsu.settings.compose.SettingsGroup
 import org.koitharu.kotatsu.settings.compose.SettingsScaffold
 import javax.inject.Inject
@@ -122,12 +121,15 @@ class TrackReviewFragment : BaseComposeSettingsFragment(R.string.auto_track_revi
 
 	private fun reload() {
 		viewLifecycleOwner.lifecycleScope.launch {
-			entries.value = withContext(Dispatchers.Default) {
+			val found = withContext(Dispatchers.Default) {
 				autoTracker.pendingReview().mapNotNull { (mangaId, service) ->
 					val manga = database.getMangaDao().find(mangaId)?.toManga() ?: return@mapNotNull null
 					Entry(manga, service)
 				}
 			}
+			entries.value = found
+			// The last one was linked: nothing is left to show, so go back to Services
+			if (found.isEmpty()) parentFragmentManager.popBackStack()
 		}
 	}
 
@@ -152,19 +154,7 @@ class TrackReviewFragment : BaseComposeSettingsFragment(R.string.auto_track_revi
 		onPick: (Entry) -> Unit,
 	) {
 		SettingsScaffold {
-			if (entries.isEmpty()) {
-				item {
-					SettingsGroup {
-						item { pos ->
-							InfoSettingsItem(
-								title = stringResource(R.string.auto_track_review_empty),
-								shape = pos.shape,
-							)
-						}
-					}
-				}
-				return@SettingsScaffold
-			}
+			if (entries.isEmpty()) return@SettingsScaffold
 			item {
 				FilledTonalButton(
 					onClick = onLinkAll,
