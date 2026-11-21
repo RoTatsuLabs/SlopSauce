@@ -7,6 +7,7 @@
 
 ### Improved
 - The tracker sync report is removed, since progress already follows your reading and refreshes
+- Needs review is a full screen list with covers and full titles, grouped by tracker
 
 ## 1.1.5 (2026-11-20)
 

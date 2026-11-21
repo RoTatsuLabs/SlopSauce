@@ -42,6 +42,7 @@ import org.koitharu.kotatsu.core.nav.router
 import org.koitharu.kotatsu.core.util.ext.observe
 import org.koitharu.kotatsu.scrobbling.autotrack.AutoTrackStore
 import org.koitharu.kotatsu.scrobbling.autotrack.AutoTrackWorker
+import org.koitharu.kotatsu.settings.tracking.TrackReviewFragment
 import org.koitharu.kotatsu.scrobbling.autotrack.AutoTracker
 import org.koitharu.kotatsu.core.prefs.AppSettings
 import org.koitharu.kotatsu.core.ui.dialog.DialogAction
@@ -107,7 +108,13 @@ class ServicesSettingsFragment : BaseComposeSettingsFragment(R.string.services) 
 					autoTrackStatus = trackStatus,
 					reviewCount = reviewTotal,
 					onTrackUntracked = ::confirmTrackUntracked,
-					onOpenReview = ::showReviewList,
+					onOpenReview = {
+						(activity as? SettingsActivity)?.openFragment(
+							TrackReviewFragment::class.java,
+							null,
+							isFromRoot = false,
+						)
+					},
 					onOpenSuggestions = {
 						(activity as? SettingsActivity)?.openFragment(
 							SuggestionsSettingsFragment::class.java,
@@ -203,51 +210,6 @@ class ServicesSettingsFragment : BaseComposeSettingsFragment(R.string.services) 
 				icon = R.drawable.ic_sync,
 				title = context.getString(R.string.auto_track_untracked),
 				actions = actions,
-			)
-		}
-	}
-
-	private fun confirmTrackReview() {
-		val context = context ?: return
-		viewLifecycleOwner.lifecycleScope.launch {
-			val count = withContext(Dispatchers.Default) { autoTracker.findReviewPending().map { it.mangaId }.distinct().size }
-			if (count == 0) {
-				showInfo(R.string.auto_track_review, getString(R.string.auto_track_no_trackers))
-				return@launch
-			}
-			showConfirmDialog(
-				context = context,
-				icon = R.drawable.ic_sync_problem,
-				title = context.getString(R.string.auto_track_review),
-				message = context.getString(R.string.auto_track_closest_confirm, count),
-				confirmLabel = context.getString(R.string.auto_track_start),
-			) { autoTrackScheduler.start(closest = true) }
-		}
-	}
-
-	private fun showReviewList() {
-		val context = context ?: return
-		viewLifecycleOwner.lifecycleScope.launch {
-			val items = withContext(Dispatchers.Default) {
-				autoTracker.pendingReview().mapNotNull { (mangaId, service) ->
-					val manga = database.getMangaDao().find(mangaId)?.toManga() ?: return@mapNotNull null
-					Triple(manga, service, "${manga.title} · ${context.getString(service.titleResId)}")
-				}
-			}
-			if (items.isEmpty()) {
-				autoTrackStore.clearReview()
-				reviewCount.value = 0
-				return@launch
-			}
-			showActionChoiceDialog(
-				context = context,
-				icon = R.drawable.ic_sync_problem,
-				title = context.getString(R.string.auto_track_review),
-				actions = listOf(
-					DialogAction(label = context.getString(R.string.auto_track_link_all)) { confirmTrackReview() },
-				) + items.map { (manga, service, label) ->
-					DialogAction(label = label) { router.showScrobblingSelectorSheet(manga, service) }
-				},
 			)
 		}
 	}
