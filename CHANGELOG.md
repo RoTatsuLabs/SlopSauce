@@ -2,42 +2,18 @@
 
 ## Unreleased
 
-### New
-- Smart reading status: a tracker title moves to Reading when you read it, resumes from On hold or Dropped, and becomes Completed when you reach the last chapter. Turn it off in Services.
-- Smart reading status also restarts a Completed title as Re-reading when you start it over from chapter 1.
-- Tracker dates: Completed sets the finish date, and finishing a title never started also sets its start date (AniList, MyAnimeList, Kitsu, MangaBaka).
-- Pause stale titles: Reading titles you have not opened for 30 to 180 days move to On hold on your trackers (off by default).
-- Tracker sync report in Services: lists titles whose progress differs between the app and your trackers, with Sync all.
-- Indonesian translations for the tracker, auto-track and favourites strings.
-- Blur sensitive covers: covers of 18+ titles and the genres you choose are blurred in lists, history, the feed and details, and holding a cover lets you peek.
-- Open "Needs review" and tap "Link all to nearest entry" to link the titles that need review to their closest tracker entry.
-- Downloads redesign: filter chips, sections, sorting, a menu on every row, move up and down in the queue, and retry all failed.
-- Downloads can wait for the charger, retry failed pages with growing delays, and each source can set its own download speed and whether read chapters are deleted.
-- Downloads shows how much space your manga use, with the biggest ones to delete in a tap. Drag the handle on a waiting download to reorder the queue. The Downloads screen is rebuilt with swipeable Active, Failed and Completed tabs, a progress ring on each download and a storage card, using the same toolbar, menus, dialogs and cards as the rest of the app. Finished downloads are one history entry per manga, and "Download missing chapters" queues what you don't have yet.
-- Pick your own font: add .ttf or .otf files in Settings > Appearance > Font, switch between them anytime, and the app uses the one you pick everywhere.
-
-### Improved
-- The app is now called ShotenSauce.
-- The Themed and Mono app icons (and every themed colour) now use the ShotenSauce logo.
-- Secret space no longer adds manga shortcuts to the launcher, and leftovers from earlier are removed.
-- Refreshing a comic also sends your progress to trackers that are behind.
-- The tracker sheet shows your score in the tracker's own scale (like 10/10) next to the stars, and AniList score format changes are picked up on refresh.
-- Tap the score number in the tracker sheet to type an exact score in the tracker's scale.
-- Titles you already favourited from another source get a duplicate icon and that source's logo in the top-left pill of the cover.
-- Frosted glass is removed, along with its switch and strength slider in Appearance.
-- "Download new chapters" moved from Check new chapters to Downloads, and the page, manga and retry limits sit on their own Speed and retries screen.
-- Plainer wording across downloads. Notifications show the state (downloading, waiting, paused, failed) and download settings are grouped into Storage and Network and speed.
-- Synced with DropSauce 1.1.5
-
-### Fixed
-- Restoring a Mihon backup no longer crashes by overwriting settings with the wrong type.
-- Tracker messages in Services show in a dialog instead of a snackbar.
-- Auto-track now finds titles with quotes, backticks and other symbols by also searching a cleaned-up version of the name.
-- "Sync progress from tracking services" no longer shows as an oversized highlighted card in Services.
-
 ## 1.1.5 (2026-11-20)
 
 ### New
+- Smart reading status: a tracker title moves to Reading when you read it, comes back from On hold or Dropped, becomes Re-reading when you restart it and Completed at the last chapter (switch in Services)
+- Tracker start and finish dates for AniList, MyAnimeList, Kitsu and MangaBaka
+- Pause stale titles: Reading titles you have not opened for 30 to 180 days move to On hold (off by default)
+- Tracker sync report in Services, with Sync all
+- "Link all to nearest entry" in Needs review
+- Blur sensitive covers: 18+ titles and the genres you pick are blurred, and holding a cover lets you peek
+- Downloads redesign: Active, Failed and Completed tabs, filters, sorting, a menu on every row, queue reordering and a storage card
+- Downloads can wait for the charger, retry failed pages with growing delays and use a speed per source
+- Pick your own font (.ttf or .otf) in Settings > Appearance > Font
 - Pick your app icon: default, mono, or one that matches your theme (settings > appearance)
 - Search several genres at once, and add your own genre chips
 - Up to 6 sections in the bottom bar
@@ -46,6 +22,15 @@
 - Retry all failed downloads in one go
 
 ### Improved
+- The app is now called ShotenSauce, and the Themed and Mono icons use the new logo
+- Refreshing a comic also sends your progress to trackers that are behind
+- The tracker sheet shows the score in the tracker's own scale next to the stars, and you can tap it to type an exact score
+- Titles already in your favourites under another source get a duplicate icon and that source's logo on the cover
+- Secret space no longer adds manga shortcuts to the launcher
+- Download settings are regrouped into Storage, Network and speed, and Speed and retries
+- Frosted glass is removed
+- More of the app is translated to Indonesian
+- Synced with DropSauce 1.1.5
 - PDFs open instantly, even huge ones, and don't take up extra space
 - Genre search gives much better results, the same way Mihon does it
 - Migrate any extension, not just broken ones, and choose where to look
@@ -54,6 +39,9 @@
 - The favorite button is back to one simple tap
 
 ### Fixed
+- Restoring a Mihon backup no longer crashes
+- Auto-track finds titles with quotes, backticks and other symbols
+- Tracker messages in Services show in a dialog instead of a snackbar
 - Kotatsu backups restore properly from around 90 sources like MangaDex, Webtoons and Asura
 - Deleting one chapter of an imported folder no longer deletes the whole thing
 - Folders with both comics and EPUBs now import both
