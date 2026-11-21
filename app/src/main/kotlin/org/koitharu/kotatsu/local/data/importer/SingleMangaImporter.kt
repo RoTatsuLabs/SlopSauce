@@ -88,7 +88,7 @@ class SingleMangaImporter @Inject constructor(
 				}
 				return cbz
 			}
-			repackRar(this, cbz) // real RAR: GitHub version only (src/github, src/fdroid)
+			repackRar(this, cbz) // real RAR: see src/github
 			return cbz
 		} catch (e: Exception) {
 			cbz.delete()

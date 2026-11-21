@@ -10,7 +10,6 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.json.JSONArray
 import org.json.JSONObject
-import org.koitharu.kotatsu.BuildConfig
 import org.koitharu.kotatsu.R
 import org.koitharu.kotatsu.core.network.BaseHttpClient
 import org.koitharu.kotatsu.core.util.ext.asArrayList
@@ -88,7 +87,7 @@ class AppUpdateRepository @Inject constructor(
 	}
 
 	// The F-Droid version is updated by F-Droid only (F-Droid policy).
-	fun isUpdateSupported(): Boolean = BuildConfig.FLAVOR != "fdroid"
+	fun isUpdateSupported(): Boolean = true
 
 	private inline fun JSONArray.find(predicate: (JSONObject) -> Boolean): JSONObject? {
 		val size = length()

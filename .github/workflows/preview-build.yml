@@ -100,7 +100,7 @@ jobs:
 
           {
             echo "**Preview build of \`${GITHUB_REF_NAME}\`** — non-debuggable, no dev tooling, installs"
-            echo "as a separate app (\`org.haziffe.dropsauce.preview\`, \"ShotenSauce Preview\")."
+            echo "as a separate app (\`com.rotatsulabs.shotensauce.preview\`, \"ShotenSauce Preview\")."
             echo ""
             echo "| File | Size | SHA-256 |"
             echo "| --- | --- | --- |"

@@ -44,7 +44,7 @@ android {
 	}
 
 	defaultConfig {
-		applicationId = 'org.haziffe.dropsauce'
+		applicationId = 'com.rotatsulabs.shotensauce'
 		minSdk = 26
 		targetSdk = 37
 		versionCode = 83
@@ -121,16 +121,11 @@ android {
 			signingConfig = signingConfigs.findByName('release') ?: signingConfigs.debug
 		}
 	}
-	// Two versions of the same app (same id and signature, so one can update over the other):
-	// "github" has Google Drive sync, "fdroid" has no Google Play Services code at all (src/github vs src/fdroid).
 	flavorDimensions = ['store']
 	productFlavors {
 		github {
 			dimension = 'store'
 			isDefault = true
-		}
-		fdroid {
-			dimension = 'store'
 		}
 	}
 	buildFeatures {

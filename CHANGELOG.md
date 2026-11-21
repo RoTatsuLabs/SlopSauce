@@ -7,6 +7,7 @@
 - Track untracked favourites can be run again any time: also search titles that need review again, or send progress for every favourite again
 
 ### Improved
+- The app id is now com.rotatsulabs.shotensauce so it installs next to DropSauce; move your library with a backup and restore. The F-Droid build is gone
 - The type of a tracked title also comes from AniList, MyAnimeList and Kitsu (country of origin or format), which is more reliable than a source's genres
 - Chapter volumes from extensions ("Vol.2 Ch.10") are recognised, so the chapter list groups them by volume when every chapter names one
 - Titles that an extension marks as fetch-once are no longer re-checked for new chapters, like in Mihon
