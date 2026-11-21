@@ -7,6 +7,7 @@
 - Track untracked favourites can be run again any time: also search titles that need review again, or send progress for every favourite again
 
 ### Improved
+- Titles that an extension marks as fetch-once are no longer re-checked for new chapters, like in Mihon
 - Extension titles keep their alternative titles, which also helps duplicate detection, search and tracker matching
 - The type is no longer mixed into the genre chips
 - Tracking settings moved to their own "Tracking options" screen with Progress and Actions sections, and Pause stale titles shows its number of days on the same row

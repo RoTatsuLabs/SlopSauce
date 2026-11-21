@@ -1,8 +1,10 @@
 package org.koitharu.kotatsu.tracker.domain
 
+import android.content.Context
 import androidx.annotation.VisibleForTesting
 import androidx.room.withTransaction
 import dagger.Reusable
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.onStart
@@ -15,6 +17,7 @@ import org.koitharu.kotatsu.core.util.ext.mapItems
 import org.koitharu.kotatsu.core.util.ext.toInstantOrNull
 import org.koitharu.kotatsu.details.domain.ProgressUpdateUseCase
 import org.koitharu.kotatsu.list.domain.ListFilterOption
+import org.koitharu.kotatsu.mihon.MihonSourceMetadataStore
 import org.koitharu.kotatsu.parsers.model.Manga
 import org.koitharu.kotatsu.parsers.util.ifZero
 import org.koitharu.kotatsu.tracker.data.TrackEntity
@@ -28,13 +31,17 @@ import javax.inject.Inject
 
 private const val NO_ID = 0L
 private const val MAX_LOG_SIZE = 120
+private const val PAGE_SIZE = 200
 
 @Reusable
 class TrackingRepository @Inject constructor(
 	private val db: MangaDatabase,
 	private val settings: AppSettings,
 	private val progressUpdateUseCase: ProgressUpdateUseCase,
+	@ApplicationContext context: Context,
 ) {
+
+	private val sourceMetadata = MihonSourceMetadataStore(context)
 
 	private var isGcCalled = AtomicBoolean(false)
 
@@ -71,23 +78,39 @@ class TrackingRepository @Inject constructor(
 
 	suspend fun getTracks(offset: Int, limit: Int): List<MangaTracking> {
 		val smartUpdateRules = settings.trackerSmartUpdateRules
-		return db.getTracksDao().findAllForChecking(
-			trackHistory = AppSettings.TRACK_HISTORY in settings.trackSources,
-			trackFavourites = AppSettings.TRACK_FAVOURITES in settings.trackSources,
-			skipCompleted = AppSettings.SMART_UPDATE_SKIP_COMPLETED in smartUpdateRules,
-			skipUnstarted = AppSettings.SMART_UPDATE_SKIP_UNSTARTED in smartUpdateRules,
-			skipUnread = AppSettings.SMART_UPDATE_SKIP_UNREAD in smartUpdateRules,
-			offset = offset,
-			limit = limit,
-		).map {
-			MangaTracking(
-				manga = it.manga.toManga(emptySet(), null),
-				lastChapterId = it.track.lastChapterId,
-				lastCheck = it.track.lastCheckTime.toInstantOrNull(),
-				lastChapterDate = it.track.lastChapterDate.toInstantOrNull(),
-				newChapters = it.track.newChapters,
+		val result = ArrayList<MangaTracking>(limit.coerceAtMost(PAGE_SIZE))
+		var position = offset
+		// Titles the extension marked fetch-once are dropped here, not in the query (the strategy is
+		// not in the database). They never get a new check time, so they stay at the head of the
+		// queue: keep reading pages until the batch is full instead of letting them eat its slots.
+		while (result.size < limit) {
+			val page = db.getTracksDao().findAllForChecking(
+				trackHistory = AppSettings.TRACK_HISTORY in settings.trackSources,
+				trackFavourites = AppSettings.TRACK_FAVOURITES in settings.trackSources,
+				skipCompleted = AppSettings.SMART_UPDATE_SKIP_COMPLETED in smartUpdateRules,
+				skipUnstarted = AppSettings.SMART_UPDATE_SKIP_UNSTARTED in smartUpdateRules,
+				skipUnread = AppSettings.SMART_UPDATE_SKIP_UNREAD in smartUpdateRules,
+				offset = position,
+				limit = PAGE_SIZE.coerceAtMost(limit),
 			)
+			for (it in page) {
+				val tracking = MangaTracking(
+					manga = it.manga.toManga(emptySet(), null),
+					lastChapterId = it.track.lastChapterId,
+					lastCheck = it.track.lastCheckTime.toInstantOrNull(),
+					lastChapterDate = it.track.lastChapterDate.toInstantOrNull(),
+					newChapters = it.track.newChapters,
+				)
+				if (sourceMetadata.isFetchedOnce(tracking.manga, hasFetchedChapters = !tracking.isEmpty())) {
+					continue
+				}
+				result += tracking
+				if (result.size >= limit) break
+			}
+			if (page.size < PAGE_SIZE.coerceAtMost(limit)) break
+			position += page.size
 		}
+		return result
 	}
 
 	suspend fun getTrackOrNull(manga: Manga): MangaTracking? {

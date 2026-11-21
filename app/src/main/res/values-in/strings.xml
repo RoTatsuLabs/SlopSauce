@@ -1445,6 +1445,7 @@
     <string name="smart_update_skip_completed">Dilewati: tamat</string>
     <string name="smart_update_skip_unstarted">Dilewati: belum dimulai</string>
     <string name="smart_update_skip_unread">Dilewati: chapter belum dibaca</string>
+    <string name="smart_update_skip_fetch_once">Dilewati: sumber meminta judul ini hanya diambil sekali</string>
     <string name="text_to_speech">Teks ke suara</string>
     <string name="tts_playing">Memutar</string>
     <string name="tts_paused">Dijeda</string>

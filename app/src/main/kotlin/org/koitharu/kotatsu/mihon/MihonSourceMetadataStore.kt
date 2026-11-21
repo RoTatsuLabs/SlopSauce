@@ -30,6 +30,11 @@ internal class MihonSourceMetadataStore(context: Context) {
 		}
 	}
 
+	/** The extension asked for this title to be fetched once and not re-checked (Mihon's ONLY_FETCH_ONCE). */
+	fun isFetchOnce(sourceId: Long, mangaUrl: String): Boolean =
+		preferences.getString(keyPrefix(sourceId, mangaUrl) + KEY_UPDATE_STRATEGY, null) ==
+			UpdateStrategy.ONLY_FETCH_ONCE.name
+
 	/**
 	 * Persist only the memos of a listing page (used at browse/search time). New-API extensions carry
 	 * the manga id in SManga.memo and need it back inside getMangaUpdate; a full [save] here would

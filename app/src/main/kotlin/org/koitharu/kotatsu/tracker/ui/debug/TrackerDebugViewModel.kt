@@ -1,7 +1,9 @@
 package org.koitharu.kotatsu.tracker.ui.debug
 
+import android.content.Context
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.map
@@ -12,7 +14,9 @@ import org.koitharu.kotatsu.core.db.entity.toManga
 import org.koitharu.kotatsu.core.prefs.AppSettings
 import org.koitharu.kotatsu.core.ui.BaseViewModel
 import org.koitharu.kotatsu.core.util.ext.toInstantOrNull
+import org.koitharu.kotatsu.mihon.MihonSourceMetadataStore
 import org.koitharu.kotatsu.tracker.data.TrackWithManga
+import org.koitharu.kotatsu.tracker.domain.isFetchedOnce
 import org.koitharu.kotatsu.tracker.domain.smartUpdateSkipReason
 import javax.inject.Inject
 
@@ -20,7 +24,10 @@ import javax.inject.Inject
 class TrackerDebugViewModel @Inject constructor(
 	private val db: MangaDatabase,
 	private val settings: AppSettings,
+	@ApplicationContext context: Context,
 ) : BaseViewModel() {
+
+	private val sourceMetadata = MihonSourceMetadataStore(context)
 
 	val content = db.getTracksDao().observeAll()
 		.map { it.toUiList() }
@@ -49,6 +56,7 @@ class TrackerDebugViewModel @Inject constructor(
 					state = manga.state,
 					hasProgress = manga.id in startedIds,
 					newChapters = it.track.newChapters,
+					fetchOnce = sourceMetadata.isFetchedOnce(manga, hasFetchedChapters = it.track.lastChapterId != 0L),
 				),
 			)
 		}

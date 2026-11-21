@@ -1501,6 +1501,7 @@
     <string name="smart_update_skip_completed">Skipped: completed</string>
     <string name="smart_update_skip_unstarted">Skipped: not started</string>
     <string name="smart_update_skip_unread">Skipped: unread chapters</string>
+    <string name="smart_update_skip_fetch_once">Skipped: the source asks to fetch this title only once</string>
     <string name="text_to_speech">Text to speech</string>
     <string name="tts_playing">Playing</string>
     <string name="tts_paused">Paused</string>
