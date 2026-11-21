@@ -39,6 +39,7 @@ import org.koitharu.kotatsu.settings.tracking.TrackingSettingsFragment
 import org.koitharu.kotatsu.core.prefs.AppSettings
 import org.koitharu.kotatsu.core.ui.dialog.showConfirmDialog
 import org.koitharu.kotatsu.core.util.ext.getDisplayMessage
+import org.koitharu.kotatsu.core.util.ext.printStackTraceDebug
 import org.koitharu.kotatsu.scrobbling.common.domain.model.ScrobblerService
 import org.koitharu.kotatsu.scrobbling.common.ui.ScrobblerAuthHelper
 import org.koitharu.kotatsu.reader.ui.eyeReminderDuration
