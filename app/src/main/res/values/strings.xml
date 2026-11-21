@@ -833,12 +833,6 @@
     <string name="auto_pause_stale_summary">Marks titles you have not read for a while as On hold on your trackers</string>
     <string name="auto_pause_after">Pause after</string>
     <string name="auto_pause_days">%1$d days</string>
-    <string name="sync_report">Tracker sync report</string>
-    <string name="sync_report_summary">Titles whose progress differs between the app and your trackers</string>
-    <string name="sync_report_all">Sync all (%1$d)</string>
-    <string name="sync_report_item">%1$s · %2$s: app %3$d, tracker %4$d</string>
-    <string name="sync_report_empty">Everything is in sync</string>
-    <string name="sync_report_done">Synced %1$d of %2$d titles</string>
     <string name="smart_reading_status">Smart reading status</string>
     <string name="smart_reading_status_summary">Updates a title\'s tracker status as you read: Planned, On hold or Dropped becomes Reading, and reaching the last chapter marks it Completed</string>
     <string name="auto_track_link_all">Link all to nearest entry</string>

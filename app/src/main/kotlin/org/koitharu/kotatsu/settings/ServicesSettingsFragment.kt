@@ -30,7 +30,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.snackbar.Snackbar
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -49,9 +48,6 @@ import org.koitharu.kotatsu.core.ui.dialog.DialogAction
 import org.koitharu.kotatsu.core.ui.dialog.showActionChoiceDialog
 import org.koitharu.kotatsu.core.ui.dialog.showConfirmDialog
 import org.koitharu.kotatsu.core.util.ext.getDisplayMessage
-import org.koitharu.kotatsu.core.util.ext.printStackTraceDebug
-import org.koitharu.kotatsu.scrobbling.autotrack.TrackerRateLimitedException
-import org.koitharu.kotatsu.scrobbling.common.domain.ScrobblerSyncReport
 import org.koitharu.kotatsu.scrobbling.common.domain.model.ScrobblerService
 import org.koitharu.kotatsu.scrobbling.common.ui.ScrobblerAuthHelper
 import org.koitharu.kotatsu.reader.ui.eyeReminderDuration
@@ -69,7 +65,6 @@ import org.koitharu.kotatsu.settings.compose.rememberIntPref
 import org.koitharu.kotatsu.settings.discord.DiscordSettingsFragment
 import javax.inject.Inject
 
-private const val SYNC_REPORT_LIMIT = 50
 
 @AndroidEntryPoint
 class ServicesSettingsFragment : BaseComposeSettingsFragment(R.string.services) {
@@ -92,9 +87,6 @@ class ServicesSettingsFragment : BaseComposeSettingsFragment(R.string.services) 
 	@Inject
 	lateinit var database: MangaDatabase
 
-	@Inject
-	lateinit var syncReport: ScrobblerSyncReport
-
 	private val scrobblerSummary = MutableStateFlow<Map<ScrobblerService, String?>>(emptyMap())
 	private val autoTrackStatus = MutableStateFlow<String?>(null)
 	private val reviewCount = MutableStateFlow(0)
@@ -116,7 +108,6 @@ class ServicesSettingsFragment : BaseComposeSettingsFragment(R.string.services) 
 					reviewCount = reviewTotal,
 					onTrackUntracked = ::confirmTrackUntracked,
 					onOpenReview = ::showReviewList,
-					onOpenSyncReport = ::showSyncReport,
 					onOpenSuggestions = {
 						(activity as? SettingsActivity)?.openFragment(
 							SuggestionsSettingsFragment::class.java,
@@ -234,59 +225,6 @@ class ServicesSettingsFragment : BaseComposeSettingsFragment(R.string.services) 
 		}
 	}
 
-	private fun showSyncReport() {
-		val context = context ?: return
-		viewLifecycleOwner.lifecycleScope.launch {
-			if (autoTracker.enabledScrobblers.isEmpty()) {
-				showInfo(R.string.sync_report, getString(R.string.auto_track_no_trackers))
-				return@launch
-			}
-			val items = withContext(Dispatchers.Default) { syncReport.load() }
-			if (items.isEmpty()) {
-				showInfo(R.string.sync_report, getString(R.string.sync_report_empty))
-				return@launch
-			}
-			val shown = items.take(SYNC_REPORT_LIMIT)
-			showActionChoiceDialog(
-				context = context,
-				icon = R.drawable.ic_sync_problem,
-				title = context.getString(R.string.sync_report),
-				actions = listOf(
-					DialogAction(label = context.getString(R.string.sync_report_all, items.size)) { syncAll(items) },
-				) + shown.map { item ->
-					val label = context.getString(
-						R.string.sync_report_item,
-						item.manga.title,
-						context.getString(item.scrobbler.scrobblerService.titleResId),
-						item.app,
-						item.tracker,
-					)
-					DialogAction(label = label) { syncAll(listOf(item)) }
-				},
-			)
-		}
-	}
-
-	private fun syncAll(items: List<ScrobblerSyncReport.Item>) {
-		viewLifecycleOwner.lifecycleScope.launch {
-			var done = 0
-			withContext(Dispatchers.Default) {
-				for (item in items) {
-					try {
-						if (syncReport.sync(item)) done++
-					} catch (e: CancellationException) {
-						throw e
-					} catch (e: TrackerRateLimitedException) {
-						break
-					} catch (e: Exception) {
-						e.printStackTraceDebug()
-					}
-				}
-			}
-			showInfo(R.string.sync_report, getString(R.string.sync_report_done, done, items.size))
-		}
-	}
-
 	private fun showReviewList() {
 		val context = context ?: return
 		viewLifecycleOwner.lifecycleScope.launch {
@@ -383,7 +321,6 @@ private fun ServicesScreen(
 	reviewCount: Int,
 	onTrackUntracked: () -> Unit,
 	onOpenReview: () -> Unit,
-	onOpenSyncReport: () -> Unit,
 	onOpenSuggestions: () -> Unit,
 	onOpenStatistics: () -> Unit,
 	onScrobblerClick: (ScrobblerService) -> Unit,
@@ -573,15 +510,6 @@ private fun ServicesScreen(
 								},
 							)
 						}
-					}
-					item { pos ->
-						ActionSettingsItem(
-							title = stringResource(R.string.sync_report),
-							subtitle = stringResource(R.string.sync_report_summary),
-							icon = R.drawable.ic_sync_problem,
-							shape = pos.shape,
-							onClick = onOpenSyncReport,
-						)
 					}
 					item { pos ->
 						ActionSettingsItem(

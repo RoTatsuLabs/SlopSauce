@@ -8,7 +8,6 @@
 - Smart reading status: a tracker title moves to Reading when you read it, comes back from On hold or Dropped, becomes Re-reading when you restart it and Completed at the last chapter (switch in Services)
 - Tracker start and finish dates for AniList, MyAnimeList, Kitsu and MangaBaka
 - Pause stale titles: Reading titles you have not opened for 30 to 180 days move to On hold (off by default)
-- Tracker sync report in Services, with Sync all
 - "Link all to nearest entry" in Needs review
 - Track untracked favourites can be run again any time: also search titles that need review again, or send progress for every favourite again
 - Blur sensitive covers: 18+ titles and the genres you pick are blurred, and holding a cover lets you peek

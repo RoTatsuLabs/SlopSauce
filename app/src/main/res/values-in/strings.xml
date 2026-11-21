@@ -723,12 +723,6 @@
     <string name="auto_pause_stale_summary">Menandai judul yang sudah lama tidak kamu baca sebagai Ditunda di trackermu</string>
     <string name="auto_pause_after">Jeda setelah</string>
     <string name="auto_pause_days">%1$d hari</string>
-    <string name="sync_report">Laporan sinkronisasi tracker</string>
-    <string name="sync_report_summary">Judul yang progresnya berbeda antara aplikasi dan trackermu</string>
-    <string name="sync_report_all">Sinkronkan semua (%1$d)</string>
-    <string name="sync_report_item">%1$s · %2$s: aplikasi %3$d, tracker %4$d</string>
-    <string name="sync_report_empty">Semuanya sudah sinkron</string>
-    <string name="sync_report_done">%1$d dari %2$d judul disinkronkan</string>
     <string name="smart_reading_status">Status baca pintar</string>
     <string name="smart_reading_status_summary">Memperbarui status tracker saat kamu membaca: Direncanakan, Ditunda, atau Didrop menjadi Dibaca, dan mencapai chapter terakhir menandainya Selesai</string>
     <string name="in_favourites_from">Di favorit · %s</string>
