@@ -24,6 +24,7 @@ import org.koitharu.kotatsu.scrobbling.common.data.ScrobblerStorage
 import org.koitharu.kotatsu.scrobbling.common.data.ScrobblingEntity
 import org.koitharu.kotatsu.scrobbling.common.domain.model.ScrobblerManga
 import org.koitharu.kotatsu.scrobbling.common.domain.model.ScrobblerMangaInfo
+import org.koitharu.kotatsu.scrobbling.common.domain.model.ScrobblerTitleType
 import org.koitharu.kotatsu.scrobbling.common.domain.model.ScrobblerMangaStatus
 import org.koitharu.kotatsu.scrobbling.common.domain.model.cleanAltNames
 import org.koitharu.kotatsu.scrobbling.common.domain.model.stringList
@@ -327,6 +328,8 @@ class AniListRepository @Inject constructor(
 				}
 				averageScore
 				isAdult
+				countryOfOrigin
+				format
 				staff(perPage: 8) {
 					edges {
 						role
@@ -437,6 +440,17 @@ class AniListRepository @Inject constructor(
 			year = json.optJSONObject("startDate")?.optInt("year") ?: 0,
 			score = json.optDouble("averageScore", 0.0).toFloat() / 10f,
 			isAdult = json.optBoolean("isAdult", false),
+			type = when {
+				// AniList files prose and one-shots by format, everything else by where it was made
+				json.optString("format") == "NOVEL" -> ScrobblerTitleType.NOVEL
+				json.optString("format") == "ONE_SHOT" -> ScrobblerTitleType.ONE_SHOT
+				else -> when (json.optString("countryOfOrigin")) {
+					"KR" -> ScrobblerTitleType.MANHWA
+					"CN", "TW", "HK" -> ScrobblerTitleType.MANHUA
+					"JP" -> ScrobblerTitleType.MANGA
+					else -> null
+				}
+			},
 		)
 	}
 

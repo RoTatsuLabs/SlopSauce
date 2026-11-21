@@ -23,6 +23,7 @@ import org.koitharu.kotatsu.scrobbling.common.data.ScrobblerStorage
 import org.koitharu.kotatsu.scrobbling.common.data.ScrobblingEntity
 import org.koitharu.kotatsu.scrobbling.common.domain.model.ScrobblerManga
 import org.koitharu.kotatsu.scrobbling.common.domain.model.ScrobblerMangaInfo
+import org.koitharu.kotatsu.scrobbling.common.domain.model.ScrobblerTitleType
 import org.koitharu.kotatsu.scrobbling.common.domain.model.ScrobblerMangaStatus
 import org.koitharu.kotatsu.scrobbling.common.domain.model.cleanAltNames
 import org.koitharu.kotatsu.scrobbling.common.domain.model.stringList
@@ -170,6 +171,15 @@ class KitsuRepository(
 			year = attrs.optString("startDate").take(4).toIntOrNull() ?: 0,
 			score = (attrs.optString("averageRating").toFloatOrNull() ?: 0f) / 10f,
 			isAdult = attrs.optString("ageRating") == "R18" || attrs.optBoolean("nsfw", false),
+			type = when (attrs.optString("subtype")) {
+				"manga" -> ScrobblerTitleType.MANGA
+				"manhwa" -> ScrobblerTitleType.MANHWA
+				"manhua" -> ScrobblerTitleType.MANHUA
+				"novel" -> ScrobblerTitleType.NOVEL
+				"oneshot" -> ScrobblerTitleType.ONE_SHOT
+				"doujin" -> ScrobblerTitleType.DOUJINSHI
+				else -> null
+			},
 		)
 	}
 

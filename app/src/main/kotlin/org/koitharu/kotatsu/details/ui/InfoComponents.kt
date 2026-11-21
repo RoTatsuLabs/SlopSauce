@@ -72,7 +72,7 @@ internal fun InfoGrid(
 						label = typeLabel,
 						value = formats.joinToString(" · ") { context.getString(it.format.titleResId) },
 						highlighted = true,
-						onClick = { onFormatClick(formats.first().tag) },
+						onClick = formats.firstNotNullOfOrNull { it.tag }?.let { tag -> { onFormatClick(tag) } },
 					),
 				)
 			}

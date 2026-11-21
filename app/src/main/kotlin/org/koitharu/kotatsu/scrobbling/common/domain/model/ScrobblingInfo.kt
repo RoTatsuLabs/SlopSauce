@@ -25,6 +25,8 @@ data class ScrobblingInfo(
 	val year: Int = 0,
 	val score: Float = 0f,
 	val isAdult: Boolean = false,
+	/** One of [ScrobblerTitleType], or null when the tracker does not say. */
+	val type: String? = null,
 ) : ListModel {
 
 	override fun areItemsTheSame(other: ListModel): Boolean {

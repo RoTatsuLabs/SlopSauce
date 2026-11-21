@@ -247,6 +247,7 @@ abstract class Scrobbler(
 			year = mangaInfo.year,
 			score = mangaInfo.score,
 			isAdult = mangaInfo.isAdult,
+			type = mangaInfo.type,
 		)
 	}
 }

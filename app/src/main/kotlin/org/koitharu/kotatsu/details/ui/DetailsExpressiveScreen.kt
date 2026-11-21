@@ -168,7 +168,9 @@ fun DetailsExpressiveScreen(
 			InfoGrid(
 				manga = manga,
 				details = details,
-				formats = manga.tags.formatTags(),
+				formats = remember(manga.tags, scrobblings) {
+					resolveFormats(manga.tags.formatTags(), scrobblings.map { it.type })
+				},
 				accent = accentColor,
 				onFormatClick = actions.onTagClick,
 			)

@@ -19,6 +19,7 @@ import org.koitharu.kotatsu.scrobbling.common.data.ScrobblerStorage
 import org.koitharu.kotatsu.scrobbling.common.data.ScrobblingEntity
 import org.koitharu.kotatsu.scrobbling.common.domain.model.ScrobblerManga
 import org.koitharu.kotatsu.scrobbling.common.domain.model.ScrobblerMangaInfo
+import org.koitharu.kotatsu.scrobbling.common.domain.model.ScrobblerTitleType
 import org.koitharu.kotatsu.scrobbling.common.domain.model.ScrobblerMangaStatus
 import org.koitharu.kotatsu.scrobbling.common.domain.model.cleanAltNames
 import org.koitharu.kotatsu.scrobbling.common.domain.model.stringList
@@ -131,7 +132,7 @@ class MALRepository @Inject constructor(
 			.addPathSegment(id.toString())
 			.addQueryParameter(
 				"fields",
-				"synopsis,num_chapters,genres,alternative_titles,authors{first_name,last_name},status,start_date,mean,nsfw",
+				"synopsis,num_chapters,genres,alternative_titles,authors{first_name,last_name},status,start_date,mean,nsfw,media_type",
 			)
 			.build()
 		val request = Request.Builder().url(url)
@@ -310,6 +311,15 @@ class MALRepository @Inject constructor(
 			year = json.optString("start_date").take(4).toIntOrNull() ?: 0,
 			score = json.optDouble("mean", 0.0).toFloat(),
 			isAdult = json.optString("nsfw") == "black",
+			type = when (json.optString("media_type")) {
+				"manga" -> ScrobblerTitleType.MANGA
+				"manhwa" -> ScrobblerTitleType.MANHWA
+				"manhua" -> ScrobblerTitleType.MANHUA
+				"novel", "light_novel" -> ScrobblerTitleType.NOVEL
+				"one_shot" -> ScrobblerTitleType.ONE_SHOT
+				"doujinshi" -> ScrobblerTitleType.DOUJINSHI
+				else -> null
+			},
 		)
 	}
 

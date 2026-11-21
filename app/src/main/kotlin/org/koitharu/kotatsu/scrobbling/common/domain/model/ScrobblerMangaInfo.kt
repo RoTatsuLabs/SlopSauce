@@ -20,7 +20,20 @@ class ScrobblerMangaInfo(
 	/** The tracker's average score from 0 to 10, or 0 when unknown. */
 	val score: Float = 0f,
 	val isAdult: Boolean = false,
+	/** What kind of title the tracker says this is, as one of [ScrobblerTitleType], or null when unknown. */
+	val type: String? = null,
 )
+
+/** Kinds of title a tracker can name. Kept as strings so each tracker maps its own values onto them. */
+object ScrobblerTitleType {
+
+	const val MANGA = "manga"
+	const val MANHWA = "manhwa"
+	const val MANHUA = "manhua"
+	const val NOVEL = "novel"
+	const val ONE_SHOT = "one_shot"
+	const val DOUJINSHI = "doujinshi"
+}
 
 /** Reads the strings of a JSON array, or one key of each object in it. Missing or odd data gives an empty list. */
 internal fun JSONArray?.stringList(key: String? = null): List<String> {
