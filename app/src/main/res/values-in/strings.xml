@@ -213,6 +213,11 @@
     <string name="status_completed">Selesai</string>
     <string name="canceled">Dibatalkan</string>
     <string name="tracking">Pelacakan</string>
+    <string name="tracking_options">Opsi pelacakan</string>
+    <string name="tracking_options_summary">Lacak otomatis, status baca, dan tinjauan</string>
+    <string name="tracking_section_progress">Progres</string>
+    <string name="tracking_section_actions">Aksi</string>
+    <string name="auto_pause_stale_after_summary">Menandai judul yang tidak kamu baca selama %1$d hari sebagai Ditunda di trackermu</string>
     <string name="logout">Keluar</string>
     <string name="status_reading">Dibaca</string>
     <string name="status_on_hold">Ditunda</string>
