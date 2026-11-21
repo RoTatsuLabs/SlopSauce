@@ -158,7 +158,12 @@ tailrec fun MangaSource.unwrap(): MangaSource = if (this is MangaSourceInfo) {
 	this
 }
 
-fun MangaSource.getLocale(): Locale? = null
+/** The language an extension declares for its source; "all" and other non-language codes give none. */
+fun MangaSource.getLocale(): Locale? {
+	val lang = (unwrap() as? MihonMangaSource)?.language ?: return null
+	if (lang == "all" || (lang.length > 3 && !lang.contains('-'))) return null
+	return Locale.forLanguageTag(lang).takeIf { it.language.length in 2..3 }
+}
 
 fun MangaSource.getSummary(context: Context): String? = when (val source = unwrap()) {
 	// Same info the extension manager shows under each extension: language • version • repo.
